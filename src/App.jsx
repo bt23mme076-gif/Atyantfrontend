@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
   TrendingUp, Bookmark, Send, Pencil, Star,
-  Clock, CheckCircle, Lock, ChevronRight, Search
+  Clock, CheckCircle, Lock, ChevronRight, Search,
+  UserCircle2, LogIn, X
 } from "lucide-react";
 
 const C = {
@@ -91,6 +92,7 @@ function AskAtyantPage() {
           </div>
         ))}
       </div>
+
     </div>
   );
 }
@@ -356,9 +358,122 @@ function SavedAnswersPage() {
   );
 }
 
+// ─── Profile Page ─────────────────────────────────────────────────────────────
+function ProfilePage() {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("Rahul Mehta");
+  const [college, setCollege] = useState("VNIT Nagpur");
+  const [branch, setBranch] = useState("Metallurgy");
+  const [year, setYear] = useState("Year 3");
+  const [cgpa, setCgpa] = useState("7.8");
+  const [goal, setGoal] = useState("AI/ML Internship");
+  const [bio, setBio] = useState("Core engineering student trying to break into AI/ML. Looking for mentors who've made the same switch.");
+
+  const stats = [
+    { label: "Sessions Done", value: "3" },
+    { label: "Saved Answers", value: "5" },
+    { label: "Roadmap Progress", value: "25%" },
+  ];
+
+  const skills = ["Python (learning)", "MATLAB", "Materials Science", "Data Analysis"];
+  const goals = ["AI/ML Internship", "Open Source Contribution", "IIM Summer Internship"];
+
+  const Field = ({ label, value, onChange }) => (
+    <div style={{ marginBottom: "1rem" }}>
+      <label style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", color: C.textMuted, display: "block", marginBottom: 5 }}>{label}</label>
+      {editing
+        ? <input value={value} onChange={e => onChange(e.target.value)}
+            style={{ width: "100%", background: C.active, border: `1px solid ${C.accent}55`, borderRadius: 8, padding: "9px 13px", color: C.text, fontSize: "0.88rem", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+        : <div style={{ fontSize: "0.9rem", color: C.text, padding: "9px 0" }}>{value}</div>
+      }
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "2rem", maxWidth: 640 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "2rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div style={{ position: "relative" }}>
+            <div style={{ width: 72, height: 72, borderRadius: "50%", background: C.accentSoft, border: `2.5px solid ${C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700, color: C.accentText }}>
+              RM
+            </div>
+            <span style={{ position: "absolute", bottom: 3, right: 3, width: 13, height: 13, borderRadius: "50%", background: C.green, border: `2.5px solid ${C.bg}` }} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: "1.4rem", fontWeight: 600, color: C.text, margin: 0, marginBottom: 4 }}>{name}</h2>
+            <div style={{ fontSize: "0.82rem", color: C.textSub }}>{college} · {branch} · {year}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block" }} />
+              <span style={{ fontSize: "0.72rem", color: C.textMuted }}>Active now</span>
+            </div>
+          </div>
+        </div>
+        <button onClick={() => setEditing(!editing)}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: editing ? C.accent : C.card, border: `1px solid ${editing ? C.accent : C.cardBorder}`, borderRadius: 9, padding: "8px 16px", color: editing ? "#fff" : C.textSub, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+          <Pencil size={13} />
+          {editing ? "Save" : "Edit Profile"}
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: "2rem" }}>
+        {stats.map((s, i) => (
+          <div key={i} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "1rem", textAlign: "center" }}>
+            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: C.accentText, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 5 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Details */}
+      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1.5rem", marginBottom: "1.25rem" }}>
+        <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "1.25rem" }}>PROFILE DETAILS</div>
+        <Field label="FULL NAME" value={name} onChange={setName} />
+        <Field label="COLLEGE" value={college} onChange={setCollege} />
+        <Field label="BRANCH" value={branch} onChange={setBranch} />
+        <Field label="YEAR" value={year} onChange={setYear} />
+        <Field label="CGPA" value={cgpa} onChange={setCgpa} />
+        <div style={{ marginBottom: 0 }}>
+          <label style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", color: C.textMuted, display: "block", marginBottom: 5 }}>BIO</label>
+          {editing
+            ? <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
+                style={{ width: "100%", background: C.active, border: `1px solid ${C.accent}55`, borderRadius: 8, padding: "9px 13px", color: C.text, fontSize: "0.88rem", outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box" }} />
+            : <div style={{ fontSize: "0.88rem", color: C.textSub, lineHeight: 1.6, paddingTop: 6 }}>{bio}</div>
+          }
+        </div>
+      </div>
+
+      {/* Goals */}
+      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1.5rem", marginBottom: "1.25rem" }}>
+        <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "1rem" }}>CURRENT GOALS</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {goals.map((g, i) => (
+            <span key={i} style={{ background: i === 0 ? C.accentSoft : C.active, border: `1px solid ${i === 0 ? C.accent + "55" : C.cardBorder}`, borderRadius: 999, padding: "5px 14px", fontSize: "0.8rem", color: i === 0 ? C.accentText : C.textSub }}>
+              {i === 0 && "→ "}{g}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Skills */}
+      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1.5rem" }}>
+        <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "1rem" }}>SKILLS</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {skills.map((s, i) => (
+            <span key={i} style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "5px 14px", fontSize: "0.8rem", color: C.textSub }}>{s}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── App Shell ────────────────────────────────────────────────────────────────
 export default function App() {
   const [activePage, setActivePage] = useState("ask");
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -388,6 +503,7 @@ export default function App() {
     sessions: <MySessionsPage />,
     roadmap: <MyRoadmapPage />,
     saved: <SavedAnswersPage />,
+    profile: <ProfilePage />,
   };
 
   const NavItem = ({ item }) => {
@@ -427,25 +543,95 @@ export default function App() {
 
         {/* Profile */}
         <div style={{ padding: "0.875rem 0.875rem", borderTop: `1px solid ${C.sidebarBorder}` }}>
-          <div style={{ background: C.active, border: `1px solid ${C.activeBorder}`, borderRadius: 12, padding: "11px 13px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-            onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
-            onMouseLeave={e => e.currentTarget.style.background = C.active}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.accentSoft, border: `1.5px solid ${C.accent + "70"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
-              RM
+          <div onClick={() => setActivePage("profile")}
+            style={{ background: activePage === "profile" ? C.cardHover : C.active, border: `1px solid ${activePage === "profile" ? C.accent + "55" : C.activeBorder}`, borderRadius: 12, padding: "11px 13px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.borderColor = C.accent + "55"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = activePage === "profile" ? C.cardHover : C.active; e.currentTarget.style.borderColor = activePage === "profile" ? C.accent + "55" : C.activeBorder; }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: C.accentSoft, border: `1.5px solid ${C.accent}70`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: C.accentText }}>
+                RM
+              </div>
+              <span style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: C.green, border: `2px solid ${C.sidebar}` }} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: "0.86rem", fontWeight: 500, color: C.text }}>Rahul Mehta</div>
               <div style={{ fontSize: "0.7rem", color: C.textMuted, marginTop: 1 }}>VNIT · Metallurgy · Y3</div>
             </div>
-            <ChevronRight size={13} color={C.textMuted} />
+            <ChevronRight size={13} color={activePage === "profile" ? C.accentText : C.textMuted} />
           </div>
         </div>
       </div>
 
       {/* ── Main Content ── */}
-      <div style={{ flex: 1, overflowY: "auto", height: "100vh" }}>
-        {pages[activePage]}
+      <div style={{ flex: 1, overflowY: "auto", height: "100vh", display: "flex", flexDirection: "column" }}>
+
+        {/* Top Bar */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: "14px 24px", borderBottom: `1px solid ${C.sidebarBorder}`, background: C.sidebar, flexShrink: 0 }}>
+          {signedIn ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: C.accentSoft, border: `1.5px solid ${C.accent}70`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: C.accentText }}>
+                RM
+              </div>
+              <span style={{ fontSize: "0.82rem", color: C.textSub }}>Rahul Mehta</span>
+              <button onClick={() => setSignedIn(false)}
+                style={{ background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: C.textMuted, fontSize: "0.75rem", cursor: "pointer", fontFamily: "inherit" }}>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowSignIn(true)}
+              style={{ display: "flex", alignItems: "center", gap: 7, background: C.accent, border: "none", borderRadius: 9, padding: "8px 18px", color: "#fff", fontSize: "0.84rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.01em" }}>
+              <LogIn size={14} />
+              Sign in
+            </button>
+          )}
+        </div>
+
+        {/* Page Content */}
+        <div style={{ flex: 1 }}>{pages[activePage]}</div>
       </div>
+
+      {/* ── Sign In Modal ── */}
+      {showSignIn && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+          onClick={e => e.target === e.currentTarget && setShowSignIn(false)}>
+          <div style={{ background: C.sidebar, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "2rem", width: 360, position: "relative" }}>
+            {/* Close */}
+            <button onClick={() => setShowSignIn(false)}
+              style={{ position: "absolute", top: 14, right: 14, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.textSub }}>
+              <X size={14} />
+            </button>
+
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: "1.75rem" }}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700 }}>✦</div>
+              <span style={{ fontWeight: 600, fontSize: "1rem", color: C.text }}>Sign in to Atyant</span>
+            </div>
+
+            {/* Fields */}
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={{ fontSize: "0.75rem", color: C.textSub, display: "block", marginBottom: 6, letterSpacing: "0.05em" }}>EMAIL</label>
+              <input defaultValue="rahul.mehta@vnit.ac.in"
+                style={{ width: "100%", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "10px 14px", color: C.text, fontSize: "0.88rem", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ fontSize: "0.75rem", color: C.textSub, display: "block", marginBottom: 6, letterSpacing: "0.05em" }}>PASSWORD</label>
+              <input type="password" defaultValue="••••••••"
+                style={{ width: "100%", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "10px 14px", color: C.text, fontSize: "0.88rem", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+            </div>
+
+            <button onClick={() => { setSignedIn(true); setShowSignIn(false); }}
+              style={{ width: "100%", background: C.accent, border: "none", borderRadius: 10, padding: "11px", color: "#fff", fontSize: "0.92rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Sign in →
+            </button>
+
+            <p style={{ textAlign: "center", fontSize: "0.78rem", color: C.textMuted, marginTop: "1.25rem", marginBottom: 0 }}>
+              Don't have an account?{" "}
+              <span style={{ color: C.accentText, cursor: "pointer" }}>Sign up</span>
+            </p>
+          </div>
+        </div>
+      )}
 
     </div>
   );
