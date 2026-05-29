@@ -6,6 +6,8 @@ import {
   UserCircle2, LogIn, X
 } from "lucide-react";
 
+import ClarityView from "./components/clarity/ClarityView";
+
 const C = {
   bg: "#0d0c0a",
   sidebar: "#131210",
@@ -98,50 +100,6 @@ function AskAtyantPage() {
 }
 
 // ─── Clarity Results ─────────────────────────────────────────────────────────
-function ClarityResultsPage() {
-  const mentors = [
-    { name: "Arjun Verma", role: "AI/ML Engineer at Flipkart", bg: "VNIT · Metallurgy · 2023", match: 97, sessions: 18, rating: 4.9 },
-    { name: "Priya Sharma", role: "Data Scientist at Razorpay", bg: "VNIT · Civil · 2022", match: 94, sessions: 24, rating: 4.8 },
-    { name: "Rohan Desai", role: "ML Intern at Google", bg: "VNIT · Mech · 2024", match: 91, sessions: 9, rating: 5.0 },
-    { name: "Sneha Nair", role: "SWE at Microsoft", bg: "VNIT · Metallurgy · 2023", match: 88, sessions: 31, rating: 4.7 },
-  ];
-
-  return (
-    <div style={{ padding: "2rem" }}>
-      <div style={{ marginBottom: "1.75rem" }}>
-        <h2 style={{ fontSize: "1.35rem", fontWeight: 500, color: C.text, marginBottom: 4 }}>Clarity Results</h2>
-        <p style={{ color: C.textSub, fontSize: "0.88rem" }}>Seniors who solved exactly what you're working on — ranked by background match.</p>
-      </div>
-      <div style={{ display: "grid", gap: 10 }}>
-        {mentors.map((m, i) => (
-          <div key={i} style={{ background: C.card, border: `1px solid ${i === 0 ? C.accent + "50" : C.cardBorder}`, borderRadius: 14, padding: "1.1rem 1.4rem", display: "flex", alignItems: "center", gap: 14 }}>
-            {i === 0 && <div style={{ position: "absolute", background: C.accent, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, letterSpacing: "0.1em" }} />}
-            <div style={{ width: 46, height: 46, borderRadius: "50%", background: C.active, border: `1.5px solid ${C.activeBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
-              {m.name.split(" ").map(n => n[0]).join("")}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 500, color: C.text, fontSize: "0.9rem", marginBottom: 2 }}>{m.name}</div>
-              <div style={{ fontSize: "0.8rem", color: C.textSub }}>{m.role}</div>
-              <div style={{ fontSize: "0.74rem", color: C.textMuted, marginTop: 2 }}>{m.bg}</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 8 }}>
-              <Star size={12} fill={C.accentText} color={C.accentText} />
-              <span style={{ fontSize: "0.8rem", color: C.textSub }}>{m.rating}</span>
-              <span style={{ fontSize: "0.74rem", color: C.textMuted, marginLeft: 4 }}>{m.sessions} sessions</span>
-            </div>
-            <div style={{ textAlign: "right", marginRight: 12 }}>
-              <div style={{ fontSize: "1.2rem", fontWeight: 600, color: C.accentText, lineHeight: 1 }}>{m.match}%</div>
-              <div style={{ fontSize: "0.68rem", color: C.textMuted }}>match</div>
-            </div>
-            <button style={{ background: C.accent, border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontSize: "0.8rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-              Book
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ─── Book a Session ───────────────────────────────────────────────────────────
 function BookSessionPage() {
@@ -498,7 +456,7 @@ export default function App() {
 
   const pages = {
     ask: <AskAtyantPage />,
-    clarity: <ClarityResultsPage />,
+    clarity: <ClarityView />,
     book: <BookSessionPage />,
     sessions: <MySessionsPage />,
     roadmap: <MyRoadmapPage />,
