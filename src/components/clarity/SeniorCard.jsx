@@ -1,82 +1,80 @@
 import { motion } from "framer-motion";
 
+// Design tokens
+const T = {
+  bg: "#0d0c0a",
+  card: "#1a1714",
+  cardBorder: "#2d2820",
+  accent: "#d4891a",
+  accentSoft: "#d4891a22",
+  accentText: "#f0a93a",
+  text: "#ede8de",
+  textSub: "#967f68",
+  textMuted: "#5a5040",
+  green: "#2d8a5f",
+};
+
+const AVATAR = {
+  AK: { bg: "rgba(117,103,201,0.28)", text: "#A99DF0" },
+  PS: { bg: "rgba(59,130,246,0.22)",  text: "#7EB8F7" },
+  RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
+};
+
 export default function SeniorCard({ mentor, isSelected, onClick }) {
-  const avatarColors = {
-    AK: { bg: "rgba(139,92,246,0.25)", text: "#a78bfa" },
-    PS: { bg: "rgba(59,130,246,0.25)", text: "#60a5fa" },
-    RT: { bg: "rgba(245,158,11,0.25)", text: "#fbbf24" },
-  };
-  const colors = avatarColors[mentor.initials] || { bg: "rgba(107,114,128,0.25)", text: "#9ca3af" };
+  const av = AVATAR[mentor.initials] || { bg: "rgba(150,144,171,0.2)", text: T.textSub };
 
   return (
     <motion.div
       onClick={onClick}
-      whileHover={{ scale: 1.015, y: -1 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="relative cursor-pointer rounded-2xl p-4 transition-all duration-200"
+      whileHover={{ scale: 1.018, y: -1 }}
+      whileTap={{ scale: 0.985 }}
+      transition={{ type: "spring", stiffness: 420, damping: 30 }}
+      className="relative cursor-pointer rounded-2xl p-4"
       style={{
-        background: isSelected ? "rgba(245,158,11,0.06)" : "#141414",
-        border: isSelected ? "1px solid rgba(245,158,11,0.5)" : "1px solid #262626",
+        background: isSelected ? T.active : T.card,
+        border: `1px solid ${isSelected ? T.activeBorder : T.cardBorder}`,
         boxShadow: isSelected
-          ? "0 0 0 1px rgba(245,158,11,0.2), 0 4px 24px rgba(245,158,11,0.08)"
-          : "0 1px 8px rgba(0,0,0,0.3)",
+          ? `0 0 0 1px ${T.accent}30, 0 4px 24px ${T.accent}14`
+          : "0 1px 6px rgba(0,0,0,0.35)",
+        transition: "background 0.18s, border-color 0.18s, box-shadow 0.18s",
       }}
     >
-      {/* Top row: avatar + name + match % */}
-      <div className="flex items-start gap-3 mb-3">
-        {/* Avatar */}
+      {/* Avatar + Name + Match% */}
+      <div className="flex items-start gap-3 mb-2.5">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: colors.bg, color: colors.text, fontFamily: "Inter, sans-serif" }}
+          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ background: av.bg, color: av.text, fontFamily: "Inter, sans-serif" }}
         >
           {mentor.initials}
         </div>
-
-        {/* Name + role */}
         <div className="flex-1 min-w-0">
-          <p
-            className="text-sm font-semibold leading-tight truncate"
-            style={{ color: "#F5F5F4", fontFamily: "Fraunces, serif" }}
-          >
+          <p className="text-sm font-semibold leading-tight truncate"
+            style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
             {mentor.name}
           </p>
-          <p className="text-xs mt-0.5 truncate" style={{ color: "#A8A29E", fontFamily: "Inter, sans-serif" }}>
+          <p className="text-xs mt-0.5 truncate" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
             {mentor.role}
           </p>
         </div>
-
-        {/* Match % */}
         <div className="flex-shrink-0 text-right">
-          <span
-            className="text-lg font-bold leading-none"
-            style={{ color: "#FB923C", fontFamily: "Fraunces, serif" }}
-          >
+          <span className="text-lg font-bold leading-none"
+            style={{ color: T.accent, fontFamily: "Fraunces, serif" }}>
             {mentor.matchPct}%
           </span>
-          <p className="text-xs mt-0.5" style={{ color: "#737373", fontFamily: "Inter, sans-serif" }}>
-            match
-          </p>
+          <p className="text-xs" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>match</p>
         </div>
       </div>
 
       {/* Why matched */}
-      <p
-        className="text-xs leading-relaxed"
-        style={{ color: "#A8A29E", fontFamily: "Inter, sans-serif" }}
-      >
-        <span className="font-semibold" style={{ color: "#737373" }}>
-          Why matched:{" "}
-        </span>
+      <p className="text-xs leading-relaxed" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
+        <span className="font-semibold" style={{ color: T.textMuted }}>Why matched: </span>
         {mentor.matchReason}
       </p>
 
-      {/* Selected indicator dot */}
+      {/* Selected glow dot */}
       {isSelected && (
-        <div
-          className="absolute top-3 right-3 w-2 h-2 rounded-full"
-          style={{ background: "#F59E0B" }}
-        />
+        <div className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full"
+          style={{ background: T.accent, boxShadow: `0 0 6px ${T.accent}` }} />
       )}
     </motion.div>
   );

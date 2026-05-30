@@ -457,7 +457,7 @@ export default function App() {
 
   const pages = {
     ask: <AskAtyantPage />,
-    clarity: <ClarityView />,
+    clarity: <ClarityView setActivePage={setActivePage} />,
     book: <BookingPage />,
     sessions: <MySessionsPage />,
     roadmap: <MyRoadmapPage />,

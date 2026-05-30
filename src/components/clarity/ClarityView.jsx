@@ -1,10 +1,28 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle } from "lucide-react";
+import { Menu, X, MessageSquare } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
+// ── Design tokens (violet scheme — intentionally different from App.jsx warm browns)
+const T = {
+  bg: "#0d0c0a",
+  sidebar: "#131210",
+  sidebarBorder: "#232018",
+  card: "#1a1714",
+  cardBorder: "#2d2820",
+  active: "#221f19",
+  activeBorder: "#3a3228",
+  accent: "#d4891a",
+  accentSoft: "#d4891a22",
+  accentText: "#f0a93a",
+  text: "#ede8de",
+  textSub: "#967f68",
+  textMuted: "#5a5040",
+  green: "#2d8a5f",
+};
+
+// ── Mock mentor data ──────────────────────────────────────────────────────────
 const MOCK_MENTORS = [
   {
     id: 1,
@@ -15,15 +33,15 @@ const MOCK_MENTORS = [
     college: "VNIT Nagpur",
     branch: "Metallurgy",
     matchPct: 96,
-    matchReason: "Same college, same branch, same starting point (zero ML). Solved this in 6 months.",
+    matchReason: "Same college, same branch, same zero-ML starting point. Solved this in 6 months.",
     verifiedVia: "Offer Letter + LinkedIn",
     story:
-      "I started with <strong style='color:#F5F5F4'>zero ML experience in Y2</strong>. The honest answer: college syllabus won't help here. I did Andrew Ng's ML course first (3 weeks), then built 2 projects on Kaggle. The key was <strong style='color:#F5F5F4'>cold-emailing VNIT professors first</strong> — got a minor project under Prof. Bhushan which gave me a project to mention. From there, applied to 40+ startups on LinkedIn, not big companies. Walmart Labs was application #34.",
+      "I started with <strong style='color:#ECEAF3'>zero ML experience in Y2</strong>. The honest answer: college syllabus won't help here. I did Andrew Ng's ML course first (3 weeks), then built 2 projects on Kaggle. The key was <strong style='color:#ECEAF3'>cold-emailing VNIT professors first</strong> — got a minor project under Prof. Bhushan which gave me a project to mention. From there, applied to 40+ startups on LinkedIn, not big companies. Walmart Labs was application #34.",
     outcome: "ML Intern @ Walmart Labs (₹35K/mo) · 6 months after starting · Now full-time SDE-1",
     tags: ["Same College", "Same Branch", "Zero ML Start", "Tier-2 College", "Y2 Start"],
     studentsHelped: "47",
     rating: "4.9★",
-    timeline: "6 months",
+    timeline: "6 mo",
   },
   {
     id: 2,
@@ -37,12 +55,12 @@ const MOCK_MENTORS = [
     matchReason: "Same college type, materials background, went analytics → ML. Finance-tech target.",
     verifiedVia: "Offer Letter + LinkedIn",
     story:
-      "Materials Engineering sounds miles away from Data Science, but the math overlap is real. I leaned into my <strong style='color:#F5F5F4'>stats coursework from metallurgy</strong> and picked up Python during semester breaks. Applied for finance-side DS roles where the quant background was actually valued. Goldman wanted someone who understood structured data from domain knowledge — that's exactly what a materials engineer brings.",
+      "Materials Engineering sounds miles away from Data Science, but the math overlap is real. I leaned into my <strong style='color:#ECEAF3'>stats coursework from metallurgy</strong> and picked up Python during semester breaks. Applied for finance-side DS roles where the quant background was actually valued. Goldman wanted someone who understood structured data — that's exactly what a materials engineer brings.",
     outcome: "Data Science Analyst @ Goldman Sachs · 8 months after starting quantitative prep",
     tags: ["Same College Type", "Materials Background", "Analytics → ML", "Finance Track", "Tier-2 NIT"],
     studentsHelped: "31",
     rating: "4.8★",
-    timeline: "8 months",
+    timeline: "8 mo",
   },
   {
     id: 3,
@@ -56,314 +74,318 @@ const MOCK_MENTORS = [
     matchReason: "NIT Tier-2 (MNNIT), Mechanical → ML path. Product company internship focus.",
     verifiedVia: "Offer Letter + LinkedIn",
     story:
-      "Mechanical to ML is the most common non-CS pivot I've seen. The trick nobody tells you: <strong style='color:#F5F5F4'>don't hide your branch, weaponize it</strong>. Flipkart's supply chain ML team actively wanted domain knowledge from mechanical/industrial folks. Built a demand forecasting model using manufacturing principles I already knew. That framing got me the interview — the skills got me the offer.",
+      "Mechanical to ML is the most common non-CS pivot I've seen. The trick nobody tells you: <strong style='color:#ECEAF3'>don't hide your branch, weaponize it</strong>. Flipkart's supply chain ML team actively wanted domain knowledge from mechanical/industrial folks. Built a demand forecasting model using manufacturing principles I already knew. That framing got me the interview — the skills got me the offer.",
     outcome: "ML Intern @ Flipkart (Supply Chain AI) · ₹30K/mo · 7 months after starting",
     tags: ["NIT Tier-2", "Non-CS Branch", "Product Company", "Supply Chain AI", "Domain Pivot"],
     studentsHelped: "28",
     rating: "4.7★",
-    timeline: "7 months",
+    timeline: "7 mo",
   },
 ];
 
-// ── Chat message sequence ─────────────────────────────────────────────────────
-// Phase 1: the 4 onboarding Q&A pairs (already happened before clarity state)
-const ONBOARDING_MESSAGES = [
-  { id: 1,  type: "bot",  text: "Hey! What's your name?" },
-  { id: 2,  type: "user", text: "Rahul Mehta" },
-  { id: 3,  type: "bot",  text: "Nice to meet you Rahul! Which college and branch are you in?" },
-  { id: 4,  type: "user", text: "VNIT Nagpur, Metallurgy, Y3" },
-  { id: 5,  type: "bot",  text: "What year are you in currently?" },
-  { id: 6,  type: "user", text: "Third year" },
-  { id: 7,  type: "bot",  text: "What's your main goal right now? Just say it like you'd tell a friend." },
-  { id: 8,  type: "user", text: "I want an AI/ML internship but I have zero experience and I'm from Metallurgy." },
-];
-
-// Phase 2: user's actual question that triggered clarity
-const CLARITY_QUESTION = {
-  id: 9,
-  type: "user",
-  text: "How do I get an AI/ML internship from VNIT Metallurgy with no prior experience?",
-};
-
-// Phase 3: bot's response after the question
-const BOT_FINDING = {
-  id: 10,
-  type: "bot",
-  text: "Got it. Finding seniors from your exact background...",
-};
-
-// ── ChatBubble ────────────────────────────────────────────────────────────────
-function ChatBubble({ msg }) {
-  const isUser = msg.type === "user";
-  return (
-    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-      {!isUser && (
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-          style={{ background: "linear-gradient(135deg,#F59E0B,#FB923C)" }}
-        >
-          <span className="text-xs font-bold" style={{ color: "#0A0A0A", fontFamily: "Fraunces, serif" }}>A</span>
-        </div>
-      )}
-      <div
-        className="max-w-xs px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed"
-        style={{
-          background: isUser
-            ? "linear-gradient(135deg,rgba(245,158,11,0.22),rgba(251,146,60,0.18))"
-            : "#1a1a1a",
-          border: isUser ? "1px solid rgba(245,158,11,0.28)" : "1px solid #262626",
-          color: "#F5F5F4",
-          fontFamily: "Inter, sans-serif",
-          borderTopRightRadius: isUser ? "4px" : "16px",
-          borderTopLeftRadius: isUser ? "16px" : "4px",
-        }}
-      >
-        {msg.text}
-      </div>
-    </div>
-  );
-}
-
-// ── VerifiedAnswerCard (appears in chat after mentor selected) ─────────────────
-function VerifiedAnswerCard({ mentor }) {
+// ── QueryCard — pinned user question ─────────────────────────────────────────
+function QueryCard() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 26 }}
-      className="rounded-2xl p-5"
-      style={{
-        background: "#141414",
-        border: "1px solid rgba(16,185,129,0.25)",
-        boxShadow: "0 0 32px rgba(16,185,129,0.06)",
-      }}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+      className="rounded-2xl p-4 flex-shrink-0"
+      style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}
     >
-      {/* Header label */}
-      <div className="flex items-center gap-2 mb-4">
-        <CheckCircle size={14} style={{ color: "#10B981" }} />
-        <span
-          className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: "#10B981", fontFamily: "Inter, sans-serif" }}
-        >
-          Verified Answer Card
-        </span>
-      </div>
-
-      {/* Mentor identity */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-start gap-3">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: "rgba(139,92,246,0.25)", color: "#a78bfa", fontFamily: "Fraunces, serif" }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+          style={{ background: `${T.accent}28`, border: `1px solid ${T.accent}40` }}
         >
-          {mentor.initials}
+          <MessageSquare size={14} style={{ color: T.accentText }} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate" style={{ color: "#F5F5F4", fontFamily: "Fraunces, serif", fontSize: "15px" }}>
-            {mentor.name}
-          </p>
-          <p className="text-xs truncate" style={{ color: "#A8A29E", fontFamily: "Inter, sans-serif" }}>
-            {mentor.college} · {mentor.branch} → {mentor.role}
-          </p>
-        </div>
-        <div
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0"
-          style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)" }}
-        >
-          <span className="text-xs" style={{ color: "#10B981", fontFamily: "Inter, sans-serif" }}>✓ Verified outcome</span>
-        </div>
-      </div>
-
-      {/* Story */}
-      <p
-        className="text-sm leading-loose mb-4"
-        style={{ color: "#A8A29E", fontFamily: "Inter, sans-serif" }}
-        dangerouslySetInnerHTML={{ __html: mentor.story }}
-      />
-
-      {/* Outcome box */}
-      <div
-        className="rounded-xl p-3.5 mb-4 flex items-start gap-2.5"
-        style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.18)" }}
-      >
-        <span style={{ color: "#10B981", fontSize: "12px", marginTop: "2px" }}>✓</span>
         <div>
-          <span className="text-xs font-semibold" style={{ color: "#10B981", fontFamily: "Inter, sans-serif" }}>Outcome: </span>
-          <span className="text-sm" style={{ color: "#A8A29E", fontFamily: "Inter, sans-serif" }}>{mentor.outcome}</span>
+          <p className="text-sm font-semibold leading-snug"
+            style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
+            How do I get an AI/ML internship from VNIT Metallurgy with no prior experience?
+          </p>
+          <p className="text-xs mt-1.5" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
+            Context: VNIT Nagpur · Metallurgy · Y3 · CGPA 7.8 · Goal: AI/ML
+          </p>
         </div>
-      </div>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2">
-        {mentor.tags.map((tag) => (
-          <span
-            key={tag}
-            className="px-3 py-1 rounded-full text-xs"
-            style={{
-              background: "rgba(245,158,11,0.08)",
-              border: "1px solid rgba(245,158,11,0.25)",
-              color: "#F59E0B",
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
-            {tag}
-          </span>
-        ))}
       </div>
     </motion.div>
   );
 }
 
-// ── Main ClarityView ──────────────────────────────────────────────────────────
-export default function ClarityView() {
-  const [selectedMentor, setSelectedMentor] = useState(null);
-  const [modalMentor, setModalMentor]       = useState(null);
-  const [confirmedMentor, setConfirmedMentor] = useState(null);
-  const [inputValue, setInputValue]         = useState("");
-  const bottomRef = useRef(null);
-
-  // Scroll to bottom whenever messages change
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [confirmedMentor]);
-
-  const handleCardClick = (mentor) => {
-    setModalMentor(mentor);
-    setSelectedMentor(mentor);
-  };
-
-  const handleSelectMentor = () => {
-    setConfirmedMentor(modalMentor);
-    setModalMentor(null);
-  };
-
+// ── Divider label between query and answer ────────────────────────────────────
+function AnswerLabel({ mentorName }) {
   return (
-    // NO sidebar here — the parent App.jsx already renders the sidebar.
-    // ClarityView fills whatever space the parent gives it.
-    <div
-      className="flex h-full w-full overflow-hidden"
-      style={{ background: "#0A0A0A", fontFamily: "Inter, sans-serif", minHeight: 0 }}
-    >
-      {/* ── Chat Area ── */}
-      <div
-        className="flex flex-col flex-1 overflow-hidden"
-        style={{ borderRight: "1px solid #1a1a1a" }}
+    <div className="flex items-center gap-2">
+      <div style={{ flex: 1, height: "1px", background: T.cardBorder }} />
+      <span
+        className="text-xs font-bold uppercase tracking-widest px-2 whitespace-nowrap"
+        style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}
       >
-        {/* Scrollable messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-3">
-
-          {/* ── Step 1: Onboarding Q&A (the 4-question chat that already happened) ── */}
-          {ONBOARDING_MESSAGES.map((msg, i) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.25 }}
-            >
-              <ChatBubble msg={msg} />
-            </motion.div>
-          ))}
-
-          {/* ── Divider: context collected ── */}
-          <div className="flex items-center gap-3 py-1">
-            <div style={{ flex: 1, height: "1px", background: "#1f1f1f" }} />
-            <span
-              className="text-xs px-3 py-1 rounded-full"
-              style={{
-                color: "#737373",
-                fontFamily: "Inter, sans-serif",
-                background: "#141414",
-                border: "1px solid #262626",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Context collected · VNIT Nagpur · Metallurgy · Y3
-            </span>
-            <div style={{ flex: 1, height: "1px", background: "#1f1f1f" }} />
-          </div>
-
-          {/* ── Step 2: User's main question that triggered clarity ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.25 }}
-          >
-            <ChatBubble msg={CLARITY_QUESTION} />
-          </motion.div>
-
-          {/* ── Step 3: Bot reply ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.25 }}
-          >
-            <ChatBubble msg={BOT_FINDING} />
-          </motion.div>
-
-          {/* ── Step 4: "VERIFIED ANSWER CARDS" label + card, after mentor selected ── */}
-          {confirmedMentor && (
-            <>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="text-xs font-bold uppercase tracking-widest pt-2"
-                style={{ color: "#737373", fontFamily: "Inter, sans-serif" }}
-              >
-                Verified Answer Cards
-              </motion.p>
-              <VerifiedAnswerCard mentor={confirmedMentor} />
-            </>
-          )}
-
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input bar */}
-        <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: "1px solid #1a1a1a" }}>
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-xl"
-            style={{ background: "#141414", border: "1px solid #262626" }}
-          >
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask a follow-up question..."
-              className="flex-1 bg-transparent text-sm outline-none"
-              style={{ color: "#F5F5F4", fontFamily: "Inter, sans-serif" }}
-            />
-            <button
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: "linear-gradient(135deg,#F59E0B,#FB923C)" }}
-            >
-              <Send size={13} style={{ color: "#0A0A0A" }} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Right: Seniors Panel ── */}
-      <div
-        className="flex flex-col overflow-hidden flex-shrink-0"
-        style={{ width: "300px", background: "#0f0f0f" }}
-      >
-        <SeniorsPanel
-          mentors={MOCK_MENTORS}
-          selectedId={selectedMentor?.id}
-          onSelect={handleCardClick}
-        />
-      </div>
-
-      {/* ── Mentor Detail Modal ── */}
-      <AnimatePresence>
-        {modalMentor && (
-          <SeniorDetail
-            mentor={modalMentor}
-            onClose={() => setModalMentor(null)}
-            onSelect={handleSelectMentor}
-          />
-        )}
-      </AnimatePresence>
+        Verified Answer · {mentorName}
+      </span>
+      <div style={{ flex: 1, height: "1px", background: T.cardBorder }} />
     </div>
   );
 }
+
+// ── ClarityView — receives setActivePage from App.jsx ────────────────────────
+// Props:
+//   setActivePage  (function) — from App.jsx, used by "Talk to Mentor" button
+//
+export default function ClarityView({ setActivePage }) {
+  const [selectedMentor, setSelectedMentor] = useState(MOCK_MENTORS[0]);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const detailRef = useRef(null);
+
+  // Resize listener — update isMobile on window resize
+  useState(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  });
+
+  const handleSelectMentor = (mentor) => {
+    setSelectedMentor(mentor);
+    setMobileSidebarOpen(false);
+    setTimeout(() => {
+      detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  // Navigates to Book a Session using App.jsx's navigation state
+  const handleTalkToMentor = () => {
+    if (setActivePage) {
+      setActivePage("book");
+    }
+  };
+
+  // ── DESKTOP ───────────────────────────────────────────────────────────────
+  // App.jsx already renders the sidebar — ClarityView only renders content area
+  if (!isMobile) {
+    return (
+      <div
+        className="flex w-full"
+        style={{
+          background: T.bg,
+          fontFamily: "Inter, sans-serif",
+          height: "100%",
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
+        {/* ── Center column: query card + scrollable mentor detail ── */}
+        <div
+          className="flex flex-col flex-1"
+          style={{
+            borderRight: `1px solid ${T.sidebarBorder}`,
+            overflow: "hidden",
+            height: "100%",
+          }}
+        >
+          {/* Pinned query card */}
+          <div
+            className="px-6 pt-5 pb-4 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${T.sidebarBorder}` }}
+          >
+            <QueryCard />
+          </div>
+
+          {/* Scrollable detail */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+            <AnswerLabel mentorName={selectedMentor.name} />
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedMentor.id}
+                ref={detailRef}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              >
+                <SeniorDetail
+                  mentor={selectedMentor}
+                  onTalkToMentor={handleTalkToMentor}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* ── Right panel: scrollable mentor list ── */}
+        <div className="flex-shrink-0" style={{ width: 296, overflow: "hidden", height: "100%" }}>
+          <SeniorsPanel
+            mentors={MOCK_MENTORS}
+            selectedId={selectedMentor?.id}
+            onSelect={handleSelectMentor}
+            isMobile={false}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── MOBILE ────────────────────────────────────────────────────────────────
+  // App.jsx has no mobile handling — mobile sidebar overlay lives here
+  return (
+    <div
+      className="flex flex-col w-full"
+      style={{
+        background: T.bg,
+        fontFamily: "Inter, sans-serif",
+        minHeight: "100%",
+      }}
+    >
+      {/* Mobile top bar */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${T.sidebarBorder}`, background: T.sidebar }}
+      >
+        <button
+          onClick={() => setMobileSidebarOpen((v) => !v)}
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}
+        >
+          <Menu size={15} style={{ color: T.accentText }} />
+        </button>
+        <p className="text-sm font-semibold flex-1"
+          style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
+          Clarity Results
+        </p>
+      </div>
+
+      {/* Mobile sidebar overlay */}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <>
+            <motion.div
+              key="mob-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            <motion.div
+              key="mob-sidebar"
+              initial={{ x: -260 }}
+              animate={{ x: 0 }}
+              exit={{ x: -260 }}
+              transition={{ type: "spring", stiffness: 360, damping: 32 }}
+              className="fixed left-0 top-0 bottom-0 z-50 flex flex-col overflow-y-auto"
+              style={{
+                width: 260,
+                background: T.sidebar,
+                borderRight: `1px solid ${T.sidebarBorder}`,
+              }}
+            >
+              <div
+                className="flex items-center justify-between px-4 pt-4 pb-3"
+                style={{ borderBottom: `1px solid ${T.sidebarBorder}` }}
+              >
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: T.textMuted }}>
+                  Menu
+                </p>
+                <button onClick={() => setMobileSidebarOpen(false)}>
+                  <X size={16} style={{ color: T.textSub }} />
+                </button>
+              </div>
+
+              {[
+                { label: "Ask Atyant", icon: "◎", id: "ask" },
+                { label: "Clarity Results", icon: "⊙", id: "clarity", active: true },
+                { label: "Book a Session", icon: "◷", id: "book" },
+                { label: "My Sessions", icon: "☰", id: "sessions" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                  style={{
+                    background: item.active ? T.active : "transparent",
+                    borderLeft: item.active ? `2px solid ${T.accent}` : "2px solid transparent",
+                  }}
+                  onClick={() => {
+                    setMobileSidebarOpen(false);
+                    if (setActivePage && !item.active) setActivePage(item.id);
+                  }}
+                >
+                  <span style={{ color: item.active ? T.accentText : T.textMuted, fontSize: 13 }}>
+                    {item.icon}
+                  </span>
+                  <span className="text-sm" style={{ color: item.active ? T.text : T.textSub }}>
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+
+              <div className="mt-4 px-4">
+                <p className="text-xs font-bold uppercase tracking-widest mb-2"
+                  style={{ color: T.textMuted }}>Journey</p>
+                {[
+                  { label: "My Roadmap", id: "roadmap" },
+                  { label: "Saved Answers", id: "saved" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-3 py-2.5 cursor-pointer"
+                    onClick={() => { setMobileSidebarOpen(false); if (setActivePage) setActivePage(item.id); }}
+                  >
+                    <span style={{ color: T.textMuted, fontSize: 13 }}>↗</span>
+                    <span className="text-sm" style={{ color: T.textSub }}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile main scroll area */}
+      <div className="flex-1">
+        {/* Query */}
+        <div className="px-4 pt-4 pb-3">
+          <QueryCard />
+        </div>
+
+        {/* Horizontal mentor slider */}
+        <SeniorsPanel
+          mentors={MOCK_MENTORS}
+          selectedId={selectedMentor?.id}
+          onSelect={handleSelectMentor}
+          isMobile={true}
+        />
+
+        {/* Divider + answer label */}
+        <div className="px-4 pt-3 pb-1">
+          <AnswerLabel mentorName={selectedMentor.name} />
+        </div>
+
+        {/* Expanded mentor detail — scrollable inline */}
+        <div className="px-4 pb-8" ref={detailRef}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedMentor.id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+            >
+              <SeniorDetail
+                mentor={selectedMentor}
+                onTalkToMentor={handleTalkToMentor}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
