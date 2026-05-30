@@ -6,8 +6,8 @@ body {
   margin: 0;
   font-family: Inter, sans-serif;
 }
-/* DATE & TIME ICONS DARK MODE */
 
+/* DATE & TIME ICONS DARK MODE */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
