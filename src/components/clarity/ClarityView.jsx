@@ -1,25 +1,24 @@
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, MessageSquare } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 
-// ── Design tokens (violet scheme — intentionally different from App.jsx warm browns)
+// ── Design tokens (warmer dark theme, less purple)
 const T = {
-  bg: "#0d0c0a",
-  sidebar: "#131210",
-  sidebarBorder: "#232018",
-  card: "#1a1714",
-  cardBorder: "#2d2820",
-  active: "#221f19",
-  activeBorder: "#3a3228",
-  accent: "#d4891a",
-  accentSoft: "#d4891a22",
-  accentText: "#f0a93a",
-  text: "#ede8de",
-  textSub: "#967f68",
-  textMuted: "#5a5040",
-  green: "#2d8a5f",
+  bg: "#110f0b",
+  sidebar: "#181410",
+  sidebarBorder: "#2f2a22",
+  card: "#1c1712",
+  cardBorder: "#322a22",
+  active: "#2c241a",
+  activeBorder: "#5a4027",
+  accent: "#f08e2b",
+  accentSoft: "#f08e2b22",
+  accentText: "#ffc77f",
+  text: "#f0e7db",
+  textSub: "#c5b59f",
+  textMuted: "#988c7d",
+  green: "#3ec27f",
 };
 
 // ── Mock mentor data ──────────────────────────────────────────────────────────
@@ -86,10 +85,7 @@ const MOCK_MENTORS = [
 // ── QueryCard — pinned user question ─────────────────────────────────────────
 function QueryCard() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28 }}
+    <div
       className="rounded-2xl p-4 flex-shrink-0"
       style={{ background: T.card, border: `1px solid ${T.cardBorder}` }}
     >
@@ -110,7 +106,7 @@ function QueryCard() {
           </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -200,21 +196,12 @@ export default function ClarityView({ setActivePage }) {
           <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
             <AnswerLabel mentorName={selectedMentor.name} />
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedMentor.id}
-                ref={detailRef}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ type: "spring", stiffness: 300, damping: 28 }}
-              >
+              <div key={selectedMentor.id} ref={detailRef}>
                 <SeniorDetail
                   mentor={selectedMentor}
                   onTalkToMentor={handleTalkToMentor}
                 />
-              </motion.div>
-            </AnimatePresence>
+              </div>
           </div>
         </div>
 
@@ -261,24 +248,16 @@ export default function ClarityView({ setActivePage }) {
       </div>
 
       {/* Mobile sidebar overlay */}
-      <AnimatePresence>
         {mobileSidebarOpen && (
           <>
-            <motion.div
+            <div
               key="mob-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               className="fixed inset-0 z-40"
               style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
               onClick={() => setMobileSidebarOpen(false)}
             />
-            <motion.div
+            <div
               key="mob-sidebar"
-              initial={{ x: -260 }}
-              animate={{ x: 0 }}
-              exit={{ x: -260 }}
-              transition={{ type: "spring", stiffness: 360, damping: 32 }}
               className="fixed left-0 top-0 bottom-0 z-50 flex flex-col overflow-y-auto"
               style={{
                 width: 260,
@@ -342,10 +321,9 @@ export default function ClarityView({ setActivePage }) {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
 
       {/* Mobile main scroll area */}
       <div className="flex-1">
@@ -369,20 +347,12 @@ export default function ClarityView({ setActivePage }) {
 
         {/* Expanded mentor detail — scrollable inline */}
         <div className="px-4 pb-8" ref={detailRef}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedMentor.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            >
+            <div key={selectedMentor.id}>
               <SeniorDetail
                 mentor={selectedMentor}
                 onTalkToMentor={handleTalkToMentor}
               />
-            </motion.div>
-          </AnimatePresence>
+            </div>
         </div>
       </div>
     </div>

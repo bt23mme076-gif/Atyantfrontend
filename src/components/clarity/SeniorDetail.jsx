@@ -1,19 +1,18 @@
-import { motion } from "framer-motion";
 import { Star, Users, Clock, Phone } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 
 // Design tokens
 const T = {
-  bg: "#0d0c0a",
-  card: "#1a1714",
-  cardBorder: "#2d2820",
-  accent: "#d4891a",
-  accentSoft: "#d4891a22",
-  accentText: "#f0a93a",
-  text: "#ede8de",
-  textSub: "#967f68",
-  textMuted: "#5a5040",
-  green: "#2d8a5f",
+  bg: "#110f0b",
+  card: "#1c1712",
+  cardBorder: "#322a22",
+  accent: "#f08e2b",
+  accentSoft: "#f08e2b22",
+  accentText: "#ffc77f",
+  text: "#f0e7db",
+  textSub: "#c5b59f",
+  textMuted: "#988c7d",
+  green: "#3ec27f",
 };
 
 const AVATAR = {
@@ -29,11 +28,7 @@ export default function SeniorDetail({ mentor, onTalkToMentor }) {
   const av = AVATAR[mentor.initials] || { bg: "rgba(150,144,171,0.2)", text: T.textSub };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 12 }}
-      transition={{ type: "spring", stiffness: 300, damping: 26 }}
+    <div
       className="rounded-2xl overflow-hidden"
       style={{
         background: T.card,
@@ -122,11 +117,8 @@ export default function SeniorDetail({ mentor, onTalkToMentor }) {
           </p>
           <div className="flex flex-wrap gap-2">
             {mentor.tags.map((tag, i) => (
-              <motion.span
+              <span
                 key={tag}
-                initial={{ opacity: 0, scale: 0.82 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05, type: "spring", stiffness: 380 }}
                 className="px-3 py-1.5 rounded-full text-xs font-medium"
                 style={{
                   background: T.accentSoft,
@@ -137,7 +129,7 @@ export default function SeniorDetail({ mentor, onTalkToMentor }) {
                 }}
               >
                 {tag}
-              </motion.span>
+              </span>
             ))}
           </div>
         </div>
@@ -167,10 +159,8 @@ export default function SeniorDetail({ mentor, onTalkToMentor }) {
         </div>
 
         {/* Talk to mentor CTA — scrolled into view */}
-        <motion.button
+        <button
           onClick={onTalkToMentor}
-          whileHover={{ scale: 1.02, boxShadow: `0 6px 28px ${T.accent}55` }}
-          whileTap={{ scale: 0.975 }}
           className="w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
           style={{
             background: "linear-gradient(135deg, #d4891a, #f0a93a)",
@@ -183,8 +173,8 @@ export default function SeniorDetail({ mentor, onTalkToMentor }) {
         >
           <Phone size={15} />
           Talk to {mentor.name.split(" ")[0]}
-        </motion.button>
+        </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,17 +1,15 @@
-import { motion } from "framer-motion";
-
 // Design tokens
 const T = {
-  bg: "#0d0c0a",
-  card: "#1a1714",
-  cardBorder: "#2d2820",
-  accent: "#d4891a",
-  accentSoft: "#d4891a22",
-  accentText: "#f0a93a",
-  text: "#ede8de",
-  textSub: "#967f68",
-  textMuted: "#5a5040",
-  green: "#2d8a5f",
+  bg: "#110f0b",
+  card: "#1c1712",
+  cardBorder: "#322a22",
+  accent: "#f08e2b",
+  accentSoft: "#f08e2b22",
+  accentText: "#ffc77f",
+  text: "#f0e7db",
+  textSub: "#c5b59f",
+  textMuted: "#988c7d",
+  green: "#3ec27f",
 };
 
 const AVATAR = {
@@ -24,11 +22,8 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
   const av = AVATAR[mentor.initials] || { bg: "rgba(150,144,171,0.2)", text: T.textSub };
 
   return (
-    <motion.div
+    <div
       onClick={onClick}
-      whileHover={{ scale: 1.018, y: -1 }}
-      whileTap={{ scale: 0.985 }}
-      transition={{ type: "spring", stiffness: 420, damping: 30 }}
       className="relative cursor-pointer rounded-2xl p-4"
       style={{
         background: isSelected ? T.active : T.card,
@@ -76,6 +71,6 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
         <div className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full"
           style={{ background: T.accent, boxShadow: `0 0 6px ${T.accent}` }} />
       )}
-    </motion.div>
+    </div>
   );
 }

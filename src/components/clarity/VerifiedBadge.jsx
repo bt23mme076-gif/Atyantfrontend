@@ -3,11 +3,11 @@ import { ShieldCheck } from "lucide-react";
 
 // Design tokens
 const T = {
-  green: "#2d8a5f",
-  card: "#1A1823",
-  cardBorder: "#322E40",
-  textMuted: "#5F576F",
-  textSub: "#978FAB",
+  green: "#3ec27f",
+  card: "#1c1712",
+  cardBorder: "#322a22",
+  textMuted: "#9b96a4",
+  textSub: "#b9af9f",
 };
 
 export default function VerifiedBadge({ verifiedVia = "Offer Letter + LinkedIn" }) {
