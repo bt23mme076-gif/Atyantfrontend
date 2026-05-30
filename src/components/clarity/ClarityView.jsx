@@ -3,21 +3,21 @@ import { Menu, X, MessageSquare } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 
-// ── Design tokens (warmer dark theme, less purple)
+// ── Design tokens (warmer dark theme, neutral cards)
 const T = {
-  bg: "#110f0b",
-  sidebar: "#181410",
-  sidebarBorder: "#2f2a22",
-  card: "#1c1712",
-  cardBorder: "#322a22",
-  active: "#2c241a",
-  activeBorder: "#5a4027",
+  bg: "#120f0c",
+  sidebar: "#15120f",
+  sidebarBorder: "#2d2a24",
+  card: "#161412",
+  cardBorder: "#2d2923",
+  active: "#25211d",
+  activeBorder: "#41382f",
   accent: "#f08e2b",
   accentSoft: "#f08e2b22",
-  accentText: "#ffc77f",
-  text: "#f0e7db",
-  textSub: "#c5b59f",
-  textMuted: "#988c7d",
+  accentText: "#ffbd7c",
+  text: "#f0e7dd",
+  textSub: "#c1b19f",
+  textMuted: "#968c7e",
   green: "#3ec27f",
 };
 

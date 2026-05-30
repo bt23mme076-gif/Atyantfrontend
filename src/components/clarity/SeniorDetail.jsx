@@ -3,15 +3,15 @@ import VerifiedBadge from "./VerifiedBadge";
 
 // Design tokens
 const T = {
-  bg: "#110f0b",
-  card: "#1c1712",
-  cardBorder: "#322a22",
+  bg: "#120f0c",
+  card: "#161412",
+  cardBorder: "#2d2923",
   accent: "#f08e2b",
   accentSoft: "#f08e2b22",
-  accentText: "#ffc77f",
-  text: "#f0e7db",
-  textSub: "#c5b59f",
-  textMuted: "#988c7d",
+  accentText: "#ffbd7c",
+  text: "#f0e7dd",
+  textSub: "#c1b19f",
+  textMuted: "#968c7e",
   green: "#3ec27f",
 };
 

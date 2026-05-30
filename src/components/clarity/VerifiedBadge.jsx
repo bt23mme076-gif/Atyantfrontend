@@ -4,8 +4,8 @@ import { ShieldCheck } from "lucide-react";
 // Design tokens
 const T = {
   green: "#3ec27f",
-  card: "#1c1712",
-  cardBorder: "#322a22",
+  card: "#161412",
+  cardBorder: "#2d2923",
   textMuted: "#9b96a4",
   textSub: "#b9af9f",
 };
