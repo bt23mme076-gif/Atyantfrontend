@@ -1,3 +1,4 @@
+import BookingPage from "./pages/user";
 import { useState, useEffect } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
@@ -457,7 +458,7 @@ export default function App() {
   const pages = {
     ask: <AskAtyantPage />,
     clarity: <ClarityView />,
-    book: <BookSessionPage />,
+    book: <BookingPage />,
     sessions: <MySessionsPage />,
     roadmap: <MyRoadmapPage />,
     saved: <SavedAnswersPage />,
