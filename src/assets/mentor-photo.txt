@@ -1,0 +1,4 @@
+Add your real mentor photo here.
+
+Expected file name: src/assets/mentor-ak.png (or update App.jsx to reference your photo).
+Place any image you have and rename accordingly.
