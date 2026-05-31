@@ -1,19 +1,21 @@
-// Design tokens
+﻿// Design tokens
 const T = {
-  bg: "#120f0c",
-  card: "#161412",
-  cardBorder: "#2d2923",
-  accent: "#f08e2b",
-  accentSoft: "#f08e2b22",
-  accentText: "#ffbd7c",
-  text: "#f0e7dd",
-  textSub: "#c1b19f",
-  textMuted: "#968c7e",
-  green: "#3ec27f",
+  bg: "#13121A",
+  card: "#1A1823",
+  cardBorder: "#322E40",
+  active: "#221E33",
+  activeBorder: "#7567C955",
+  accent: "#7567C9",
+  accentSoft: "#7567C922",
+  accentText: "#8E80DB",
+  text: "#ECEAF3",
+  textSub: "#978FAB",
+  textMuted: "#5F576F",
+  green: "#3DBE82",
 };
 
 const AVATAR = {
-  AK: { bg: "rgba(117,103,201,0.28)", text: "#A99DF0" },
+  AK: { bg: "rgba(117,103,201,0.28)", text: "#8E80DB" },
   PS: { bg: "rgba(59,130,246,0.22)",  text: "#7EB8F7" },
   RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
 };

@@ -1,4 +1,4 @@
-import SeniorCard from "./SeniorCard";
+﻿import SeniorCard from "./SeniorCard";
 
 export default function SeniorsPanel({ mentors, selectedId, onSelect }) {
   return (
@@ -10,7 +10,7 @@ export default function SeniorsPanel({ mentors, selectedId, onSelect }) {
       <div className="px-4 pt-5 pb-4 flex-shrink-0">
         <p
           className="text-xs font-bold tracking-[0.15em] uppercase"
-          style={{ color: "#b6ac9f", fontFamily: "Inter, sans-serif" }}
+          style={{ color: "#978FAB", fontFamily: "Inter, sans-serif" }}
         >
           Matched Seniors
         </p>
