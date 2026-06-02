@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2 } from "lucide-react";
+import { Send, CheckCircle, Loader2, Sparkles, ArrowRight } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import { clarityAPI } from "../../api";
 
-export default function ClarityView({ initialQuery = "", user, onTalkToMentor }) {
+export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor }) {
   const [mentors,        setMentors]        = useState([]);
+  const [answerCard,     setAnswerCard]     = useState(null);
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [inputValue,     setInputValue]     = useState("");
   const [fetchLoading,   setFetchLoading]   = useState(false);
@@ -24,12 +25,13 @@ export default function ClarityView({ initialQuery = "", user, onTalkToMentor })
     fetchMentors(q);
   }, [initialQuery]);
 
-  // Auto-select top match once results arrive
+  // Auto-select top match once results arrive — but only if there's no
+  // instant answer to show first (answer takes the main panel by default).
   useEffect(() => {
-    if (mentors.length > 0 && !selectedMentor) {
+    if (mentors.length > 0 && !selectedMentor && !answerCard) {
       setSelectedMentor(mentors[0]);
     }
-  }, [mentors]);
+  }, [mentors, answerCard]);
 
   const fetchMentors = async (query) => {
     setFetchLoading(true);
@@ -38,12 +40,14 @@ export default function ClarityView({ initialQuery = "", user, onTalkToMentor })
       const edu  = user?.education?.[0] || {};
       const data = await clarityAPI.match({
         query,
-        college: edu.institutionName || edu.institution || "VNIT Nagpur",
-        branch:  edu.field           || "Metallurgy",
-        year:    edu.year            || "Y3",
-        goal:    user?.interests?.[0]|| "AI/ML Internship",
+        college: initialContext?.college || edu.institutionName || edu.institution || "VNIT Nagpur",
+        branch:  initialContext?.branch  || edu.field           || "Metallurgy",
+        year:    initialContext?.year    || edu.year            || "Y3",
+        goal:    initialContext?.goal    || user?.interests?.[0]|| "AI/ML Internship",
+        cgpa:    initialContext?.cgpa    || edu.cgpa            || "6.0",
       });
       setMentors(data.mentors || []);
+      setAnswerCard(data.answerCard || null);
     } catch (e) {
       setFetchError(e.message || "Failed to fetch mentors");
     } finally {
@@ -62,11 +66,11 @@ export default function ClarityView({ initialQuery = "", user, onTalkToMentor })
 
   const edu = user?.education?.[0] || {};
   const contextLine = [
-    edu.institutionName || edu.institution || "VNIT Nagpur",
-    edu.field || "Metallurgy",
-    edu.year  || "Y3",
-    edu.cgpa  ? `CGPA ${edu.cgpa}` : null,
-    user?.interests?.[0] ? `Goal: ${user.interests[0]}` : "Goal: AI/ML",
+    initialContext?.college || edu.institutionName || edu.institution || "VNIT Nagpur",
+    initialContext?.branch  || edu.field || "Metallurgy",
+    initialContext?.year    || edu.year  || "Y3",
+    initialContext?.cgpa    ? `CGPA ${initialContext.cgpa}` : (edu.cgpa ? `CGPA ${edu.cgpa}` : null),
+    initialContext?.goal    ? `Goal: ${initialContext.goal}` : (user?.interests?.[0] ? `Goal: ${user.interests[0]}` : "Goal: AI/ML"),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -179,6 +183,21 @@ export default function ClarityView({ initialQuery = "", user, onTalkToMentor })
                   />
                 </div>
               </motion.div>
+            ) : answerCard ? (
+              <motion.div
+                key="instant-answer"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col h-full"
+              >
+                <InstantAnswerCard
+                  card={answerCard}
+                  hasMentors={mentors.length > 0}
+                  onSeeMentor={() => mentors[0] && setSelectedMentor(mentors[0])}
+                />
+              </motion.div>
             ) : (
               <motion.div
                 key="empty"
@@ -270,6 +289,122 @@ export default function ClarityView({ initialQuery = "", user, onTalkToMentor })
       </div>
 
       <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
+    </div>
+  );
+}
+
+// ── Labelled section block (hoisted to module scope) ──
+function AnswerSection({ label, children }) {
+  if (!children) return null;
+  return (
+    <div className="mb-5">
+      <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
+        style={{ color: "#8E80DB", fontFamily: "Inter, sans-serif" }}>
+        {label}
+      </p>
+      <div className="text-sm leading-relaxed" style={{ color: "#C9C4D6", fontFamily: "Inter, sans-serif" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Instant verified answer, built from a real mentor's experience ──
+function InstantAnswerCard({ card, hasMentors, onSeeMentor }) {
+  const c = card?.content || {};
+  const mentor = card?.mentor || {};
+  const mentorName = mentor.username || mentor.name || "Atyant Mentor";
+  const edu = mentor.education || {};
+  const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
+  const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Instant Answer banner */}
+      <div className="flex items-center justify-between gap-2 px-6 py-2.5 flex-shrink-0"
+        style={{ borderBottom: "1px solid #211F2B", background: "rgba(117,103,201,0.06)" }}>
+        <div className="flex items-center gap-2">
+          <Sparkles size={13} style={{ color: "#8E80DB" }} />
+          <span className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: "#8E80DB", fontFamily: "Inter, sans-serif" }}>
+            Instant Clarity · from {mentorName}'s journey
+          </span>
+        </div>
+        {card?.matchScore ? (
+          <span className="text-xs font-bold" style={{ color: "#7567C9", fontFamily: "Fraunces, serif" }}>
+            {card.matchScore}% match
+          </span>
+        ) : null}
+      </div>
+
+      {/* Answer body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        {/* Mentor identity line */}
+        <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "#5F576F", fontFamily: "Inter, sans-serif" }}>
+          <CheckCircle size={12} style={{ color: "#3DBE82" }} />
+          <span>
+            {mentorName}
+            {edu.institutionName ? ` · ${edu.institutionName}` : ""}
+            {edu.field ? ` · ${edu.field}` : ""}
+          </span>
+        </div>
+
+        {c.mainAnswer && (
+          <p className="text-base font-semibold leading-snug mb-5"
+            style={{ color: "#ECEAF3", fontFamily: "Fraunces, serif" }}>
+            {c.mainAnswer}
+          </p>
+        )}
+
+        <AnswerSection label="The situation">{c.situation}</AnswerSection>
+        <AnswerSection label="What worked">{c.whatWorked}</AnswerSection>
+
+        {steps.length > 0 && (
+          <AnswerSection label="Action plan">
+            <ol className="flex flex-col gap-2 mt-1">
+              {steps.map((s, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ background: "rgba(117,103,201,0.22)", color: "#8E80DB" }}>
+                    {i + 1}
+                  </span>
+                  <span>
+                    {s.step && <strong style={{ color: "#ECEAF3" }}>{s.step}: </strong>}
+                    {s.description}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </AnswerSection>
+        )}
+
+        {mistakes.length > 0 && (
+          <AnswerSection label="Mistakes to avoid">
+            <ul className="flex flex-col gap-1.5 mt-1">
+              {mistakes.map((m, i) => (
+                <li key={i} className="flex gap-2">
+                  <span style={{ color: "#f87171" }}>✕</span>
+                  <span>{typeof m === "string" ? m : m?.description || m?.mistake}</span>
+                </li>
+              ))}
+            </ul>
+          </AnswerSection>
+        )}
+
+        <AnswerSection label="Timeline">{c.timeline}</AnswerSection>
+        <AnswerSection label="If I did it today">{c.differentApproach}</AnswerSection>
+
+        {/* Bridge to live mentors */}
+        {hasMentors && (
+          <button
+            onClick={onSeeMentor}
+            className="mt-2 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#ECEAF3", fontFamily: "Inter, sans-serif" }}
+          >
+            Talk to a matched senior <ArrowRight size={14} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

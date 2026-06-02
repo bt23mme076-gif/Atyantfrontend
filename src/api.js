@@ -60,6 +60,13 @@ export const profileAPI = {
 // Clarity (AI mentor matching)
 export const clarityAPI = {
   match: (payload) => api.post('/api/clarity/match', payload),
+  communityCount: (college) =>
+    api.get(`/api/clarity/community-count?college=${encodeURIComponent(college || '')}`),
+};
+
+// Atyant AI chat — 2-phase intake + execution engine
+export const aiAPI = {
+  atyantChat: (message, sessionId) => api.post('/api/ai/atyant-chat', { message, sessionId }),
 };
 
 // Sessions

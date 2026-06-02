@@ -259,6 +259,17 @@ function SavedAnswersPage() {
 }
 
 // ─── Profile Page ─────────────────────────────────────────────────────────────
+const Field = ({ label, value, onChange, editing }) => (
+  <div style={{ marginBottom:"1rem" }}>
+    <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>{label}</label>
+    {editing
+      ? <input value={value} onChange={e => onChange(e.target.value)}
+          style={{ width:"100%", background:C.active, border:`1px solid ${C.accent}55`, borderRadius:8, padding:"9px 13px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }} />
+      : <div style={{ fontSize:"0.9rem", color:C.text, padding:"9px 0" }}>{value || "—"}</div>
+    }
+  </div>
+);
+
 function ProfilePage() {
   const { user, setUser } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -293,17 +304,6 @@ function ProfilePage() {
   const edu      = user?.education?.[0] || {};
   const initials = (user?.username || user?.name || "?").slice(0,2).toUpperCase();
 
-  const Field = ({ label, value, onChange }) => (
-    <div style={{ marginBottom:"1rem" }}>
-      <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>{label}</label>
-      {editing
-        ? <input value={value} onChange={e => onChange(e.target.value)}
-            style={{ width:"100%", background:C.active, border:`1px solid ${C.accent}55`, borderRadius:8, padding:"9px 13px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }} />
-        : <div style={{ fontSize:"0.9rem", color:C.text, padding:"9px 0" }}>{value || "—"}</div>
-      }
-    </div>
-  );
-
   return (
     <div style={{ padding:"2rem", maxWidth:640 }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"2rem" }}>
@@ -332,11 +332,11 @@ function ProfilePage() {
 
       <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
         <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1.25rem" }}>PROFILE DETAILS</div>
-        <Field label="DISPLAY NAME" value={form.name}    onChange={v => setForm(f=>({...f,name:v}))} />
-        <Field label="COLLEGE"      value={form.college} onChange={v => setForm(f=>({...f,college:v}))} />
-        <Field label="BRANCH"       value={form.branch}  onChange={v => setForm(f=>({...f,branch:v}))} />
-        <Field label="YEAR"         value={form.year}    onChange={v => setForm(f=>({...f,year:v}))} />
-        <Field label="CGPA"         value={form.cgpa}    onChange={v => setForm(f=>({...f,cgpa:v}))} />
+        <Field label="DISPLAY NAME" value={form.name}    onChange={v => setForm(f=>({...f,name:v}))} editing={editing} />
+        <Field label="COLLEGE"      value={form.college} onChange={v => setForm(f=>({...f,college:v}))} editing={editing} />
+        <Field label="BRANCH"       value={form.branch}  onChange={v => setForm(f=>({...f,branch:v}))} editing={editing} />
+        <Field label="YEAR"         value={form.year}    onChange={v => setForm(f=>({...f,year:v}))} editing={editing} />
+        <Field label="CGPA"         value={form.cgpa}    onChange={v => setForm(f=>({...f,cgpa:v}))} editing={editing} />
         <div>
           <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>BIO</label>
           {editing
@@ -349,28 +349,106 @@ function ProfilePage() {
 
       <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
         <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1rem" }}>CURRENT GOALS</div>
-        {form.goals.length===0
+        {form.goals.length===0 && !editing
           ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>No goals set. Edit profile to add goals.</p>
-          : <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          : <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: editing ? 12 : 0 }}>
               {form.goals.map((g,i) => (
-                <span key={i} style={{ background:i===0 ? C.accentSoft : C.active, border:`1px solid ${i===0 ? C.accent+"55" : C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:i===0 ? C.accentText : C.textSub }}>
+                <span key={i} style={{ background:i===0 ? C.accentSoft : C.active, border:`1px solid ${i===0 ? C.accent+"55" : C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:i===0 ? C.accentText : C.textSub, display:"flex", alignItems:"center", gap:6 }}>
                   {i===0 && "→ "}{g}
+                  {editing && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, goals: f.goals.filter((_, idx) => idx !== i) }))}
+                      style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <X size={11} />
+                    </button>
+                  )}
                 </span>
               ))}
             </div>
         }
+        {editing && (
+          <div style={{ display:"flex", gap:8, marginTop:8 }}>
+            <input
+              placeholder="Add a new goal..."
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const val = e.target.value.trim();
+                  if (val && !form.goals.includes(val)) {
+                    setForm(f => ({ ...f, goals: [...f.goals, val] }));
+                    e.target.value = '';
+                  }
+                }
+              }}
+              style={{ flex:1, background:C.active, border:`1px solid ${C.accent}33`, borderRadius:8, padding:"8px 12px", color:C.text, fontSize:"0.82rem", outline:"none", fontFamily:"inherit" }}
+            />
+            <button
+              type="button"
+              onClick={e => {
+                const input = e.currentTarget.previousSibling;
+                const val = input.value.trim();
+                if (val && !form.goals.includes(val)) {
+                  setForm(f => ({ ...f, goals: [...f.goals, val] }));
+                  input.value = '';
+                }
+              }}
+              style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit", display:"flex", alignItems:"center", fontWeight:500 }}
+            >
+              Add
+            </button>
+          </div>
+        )}
       </div>
 
       <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem" }}>
         <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1rem" }}>SKILLS</div>
-        {form.skills.length===0
+        {form.skills.length===0 && !editing
           ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>No skills added yet.</p>
-          : <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          : <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: editing ? 12 : 0 }}>
               {form.skills.map((s,i) => (
-                <span key={i} style={{ background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:C.textSub }}>{s}</span>
+                <span key={i} style={{ background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:C.textSub, display:"flex", alignItems:"center", gap:6 }}>
+                  {s}
+                  {editing && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, skills: f.skills.filter((_, idx) => idx !== i) }))}
+                      style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <X size={11} />
+                    </button>
+                  )}
+                </span>
               ))}
             </div>
         }
+        {editing && (
+          <div style={{ display:"flex", gap:8, marginTop:8 }}>
+            <input
+              placeholder="Add a new skill..."
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const val = e.target.value.trim();
+                  if (val && !form.skills.includes(val)) {
+                    setForm(f => ({ ...f, skills: [...f.skills, val] }));
+                    e.target.value = '';
+                  }
+                }
+              }}
+              style={{ flex:1, background:C.active, border:`1px solid ${C.accent}33`, borderRadius:8, padding:"8px 12px", color:C.text, fontSize:"0.82rem", outline:"none", fontFamily:"inherit" }}
+            />
+            <button
+              type="button"
+              onClick={e => {
+                const input = e.currentTarget.previousSibling;
+                const val = input.value.trim();
+                if (val && !form.skills.includes(val)) {
+                  setForm(f => ({ ...f, skills: [...f.skills, val] }));
+                  input.value = '';
+                }
+              }}
+              style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit", display:"flex", alignItems:"center", fontWeight:500 }}
+            >
+              Add
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -503,6 +581,8 @@ export default function App() {
   const [showAuth,     setShowAuth]     = useState(false);
   const [clarityQuery, setClarityQuery] = useState("");
   const [bookingMentor, setBookingMentor] = useState(null);
+  const [chatSession,  setChatSession]  = useState(0);
+  const [clarityContext, setClarityContext] = useState(null);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -514,7 +594,11 @@ export default function App() {
     document.body.style.background = C.bg;
   }, []);
 
-  const goToClarity = (query) => { setClarityQuery(query); setActivePage("clarity"); };
+  const goToClarity = (query, context) => {
+    setClarityQuery(query);
+    setClarityContext(context);
+    setActivePage("clarity");
+  };
   
   const handleStartBooking = (mentor) => {
     setBookingMentor(mentor);
@@ -533,8 +617,8 @@ export default function App() {
   ];
 
   const pages = {
-    ask:      <AskAtyantPage  user={user} onGoToClarity={goToClarity} />,
-    clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} user={user} onTalkToMentor={handleStartBooking} />,
+    ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} />,
+    clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} />,
     book:     <BookingPage    mentor={bookingMentor} />,
     sessions: <MySessionsPage />,
     roadmap:  <MyRoadmapPage  user={user} />,
@@ -578,6 +662,7 @@ export default function App() {
             onClick={() => {
               setClarityQuery("");
               setActivePage("ask");
+              setChatSession(prev => prev + 1);
             }}
             style={{
               width: "100%",
