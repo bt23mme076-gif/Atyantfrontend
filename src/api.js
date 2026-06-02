@@ -64,9 +64,10 @@ export const clarityAPI = {
 
 // Sessions
 export const sessionAPI = {
-  my:       ()                                  => api.get('/api/sessions/my'),
-  book:     (date, time, mentorId, topic)       => api.post('/api/sessions/book', { date, time, mentorId, topic }),
-  cancel:   (id)                                => api.patch(`/api/sessions/${id}/cancel`),
+  my:         ()                          => api.get('/api/sessions/my'),
+  book:       (date, time, mentorId, topic) => api.post('/api/sessions/book', { date, time, mentorId, topic }),
+  cancel:     (id, reason)               => api.patch(`/api/sessions/${id}/cancel`, { reason }),
+  reschedule: (id, newDate, newTime)     => api.patch(`/api/sessions/${id}/reschedule`, { newDate, newTime }),
 };
 
 // Saved Answers

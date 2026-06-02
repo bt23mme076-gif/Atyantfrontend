@@ -11,7 +11,7 @@ import ClarityView from "./components/clarity/ClarityView";
 import AskAtyantPage from "./components/clarity/AskAtyantPage";
 import { useAuth } from "./context/AuthContext";
 import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI } from "./api";
-
+import { api } from "./api";
 const C = {
   bg: "#13121A",
   sidebar: "#0D0C12",
@@ -36,42 +36,110 @@ function Spin({ size = 18 }) {
 
 // ─── My Sessions ─────────────────────────────────────────────────────────────
 function MySessionsPage({ onAuthRequired }) {
-  const { user } = useAuth();               // ← pull user from context
+  const { user } = useAuth();
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rescheduleModal, setRescheduleModal] = useState(null); // booking obj
+  const [cancelModal, setCancelModal] = useState(null);         // booking obj
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      onAuthRequired?.();
-      return;
-    }
+    if (!user) { setLoading(false); onAuthRequired?.(); return; }
     sessionAPI.my()
       .then(data => { setUpcoming(data.upcoming || []); setPast(data.past || []); })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [user]);
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  const fmtTime = (iso) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-  const getInitials = (name = "", max = 2) =>
-  name.trim().split(/\s+/).slice(0, max).map(w => w[0].toUpperCase()).join("");
 
-// "Anand Madhav Sharma" → "AM"
-  const SessionCard = ({ s, isUpcoming }) => (
-    <div style={{ background: C.card, border: `1px solid ${isUpcoming ? C.accent + "55" : C.cardBorder}`, borderRadius: 14, padding: "1.1rem 1.4rem", display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ width: 44, height: 44, borderRadius: "50%", background: isUpcoming ? C.accentSoft : C.active, border: `1.5px solid ${isUpcoming ? C.accent + "60" : C.activeBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
-        {getInitials(s.mentorId.username) || "YM"}
+  const fmtDate = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return isNaN(d) ? "—" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+};
+
+const fmtTime = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return isNaN(d) ? "—" : d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+};
+  const getInitials = (name = "", max = 2) =>
+    name.trim().split(/\s+/).slice(0, max).map(w => w[0].toUpperCase()).join("");
+
+  const handleCancel = async (bookingId, reason) => {
+    setActionLoading(true);
+    try {
+      await sessionAPI.cancel(bookingId, reason);
+      setUpcoming(prev => prev.filter(s => s._id !== bookingId));
+      setCancelModal(null);
+    } catch (e) { alert(e.message || "Cancel failed"); }
+    finally { setActionLoading(false); }
+  };
+
+  const handleReschedule = async (bookingId, newDate, newTime) => {
+    setActionLoading(true);
+    try {
+      const res = await sessionAPI.reschedule(bookingId, newDate, newTime);
+      const updatedBooking = res.booking || res;                    // ← unwrap { ok, booking }
+      setUpcoming(prev => prev.map(s =>
+        s._id === bookingId
+          ? { ...s, scheduledAt: updatedBooking.scheduledAt }      // ← now has the real value
+          : s
+      ));
+      setRescheduleModal(null);
+    } catch (e) { alert(e.message || "Reschedule failed"); }
+    finally { setActionLoading(false); }
+  };
+
+  // ── Upcoming card with action buttons ─────────────────────────────────────
+  const UpcomingCard = ({ s }) => (
+    <div style={{ background: C.card, border: `1px solid ${C.accent}55`, borderRadius: 14, padding: "1.1rem 1.4rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.accentSoft, border: `1.5px solid ${C.accent}60`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
+          {getInitials(s.mentorId?.username || s.mentorId?.name || "")}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 500, color: C.text, fontSize: "0.88rem" }}>
+            {s.mentorId?.name || s.mentorId?.username || "Your Mentor"}
+          </div>
+          <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 2 }}>{s.topic || "Career Guidance"}</div>
+          <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
+            <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Action buttons ── */}
+      <div style={{ display: "flex", gap: 8, marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: `1px solid ${C.cardBorder}` }}>
+        <button
+          onClick={() => setRescheduleModal(s)}
+          style={{ flex: 1, background: C.accentSoft, border: `1px solid ${C.accent}55`, borderRadius: 8, padding: "7px 0", color: C.accentText, fontSize: "0.78rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+          ↻ Reschedule
+        </button>
+        <button
+          onClick={() => setCancelModal(s)}
+          style={{ flex: 1, background: "transparent", border: `1px solid #f8717155`, borderRadius: 8, padding: "7px 0", color: "#f87171", fontSize: "0.78rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+          ✕ Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Past card (unchanged chip) ─────────────────────────────────────────────
+  const PastCard = ({ s }) => (
+    <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1.1rem 1.4rem", display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.active, border: `1.5px solid ${C.activeBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
+        {getInitials(s.mentorId?.username || s.mentorId?.name || "")}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 500, color: C.text, fontSize: "0.88rem" }}>{s?.mentorId?.name || s?.mentorId?.username || "Your Mentor"}</div>
+        <div style={{ fontWeight: 500, color: C.text, fontSize: "0.88rem" }}>{s.mentorId?.name || s.mentorId?.username || "Your Mentor"}</div>
         <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 2 }}>{s.topic || "Career Guidance"}</div>
         <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
           <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
         </div>
       </div>
-      <span style={{ fontSize: "0.72rem", padding: "4px 11px", borderRadius: 999, background: isUpcoming ? C.accentSoft : C.active, color: isUpcoming ? C.accentText : C.textMuted, border: `1px solid ${isUpcoming ? C.accent + "40" : C.cardBorder}` }}>
-        {isUpcoming ? "Upcoming" : "Completed"}
+      <span style={{ fontSize: "0.72rem", padding: "4px 11px", borderRadius: 999, background: C.active, color: C.textMuted, border: `1px solid ${C.cardBorder}` }}>
+        Completed
       </span>
     </div>
   );
@@ -86,13 +154,208 @@ function MySessionsPage({ onAuthRequired }) {
         <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "0.85rem" }}>UPCOMING</div>
         {upcoming.length === 0
           ? <p style={{ fontSize: "0.85rem", color: C.textMuted }}>No upcoming sessions. Book one from the calendar!</p>
-          : <div style={{ display: "grid", gap: 10 }}>{upcoming.map((s, i) => <SessionCard key={i} s={s} isUpcoming={true} />)}</div>}
+          : <div style={{ display: "grid", gap: 10 }}>{upcoming.map((s, i) => <UpcomingCard key={s._id || i} s={s} />)}</div>}
       </div>
+
       <div>
         <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "0.85rem" }}>PAST SESSIONS</div>
         {past.length === 0
           ? <p style={{ fontSize: "0.85rem", color: C.textMuted }}>No past sessions yet.</p>
-          : <div style={{ display: "grid", gap: 10 }}>{past.map((s, i) => <SessionCard key={i} s={s} isUpcoming={false} />)}</div>}
+          : <div style={{ display: "grid", gap: 10 }}>{past.map((s, i) => <PastCard key={s._id || i} s={s} />)}</div>}
+      </div>
+
+      {/* ── Reschedule Modal ── */}
+      {rescheduleModal && (
+        <RescheduleModal
+          booking={rescheduleModal}
+          loading={actionLoading}
+          onConfirm={(date, time) => handleReschedule(rescheduleModal._id, date, time)}
+          onClose={() => setRescheduleModal(null)}
+        />
+      )}
+
+      {/* ── Cancel Modal ── */}
+      {cancelModal && (
+        <CancelModal
+          booking={cancelModal}
+          loading={actionLoading}
+          onConfirm={(reason) => handleCancel(cancelModal._id, reason)}
+          onClose={() => setCancelModal(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Reschedule Modal ───────────────────────────────────────────────────────────
+function RescheduleModal({ booking, loading, onConfirm, onClose }) {
+  const today = new Date().toISOString().split("T")[0];
+  const [date, setDate] = useState(today);
+  const [time, setTime] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState(null);
+
+  const mentorId = booking.mentorId?._id || booking.mentorId;
+
+  // Fetch slots whenever date changes
+  useEffect(() => {
+    if (!date) return;
+    let cancelled = false;
+    setSlotsLoading(true);
+    setSlotsError(null);
+    setTime("");
+
+    const url = mentorId
+      ? `/api/mentors/${mentorId}/slots?date=${date}`
+      : `/api/slots?date=${date}`;
+
+    api.get(url)
+      .then(res => { if (!cancelled) setSlots(res.slots || []); })
+      .catch(() => { if (!cancelled) setSlotsError("Could not load slots. Try again."); })
+      .finally(() => { if (!cancelled) setSlotsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [date, mentorId]);
+
+  const availableSlots = slots.filter(s => s.available);
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{ background: C.sidebar, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "2rem", width: 380, maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+
+        {/* Header */}
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.textSub }}>
+          <X size={14} />
+        </button>
+        <div style={{ fontWeight: 600, fontSize: "1rem", color: C.text, marginBottom: 4 }}>Reschedule Session</div>
+        <div style={{ fontSize: "0.8rem", color: C.textSub, marginBottom: "1.5rem" }}>
+          with <span style={{ color: C.text, fontWeight: 500 }}>{booking.mentorId?.name || booking.mentorId?.username || "your mentor"}</span>
+        </div>
+
+        {/* Date picker */}
+        <label style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", color: C.textMuted, display: "block", marginBottom: 6 }}>NEW DATE</label>
+        <input
+          type="date" min={today} value={date}
+          onChange={e => setDate(e.target.value)}
+          style={{ width: "100%", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "9px 13px", color: C.text, fontSize: "0.88rem", outline: "none", fontFamily: "inherit", boxSizing: "border-box", marginBottom: "1.25rem" }}
+        />
+
+        {/* Slots */}
+        <label style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", color: C.textMuted, display: "block", marginBottom: 8 }}>
+          AVAILABLE SLOTS (IST)
+        </label>
+
+        {/* Loading skeleton */}
+        {slotsLoading && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: "1.25rem" }}>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} style={{ height: 58, borderRadius: 10, background: C.active, border: `1px solid ${C.cardBorder}`, animation: "pulse 1.5s ease-in-out infinite" }} />
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {!slotsLoading && slotsError && (
+          <div style={{ background: "#f8717122", border: "1px solid #f8717155", borderRadius: 10, padding: "10px 14px", fontSize: "0.8rem", color: "#f87171", marginBottom: "1.25rem" }}>
+            {slotsError}
+          </div>
+        )}
+
+        {/* No available slots */}
+        {!slotsLoading && !slotsError && availableSlots.length === 0 && (
+          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "1rem", textAlign: "center", fontSize: "0.82rem", color: C.textMuted, marginBottom: "1.25rem" }}>
+            No available slots for this date. Try another day.
+          </div>
+        )}
+
+        {/* Slot grid — available only */}
+        {!slotsLoading && !slotsError && availableSlots.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: "1.25rem" }}>
+            {availableSlots.map(slot => {
+              const isSelected = time === slot.time;
+              return (
+                <button
+                  key={slot.time}
+                  onClick={() => setTime(slot.time)}
+                  style={{
+                    padding: "10px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                    border: `1px solid ${isSelected ? C.accent : C.cardBorder}`,
+                    background: isSelected ? C.accentSoft : C.card,
+                    color: isSelected ? C.accentText : C.textSub,
+                    fontWeight: isSelected ? 600 : 400,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: "0.85rem" }}>{slot.time}</span>
+                  <span style={{ fontSize: "0.68rem", color: isSelected ? C.accentText : C.textMuted }}>{slot.period}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Confirmed pill */}
+        {date && time && (
+          <div style={{ background: "#3DBE8215", border: "1px solid #3DBE8240", borderRadius: 10, padding: "10px 14px", fontSize: "0.8rem", color: C.green, marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: 8 }}>
+            <span>✓</span>
+            <span>{new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} at {time} IST</span>
+          </div>
+        )}
+
+        {/* Confirm button */}
+        <button
+          onClick={() => onConfirm(date, time)}
+          disabled={loading || !time}
+          style={{ width: "100%", background: time ? C.accent : C.active, border: "none", borderRadius: 10, padding: 11, color: time ? "#fff" : C.textMuted, fontSize: "0.92rem", fontWeight: 600, cursor: loading || !time ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: loading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}>
+          {loading ? <><Spin size={15} /> Rescheduling…</> : "Confirm Reschedule →"}
+        </button>
+
+      </div>
+    </div>
+  );
+}
+// ── Cancel Modal ───────────────────────────────────────────────────────────────
+function CancelModal({ booking, loading, onConfirm, onClose }) {
+  const [reason, setReason] = useState("");
+  const hoursUntil = (new Date(booking.scheduledAt) - new Date()) / (1000 * 60 * 60);
+  const refundPct = hoursUntil >= 24 ? 100 : hoursUntil >= 2 ? 50 : 0;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: C.sidebar, border: `1px solid ${C.cardBorder}`, borderRadius: 20, padding: "2rem", width: 340, position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 14, right: 14, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.textSub }}>
+          <X size={14} />
+        </button>
+
+        <div style={{ fontWeight: 600, fontSize: "1rem", color: C.text, marginBottom: 6 }}>Cancel Session</div>
+        <div style={{ fontSize: "0.82rem", color: C.textSub, marginBottom: "1.25rem", lineHeight: 1.5 }}>
+          This will cancel your session with <strong style={{ color: C.text }}>{booking.mentorId?.name || booking.mentorId?.username}</strong>.
+        </div>
+
+        {/* Refund info */}
+        <div style={{ background: refundPct === 100 ? "#3DBE8222" : refundPct === 50 ? "#F59E0B22" : "#f8717122", border: `1px solid ${refundPct === 100 ? "#3DBE8255" : refundPct === 50 ? "#F59E0B55" : "#f8717155"}`, borderRadius: 10, padding: "10px 14px", marginBottom: "1.25rem", fontSize: "0.8rem", color: refundPct === 100 ? C.green : refundPct === 50 ? "#F59E0B" : "#f87171" }}>
+          {refundPct === 100 ? "✓ Full refund eligible (>24h notice)" : refundPct === 50 ? "⚠ 50% refund (2–24h notice)" : "✕ No refund (<2h notice)"}
+        </div>
+
+        <label style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", color: C.textMuted, display: "block", marginBottom: 6 }}>REASON (optional)</label>
+        <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Let your mentor know why…"
+          style={{ width: "100%", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "9px 13px", color: C.text, fontSize: "0.85rem", outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box", marginBottom: "1.25rem" }} />
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 10, color: C.textSub, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit" }}>
+            Keep Session
+          </button>
+          <button onClick={() => onConfirm(reason)} disabled={loading}
+            style={{ flex: 1, background: "#f8717122", border: "1px solid #f8717155", borderRadius: 10, padding: 10, color: "#f87171", fontSize: "0.85rem", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: loading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            {loading ? <><Spin size={13} /> Cancelling…</> : "Yes, Cancel"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -555,7 +818,7 @@ export default function App() {
       user={user}
       onAuthRequired={() => { setPendingBooking(true); setShowAuth(true); }}
     />,
-    sessions: <MySessionsPage onAuthRequired={() => setShowAuth(true)} />, 
+    sessions: <MySessionsPage onAuthRequired={() => setShowAuth(true)} />,
     roadmap: <MyRoadmapPage user={user} />,
     saved: <SavedAnswersPage />,
     profile: <ProfilePage />,
