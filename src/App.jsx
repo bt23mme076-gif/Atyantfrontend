@@ -35,28 +35,36 @@ function Spin({ size = 18 }) {
 }
 
 // ─── My Sessions ─────────────────────────────────────────────────────────────
-function MySessionsPage() {
+function MySessionsPage({ onAuthRequired }) {
+  const { user } = useAuth();               // ← pull user from context
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      onAuthRequired?.();
+      return;
+    }
     sessionAPI.my()
       .then(data => { setUpcoming(data.upcoming || []); setPast(data.past || []); })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
-
+  }, [user]);
   const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  const getInitials = (name = "", max = 2) =>
+  name.trim().split(/\s+/).slice(0, max).map(w => w[0].toUpperCase()).join("");
 
+// "Anand Madhav Sharma" → "AM"
   const SessionCard = ({ s, isUpcoming }) => (
     <div style={{ background: C.card, border: `1px solid ${isUpcoming ? C.accent + "55" : C.cardBorder}`, borderRadius: 14, padding: "1.1rem 1.4rem", display: "flex", alignItems: "center", gap: 14 }}>
       <div style={{ width: 44, height: 44, borderRadius: "50%", background: isUpcoming ? C.accentSoft : C.active, border: `1.5px solid ${isUpcoming ? C.accent + "60" : C.activeBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
-        {s.mentorInitials || "YM"}
+        {getInitials(s.mentorId.username) || "YM"}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 500, color: C.text, fontSize: "0.88rem" }}>{s.mentorName || "Your Mentor"}</div>
+        <div style={{ fontWeight: 500, color: C.text, fontSize: "0.88rem" }}>{s?.mentorId?.name || s?.mentorId?.username || "Your Mentor"}</div>
         <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 2 }}>{s.topic || "Career Guidance"}</div>
         <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
           <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
@@ -547,7 +555,7 @@ export default function App() {
       user={user}
       onAuthRequired={() => { setPendingBooking(true); setShowAuth(true); }}
     />,
-    sessions: <MySessionsPage />,
+    sessions: <MySessionsPage onAuthRequired={() => setShowAuth(true)} />, 
     roadmap: <MyRoadmapPage user={user} />,
     saved: <SavedAnswersPage />,
     profile: <ProfilePage />,
