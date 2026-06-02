@@ -53,16 +53,16 @@ function MySessionsPage({ onAuthRequired }) {
   }, [user]);
 
   const fmtDate = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return isNaN(d) ? "—" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-};
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return isNaN(d) ? "—" : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  };
 
-const fmtTime = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return isNaN(d) ? "—" : d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-};
+  const fmtTime = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return isNaN(d) ? "—" : d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  };
   const getInitials = (name = "", max = 2) =>
     name.trim().split(/\s+/).slice(0, max).map(w => w[0].toUpperCase()).join("");
 
@@ -103,8 +103,9 @@ const fmtTime = (iso) => {
             {s.mentorId?.name || s.mentorId?.username || "Your Mentor"}
           </div>
           <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 2 }}>{s.topic || "Career Guidance"}</div>
-          <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
             <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
+            {s.duration && <><span style={{ opacity: 0.4 }}>·</span> {s.duration} min</>}
           </div>
         </div>
       </div>
@@ -126,23 +127,44 @@ const fmtTime = (iso) => {
   );
 
   // ── Past card (unchanged chip) ─────────────────────────────────────────────
-  const PastCard = ({ s }) => (
-    <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1.1rem 1.4rem", display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.active, border: `1.5px solid ${C.activeBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: C.accentText, flexShrink: 0 }}>
-        {getInitials(s.mentorId?.username || s.mentorId?.name || "")}
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 500, color: C.text, fontSize: "0.88rem" }}>{s.mentorId?.name || s.mentorId?.username || "Your Mentor"}</div>
-        <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 2 }}>{s.topic || "Career Guidance"}</div>
-        <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 4 }}>
-          <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
+  const PastCard = ({ s }) => {
+    const isCancelled = s.status === "cancelled";
+    const isCompleted = s.status === "completed";
+
+    const borderColor = isCancelled ? "#f8717122" : isCompleted ? "#3DBE8222" : C.cardBorder;
+    const chipBg = isCancelled ? "#f8717118" : isCompleted ? "#3DBE8218" : C.active;
+    const chipColor = isCancelled ? "#f87171" : isCompleted ? C.green : C.textMuted;
+    const chipBorder = isCancelled ? "#f8717144" : isCompleted ? "#3DBE8244" : C.cardBorder;
+    const initialsColor = isCancelled ? "#f87171" : isCompleted ? C.green : C.accentText;
+    const nameColor = isCancelled ? C.textSub : C.text;
+
+    return (
+      <div style={{ background: C.card, border: `1px solid ${borderColor}`, borderRadius: 14, padding: "1.1rem 1.4rem", display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.active, border: `1.5px solid ${C.activeBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: initialsColor, flexShrink: 0 }}>
+          {getInitials(s.mentorId?.username || s.mentorId?.name || "")}
         </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 500, color: nameColor, fontSize: "0.88rem" }}>
+            {s.mentorId?.name || s.mentorId?.username || "Your Mentor"}
+          </div>
+          <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 2 }}>{s.topic || "Career Guidance"}</div>
+          <div style={{ fontSize: "0.72rem", color: C.textMuted, marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
+            <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
+            {s.duration && <><span style={{ opacity: 0.4 }}>·</span> {s.duration} min</>}
+          </div>
+          {isCancelled && s.cancelReason && (
+            <div style={{ fontSize: "0.72rem", color: "#f87171", marginTop: 4, fontStyle: "italic" }}>
+              "{s.cancelReason}"
+            </div>
+          )}
+        </div>
+        <span style={{ fontSize: "0.72rem", padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: chipBg, color: chipColor, border: `1px solid ${chipBorder}` }}>
+          {isCancelled ? "Cancelled" : isCompleted ? "Completed" : s.status}
+        </span>
       </div>
-      <span style={{ fontSize: "0.72rem", padding: "4px 11px", borderRadius: 999, background: C.active, color: C.textMuted, border: `1px solid ${C.cardBorder}` }}>
-        Completed
-      </span>
-    </div>
-  );
+    );
+  }; 
+  
 
   if (loading) return <div style={{ padding: "3rem", textAlign: "center", color: C.textMuted }}><Spin /></div>;
 
