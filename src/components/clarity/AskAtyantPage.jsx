@@ -552,7 +552,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
 
           {/* Messages Area */}
           <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem 0" }}>
-            <div style={{ maxWidth: 680, margin: "0 auto", paddingX: "1rem" }}>
+            <div style={{ maxWidth: 680, margin: "0 auto", paddingLeft: "1rem", paddingRight: "1rem", boxSizing: "border-box" }}>
               {messages.map((m, i) => {
                 const isUser = m.sender === "user";
                 return (
@@ -560,7 +560,6 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                     display: "flex",
                     justifyContent: isUser ? "flex-end" : "flex-start",
                     marginBottom: "1.25rem",
-                    paddingX: "1rem",
                   }}>
                     <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start" }}>
                       <div style={{
@@ -635,7 +634,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
               })}
 
               {isTyping && (
-                <div style={{ marginBottom: "1.25rem", paddingX: "1rem", display: "flex", gap: 4 }}>
+                <div style={{ marginBottom: "1.25rem", display: "flex", gap: 4 }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.textSub, animation: "pulse 1.2s infinite 0s" }} />
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.textSub, animation: "pulse 1.2s infinite 0.2s" }} />
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.textSub, animation: "pulse 1.2s infinite 0.4s" }} />

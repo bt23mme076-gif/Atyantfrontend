@@ -13,3 +13,12 @@ body {
   filter: invert(1);
   cursor: pointer;
 }
+
+/* Hide scrollbar but keep scroll functionality */
+.hide-scrollbar {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / Edge */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;                /* Chrome / Safari */
+}

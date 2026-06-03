@@ -40,7 +40,19 @@ import {
 import { MdOutlineRoute, MdVerified, MdWorkspacePremium } from "react-icons/md";
 import { HiSparkles } from "react-icons/hi2";
 import { RiMedalLine } from "react-icons/ri";
-import { api } from "../api";
+import { api, paymentAPI, servicesAPI } from "../api";
+
+// Lazily inject the Razorpay Checkout script (once).
+function loadRazorpay() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -50,48 +62,46 @@ const MAX_GOALS = 3;
 const SESSIONS = [
   {
     id: 1,
-    title: "Audio Call",
+    title: "Clarity Call",
     subtitle: "Quick & Focused",
-    price: 499,
-    originalPrice: 699,
-    duration: "30 mins",
+    price: 149,
+    originalPrice: 249,
+    duration: "20 mins",
     icon: FiPhone,
     badge: "Quick clarity",
     color: "blue",
-    bestFor: "A focused doubt-solving call for one clear career blocker.",
-    outcomes: ["Resume direction", "Role fit check", "Next 3 actions"],
+    bestFor: "One clear blocker solved fast.",
+    outcomes: ["One clear blocker solved", "Resume direction", "Role fit check"],
     popular: false,
     tag: null,
   },
   {
     id: 2,
-    title: "Video Call",
+    title: "Path Review",
     subtitle: "Deep Dive Review",
-    price: 699,
-    originalPrice: 999,
+    price: 349,
+    originalPrice: 499,
     duration: "45 mins",
     icon: FiVideo,
     badge: "Most booked",
     color: "gold",
-    bestFor:
-      "A deeper review with screen-share for profile, projects, and interview prep.",
-    outcomes: ["Profile review", "Project feedback", "Interview plan"],
+    bestFor: "Full profile review with screen-share for projects and interview prep.",
+    outcomes: ["Full profile review", "Project feedback", "Interview prep plan"],
     popular: true,
     tag: "⭐ RECOMMENDED",
   },
   {
     id: 3,
-    title: "Career Roadmap",
+    title: "Strategy Session",
     subtitle: "Full Strategy Session",
-    price: 999,
-    originalPrice: 1499,
+    price: 599,
+    originalPrice: 899,
     duration: "60 mins",
     icon: MdOutlineRoute,
     badge: "Best value",
     color: "green",
-    bestFor:
-      "A complete roadmap for moving from beginner to placement-ready.",
-    outcomes: ["90-day roadmap", "Skill gap analysis", "Weekly milestones"],
+    bestFor: "Complete roadmap from beginner to placement-ready.",
+    outcomes: ["90-day roadmap", "Skill gap analysis", "30/60/90 milestones"],
     popular: false,
     tag: "🔥 BEST VALUE",
   },
@@ -1632,8 +1642,34 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     };
   }, [mentor]);
 
+  // Platform service catalog → the mentor's bookable services (prices are fixed by Atyant)
+  const [serviceCatalog, setServiceCatalog] = useState([]);
+  useEffect(() => {
+    servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
+  }, []);
+
+  const SERVICE_ICONS = { "quick-chat": FiMessageCircle, "video-call": FiVideo, "mock-interview": FiUsers, "roadmap": FiTrendingUp };
+  const sessionOptions = useMemo(() => {
+    const offered = mentor?.servicesOffered || [];
+    const picked = serviceCatalog.filter(s => offered.includes(s.id));
+    const list = picked.length ? picked : serviceCatalog; // fallback to full catalog if mentor hasn't chosen yet
+    if (!list.length) return SESSIONS;                     // ultimate fallback before catalog loads
+    return list.map((s, i) => ({
+      id: s.id, serviceId: s.id, title: s.label, subtitle: s.description,
+      price: s.price, originalPrice: s.price, duration: `${s.durationMin} mins`, durationMin: s.durationMin,
+      icon: SERVICE_ICONS[s.id] || FiVideo, badge: i === 0 ? "Most booked" : "", color: i === 0 ? "gold" : "blue",
+      bestFor: s.description, outcomes: [s.description], popular: i === 0, tag: i === 0 ? "⭐ POPULAR" : null,
+    }));
+  }, [serviceCatalog, mentor]);
+
   // 2. Initialize states with the reliable local string source
   const [selectedSession, setSelectedSession] = useState(SESSIONS[1]);
+  // Keep the selected session valid against the mentor's offered services
+  useEffect(() => {
+    if (sessionOptions.length && !sessionOptions.find(s => s.id === selectedSession?.id)) {
+      setSelectedSession(sessionOptions.find(s => s.popular) || sessionOptions[0]);
+    }
+  }, [sessionOptions]);
   const [date, setDate] = useState(todayStr); // Defaults to today's date string automatically
   const [time, setTime] = useState("");
   const [name, setName] = useState("");
@@ -1748,34 +1784,75 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       onAuthRequired?.();
       return;
     }
+    const mentorId = mentor?._id || mentor?.id || activeMentor?._id || null;
+    if (!mentorId) {
+      alert('Please pick a mentor from your matches first.');
+      return;
+    }
+
     setIsBooking(true);
     try {
-      const response = await api.post('/api/book-session', {
-        mentorId: activeMentor?._id || null,
-        mentor: activeMentor.name,
-        sessionType: selectedSession.title,
-        date,
-        time,
-        amount: selectedSession.price + PLATFORM_FEE - couponDiscount,
-        goals: selectedGoals,
-        brief,
-        name,
-        email,
-        phone,
-        coupon: couponApplied ? couponCode : null,
+      const topic = (selectedGoals && selectedGoals.length ? selectedGoals.join(', ') : selectedSession.title);
+      const durationMin = selectedSession.durationMin || 30;
+
+      // 1) Create order — serviceId drives the platform-fixed price server-side
+      const order = await paymentAPI.createOrder({
+        mentorId, date, time, topic, durationMin, serviceId: selectedSession.serviceId,
       });
 
-      if (response?.ok) {
-        setBookingId(response?.bookingId);
+      // Free mentor → already confirmed server-side
+      if (order?.free) {
+        setBookingId(order?.session?._id || '');
         setShowSuccess(true);
-        setRefreshSlots(c => c + 1);   // ← triggers slot re-fetch
-      } else {
-        alert(response?.error || 'Booking failed. Please try again.');
+        setRefreshSlots(c => c + 1);
+        setIsBooking(false);
+        return;
       }
+
+      // 2) Open Razorpay Checkout
+      const ok = await loadRazorpay();
+      if (!ok) { alert('Could not load payment gateway. Check your connection.'); setIsBooking(false); return; }
+
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,        // paise
+        currency: order.currency,
+        name: 'Atyant',
+        description: `Session with ${order.mentorName}`,
+        order_id: order.orderId,
+        prefill: { name: name || user?.username, email: email || user?.email, contact: phone || '' },
+        theme: { color: '#7567C9' },
+        handler: async (resp) => {
+          try {
+            // 3) Verify payment server-side → confirms session, generates Meet, emails both
+            const result = await paymentAPI.verify({
+              sessionId: order.sessionId,
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            });
+            if (result?.ok) {
+              setBookingId(order.sessionId);
+              setShowSuccess(true);
+              setRefreshSlots(c => c + 1);
+            } else {
+              alert(result?.error || 'Payment verification failed. If you were charged, contact support.');
+            }
+          } catch (e) {
+            alert(e.message || 'Payment verification failed. If you were charged, contact support.');
+          } finally {
+            setIsBooking(false);
+          }
+        },
+        modal: { ondismiss: () => setIsBooking(false) },
+      });
+      rzp.on('payment.failed', (resp) => {
+        alert(resp?.error?.description || 'Payment failed. Please try again.');
+        setIsBooking(false);
+      });
+      rzp.open();
     } catch (err) {
-      const msg = err?.response?.error || 'Client: Booking failed. Please try again.';
-      alert(msg);
-    } finally {
+      alert(err?.data?.error || err?.message || 'Booking failed. Please try again.');
       setIsBooking(false);
     }
   };
@@ -1845,7 +1922,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
 
               {/* Sessions */}
               <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
-                <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-black text-[#ECEAF3]">
                       Available Sessions
@@ -1854,14 +1931,18 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                       Pick the format that matches your current goal.
                     </p>
                   </div>
-                  <span className="flex items-center gap-1.5 text-sm font-bold text-[#8E80DB]">
-                    <FiGift size={14} />
-                    All sessions include notes + resources
+                </div>
+
+                {/* All sessions include banner */}
+                <div style={{ background: "rgba(61,190,130,0.06)", border: "1px solid rgba(61,190,130,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+                  <FiGift size={14} color="#3DBE82" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: "#3DBE82", fontWeight: 500 }}>
+                    All sessions include: written notes + curated resources after every call — yours to keep forever.
                   </span>
                 </div>
 
                 <div className="grid gap-5 md:grid-cols-3">
-                  {SESSIONS.map((s) => (
+                  {sessionOptions.map((s) => (
                     <SessionCard
                       key={s.id}
                       session={s}
@@ -1869,6 +1950,11 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                       onSelect={handleSessionSelect}
                     />
                   ))}
+                </div>
+
+                {/* Trust line */}
+                <div style={{ marginTop: 16, textAlign: "center", fontSize: 12, color: "#5F576F" }}>
+                  Senior keeps 83% · Razorpay UPI · Reschedule anytime
                 </div>
               </div>
 

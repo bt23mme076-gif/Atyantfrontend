@@ -26,24 +26,37 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Load the FULL profile via /me, retrying briefly. Right after auth the
+  // backend can take a moment before the record is queryable, so a single
+  // attempt may miss and leave us with the trimmed login/signup response
+  // (no education/bio/etc.) until the next page refresh. Retrying rides that
+  // out so every field is present on first render.
+  const loadFullUser = useCallback(async (fallback) => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        return await authAPI.me();
+      } catch {
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+    return fallback;
+  }, []);
+
   const login = useCallback(async (email, password) => {
     const data = await authAPI.login(email, password);
     localStorage.setItem('atyant_token', data.token);
-    // Fetch the FULL profile so the user object matches the refresh path
-    // (login response is trimmed and lacks education/interests/bio/etc.).
-    const fullUser = await authAPI.me().catch(() => data.user);
+    const fullUser = await loadFullUser(data.user);
     setUser(fullUser);
     return fullUser;
-  }, []);
+  }, [loadFullUser]);
 
   const signup = useCallback(async (username, email, password, phone, role) => {
     const data = await authAPI.signup(username, email, password, phone, role);
     localStorage.setItem('atyant_token', data.token);
-    // Same as login: load the complete profile so no field is missing on first render.
-    const fullUser = await authAPI.me().catch(() => data.user);
+    const fullUser = await loadFullUser(data.user);
     setUser(fullUser);
     return fullUser;
-  }, []);
+  }, [loadFullUser]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('atyant_token');

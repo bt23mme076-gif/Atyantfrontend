@@ -130,7 +130,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
       style={{ position: "relative", background: T.bg }}
     >
       {/* ── Header ── */}
-      <div className="px-6 py-2.5 flex-shrink-0" style={{ borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
+      <div className="px-4 sm:px-6 py-2.5 flex-shrink-0" style={{ borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
         <div className="flex items-center gap-3.5 max-w-3xl mx-auto">
           {/* Avatar */}
           <Avatar src={mentor.profilePicture} name={mentor.name || mentor.initials} size={44} style={{ borderRadius: 12 }} />
@@ -250,7 +250,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
       </div>
 
       {/* ── Fixed Footer CTA ── */}
-      <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${T.cardBorder}`, background: T.card }}>
+      <div className="px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${T.cardBorder}`, background: T.card }}>
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => {

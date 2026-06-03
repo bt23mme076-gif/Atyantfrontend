@@ -15,7 +15,7 @@ import ChatPage       from "./components/clarity/ChatPage";
 import MentorOnboard  from "./pages/MentorOnboard";
 import Avatar         from "./components/Avatar";
 import { useAuth }    from "./context/AuthContext";
-import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI } from "./api";
+import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI, servicesAPI } from "./api";
 
 const C = {
   bg:           "#13121A",
@@ -338,6 +338,7 @@ const ChipSection = ({ title, items, editing, onChange, placeholder, emptyText, 
 
 function ProfilePage() {
   const { user, setUser } = useAuth();
+  const isMobileView = useIsMobile();
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -359,9 +360,15 @@ function ProfilePage() {
     }
   };
   const isMentor = user?.role === "mentor";
+  const [serviceCatalog, setServiceCatalog] = useState([]);
   const [form,    setForm]    = useState({ name:"", college:"", branch:"", year:"", cgpa:"", bio:"", goals:[], skills:[],
     expertise:[], topCompanies:[], specialTags:[], city:"", linkedinProfile:"", price:"", yearsOfExperience:"",
-    primaryDomain:"", companyDomain:"" });
+    primaryDomain:"", companyDomain:"", servicesOffered:[] });
+
+  // Load the platform service catalog once (mentors pick from it)
+  useEffect(() => {
+    servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -385,6 +392,7 @@ function ProfilePage() {
       yearsOfExperience: user.yearsOfExperience ? String(user.yearsOfExperience) : "",
       primaryDomain: user.primaryDomain || "",
       companyDomain: user.companyDomain || "",
+      servicesOffered: user.servicesOffered || [],
     });
   }, [user]);
 
@@ -395,7 +403,7 @@ function ProfilePage() {
       const payload = isMentor
         ? { ...base, expertise:form.expertise, topCompanies:form.topCompanies, specialTags:form.specialTags,
             city:form.city, linkedinProfile:form.linkedinProfile, price:Number(form.price)||0, yearsOfExperience:Number(form.yearsOfExperience)||0,
-            primaryDomain:form.primaryDomain, companyDomain:form.companyDomain }
+            primaryDomain:form.primaryDomain, companyDomain:form.companyDomain, servicesOffered:form.servicesOffered }
         : { ...base, goals:form.goals, skills:form.skills };
       const res = await profileAPI.update(payload);
       setUser(res.user || res);
@@ -408,19 +416,19 @@ function ProfilePage() {
   const initials = (user?.username || user?.name || "?").slice(0,2).toUpperCase();
 
   return (
-    <div style={{ padding:"2rem", maxWidth:640 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"2rem" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:18 }}>
-          <label style={{ position:"relative", cursor:"pointer", display:"inline-block" }} title="Change photo">
-            <Avatar src={user?.profilePicture} name={user?.username || user?.name || "You"} size={72} bg="7567c9" style={{ border:`2.5px solid ${C.accent}`, opacity: uploading ? 0.5 : 1 }} />
+    <div style={{ padding: isMobileView ? "1.25rem" : "2rem", maxWidth:640 }}>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, flexWrap:"wrap", marginBottom:"2rem" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:14, minWidth:0, flex:"1 1 auto" }}>
+          <label style={{ position:"relative", cursor:"pointer", display:"inline-block", flexShrink:0 }} title="Change photo">
+            <Avatar src={user?.profilePicture} name={user?.username || user?.name || "You"} size={isMobileView ? 56 : 72} bg="7567c9" style={{ border:`2.5px solid ${C.accent}`, opacity: uploading ? 0.5 : 1 }} />
             <input type="file" accept="image/*" onChange={onPickImage} style={{ display:"none" }} disabled={uploading} />
             <span style={{ position:"absolute", bottom:0, right:0, width:24, height:24, borderRadius:"50%", background:C.accent, border:`2.5px solid ${C.bg}`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff" }}>
               {uploading ? <Spin size={12} /> : <Camera size={12} />}
             </span>
           </label>
-          <div>
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-              <h2 style={{ fontSize:"1.4rem", fontWeight:600, color:C.text, margin:0 }}>{user?.username || user?.name || "—"}</h2>
+          <div style={{ minWidth:0 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
+              <h2 style={{ fontSize: isMobileView ? "1.15rem" : "1.4rem", fontWeight:600, color:C.text, margin:0, wordBreak:"break-word" }}>{user?.username || user?.name || "—"}</h2>
               {isMentor && (
                 <span style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:999, padding:"2px 10px", fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.06em" }}>MENTOR</span>
               )}
@@ -486,6 +494,45 @@ function ProfilePage() {
           onChange={v => setForm(f=>({...f, specialTags:v}))}
           placeholder="Add a tag, e.g. FAANG, PPO, GATE"
           emptyText="No achievements added yet." />
+
+        {/* Services the mentor offers — prices are platform-fixed */}
+        <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
+          <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.35rem" }}>SERVICES YOU OFFER</div>
+          <div style={{ fontSize:"0.74rem", color:C.textMuted, marginBottom:"1rem" }}>Prices are set by Atyant — you choose what you offer.</div>
+          {editing ? (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {serviceCatalog.map(s => {
+                const on = form.servicesOffered.includes(s.id);
+                return (
+                  <button key={s.id} type="button"
+                    onClick={() => setForm(f => ({ ...f, servicesOffered: on ? f.servicesOffered.filter(x => x !== s.id) : [...f.servicesOffered, s.id] }))}
+                    style={{ textAlign:"left", display:"flex", alignItems:"center", gap:12, background: on ? C.accentSoft : C.active, border:`1px solid ${on ? C.accent+"66" : C.cardBorder}`, borderRadius:10, padding:"10px 14px", cursor:"pointer", fontFamily:"inherit" }}>
+                    <span style={{ width:18, height:18, borderRadius:5, border:`1.5px solid ${on ? C.accent : C.textMuted}`, background:on ? C.accent : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#fff", fontSize:11 }}>{on ? "✓" : ""}</span>
+                    <span style={{ flex:1, minWidth:0 }}>
+                      <span style={{ display:"block", color:C.text, fontSize:"0.86rem", fontWeight:500 }}>{s.label}</span>
+                      <span style={{ display:"block", color:C.textMuted, fontSize:"0.72rem" }}>{s.description} · {s.durationMin} min</span>
+                    </span>
+                    <span style={{ color: on ? C.accentText : C.textSub, fontWeight:700, fontSize:"0.9rem", flexShrink:0 }}>₹{s.price}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            form.servicesOffered.length === 0
+              ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>No services selected yet. Edit profile to choose what you offer.</p>
+              : <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {serviceCatalog.filter(s => form.servicesOffered.includes(s.id)).map(s => (
+                    <div key={s.id} style={{ display:"flex", alignItems:"center", gap:12, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:10, padding:"10px 14px" }}>
+                      <span style={{ flex:1, minWidth:0 }}>
+                        <span style={{ display:"block", color:C.text, fontSize:"0.86rem", fontWeight:500 }}>{s.label}</span>
+                        <span style={{ display:"block", color:C.textMuted, fontSize:"0.72rem" }}>{s.durationMin} min</span>
+                      </span>
+                      <span style={{ color:C.accentText, fontWeight:700, fontSize:"0.9rem" }}>₹{s.price}</span>
+                    </div>
+                  ))}
+                </div>
+          )}
+        </div>
       </> : <>
         <ChipSection title="CURRENT GOALS" items={form.goals} editing={editing} highlightFirst
           onChange={v => setForm(f=>({...f, goals:v}))}

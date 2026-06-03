@@ -1,36 +1,109 @@
 import { useState, useEffect, useRef } from "react";
-import useIsMobile from "../hooks/useIsMobile";
 
 const T = {
-  bg:           "#13121A",
-  sidebar:      "#0D0C12",
-  card:         "#1A1823",
-  cardHover:    "#211E2C",
-  cardBorder:   "#322E40",
-  active:       "#221E33",
-  activeBorder: "#443A6B",
-  accent:       "#7567C9",
-  accentSoft:   "#7567C922",
-  accentText:   "#8E80DB",
-  text:         "#ECEAF3",
-  textSub:      "#978FAB",
-  textMuted:    "#5F576F",
-  green:        "#3DBE82",
+  bg:          "#13121A",
+  sidebar:     "#0D0C12",
+  card:        "#1A1823",
+  cardHover:   "#211E2C",
+  cardBorder:  "#322E40",
+  active:      "#221E33",
+  activeBorder:"#443A6B",
+  accent:      "#7567C9",
+  accentSoft:  "#7567C922",
+  accentText:  "#8E80DB",
+  text:        "#ECEAF3",
+  textSub:     "#978FAB",
+  textMuted:   "#5F576F",
+  green:       "#3DBE82",
 };
 
-const PRICES = { starter: 199, pro: 499, elite: 999 };
-const fmt = (n) => Number(n).toLocaleString("en-IN");
-const yearlyPerMonth = (p) => Math.round(p * 0.8);
-const yearlyTotal    = (p) => Math.round(p * 12 * 0.8);
-const yearlySave     = (p) => Math.round(p * 12 * 0.2);
+const STUDENT_PLANS = [
+  {
+    key: "free", name: "Explorer", emoji: "🔍",
+    monthly: 0, yearly: 0, featured: false,
+    tagline: "Start with clarity", cta: "Start Free", ctaStyle: "outline",
+    features: [
+      { text: "3 AnswerCards per search", green: false },
+      { text: "See matched seniors (names only)", green: false },
+      { text: "Unlimited landing chat questions", green: false },
+      { text: "Basic college path data", green: false },
+    ],
+  },
+  {
+    key: "clarity", name: "Clarity", emoji: "🎯",
+    monthly: 299, yearly: 239, featured: true,
+    tagline: "For placement season", cta: "Get Clarity", ctaStyle: "accent",
+    features: [
+      { text: "Unlimited AnswerCards", green: true },
+      { text: "Full senior profiles + journeys", green: true },
+      { text: "1 session credit / month (₹299 value)", green: true },
+      { text: "Journey tracker dashboard", green: true },
+      { text: "Priority senior matching (4hr response)", green: true },
+      { text: "Session notes & recordings", green: true },
+    ],
+  },
+  {
+    key: "pro", name: "Pro", emoji: "🚀",
+    monthly: 699, yearly: 559, featured: false,
+    tagline: "Serious placement prep", cta: "Go Pro", ctaStyle: "green",
+    features: [
+      { text: "Everything in Clarity", green: true },
+      { text: "3 session credits / month (₹900 value)", green: true },
+      { text: "Mock interview prep cards", green: true },
+      { text: "Resume review by verified senior", green: true },
+      { text: "Outcome tracking + placement report", green: true },
+      { text: "WhatsApp senior connect", green: true },
+    ],
+  },
+];
+
+const B2B_PLANS = [
+  {
+    key: "campus_lite", name: "Campus Lite", price: "₹75,000", period: "/year",
+    tagline: "For small colleges upto 500 students", cta: "Request Demo", featured: false,
+    features: [
+      "Up to 500 student accounts",
+      "Anonymized placement funnel dashboard",
+      "Monthly clarity report for TPO",
+      "Atyant branding in college portal",
+      "Email support",
+    ],
+  },
+  {
+    key: "campus_pro", name: "Campus Pro", price: "₹1,50,000", period: "/year",
+    tagline: "For mid-size institutes upto 2000 students", cta: "Request Demo", featured: true,
+    features: [
+      "Up to 2,000 student accounts",
+      "Real-time student journey analytics",
+      "Dedicated senior pool for your college",
+      "Placement outcome tracking",
+      "TPO dashboard + data exports",
+      "2 live workshops per year",
+      "Priority support",
+    ],
+  },
+  {
+    key: "campus_enterprise", name: "Enterprise", price: "₹3,00,000", period: "/year",
+    tagline: "For large institutes & university groups", cta: "Talk to Founder", featured: false,
+    features: [
+      "Unlimited students",
+      "Custom AnswerCards for college-specific paths",
+      "White-label option (powered by your college)",
+      "API access for college systems",
+      "Quarterly placement strategy report",
+      "Dedicated account manager",
+      "Custom integrations",
+    ],
+  },
+];
 
 function Check({ green }) {
   return (
     <span style={{
-      flexShrink: 0, width: 18, height: 18, borderRadius: 6,
+      flexShrink: 0, width: 16, height: 16, borderRadius: 5,
       display: "flex", alignItems: "center", justifyContent: "center",
-      marginTop: 1, fontSize: 10, fontWeight: 700,
-      background: green ? "rgba(61,190,130,0.16)" : "rgba(117,103,201,0.18)",
+      fontSize: 9, fontWeight: 700,
+      background: green ? "rgba(61,190,130,0.12)" : "rgba(117,103,201,0.14)",
       color: green ? T.green : T.accentText,
     }}>✓</span>
   );
@@ -38,16 +111,45 @@ function Check({ green }) {
 
 function Feature({ text, green }) {
   return (
-    <li style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13.5, color: T.textSub, lineHeight: 1.45 }}>
+    <li style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: T.textSub, lineHeight: 1.45 }}>
       <Check green={green} />
-      {text}
+      <span>{text}</span>
     </li>
   );
 }
 
+function SessionPricingNote() {
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${T.cardBorder}`,
+      borderRadius: 14, padding: "16px 20px", marginBottom: 32,
+      display: "flex", flexWrap: "wrap", gap: 20,
+      alignItems: "center", justifyContent: "center",
+    }}>
+      <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        Pay-per-session (no subscription needed)
+      </div>
+      {[
+        { label: "Quick Clarity", sub: "20 min", price: "₹149" },
+        { label: "Path Review",   sub: "45 min", price: "₹299" },
+        { label: "Mock Interview",sub: "60 min", price: "₹499" },
+      ].map((s) => (
+        <div key={s.label} style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{s.price}</div>
+          <div style={{ fontSize: 12, color: T.textSub, fontWeight: 500 }}>{s.label}</div>
+          <div style={{ fontSize: 11, color: T.textMuted }}>{s.sub}</div>
+        </div>
+      ))}
+      <div style={{ fontSize: 11, color: T.textMuted, maxWidth: 200, textAlign: "center", lineHeight: 1.5 }}>
+        Seniors keep 83% · Atyant takes 15% · Powered by Razorpay UPI
+      </div>
+    </div>
+  );
+}
+
 export default function UpgradePage() {
-  const isMobile = useIsMobile();
-  const [billing, setBillingState] = useState("monthly");
+  const [tab, setTab] = useState("student");
+  const [billing, setBilling] = useState("monthly");
   const btnMonthlyRef = useRef(null);
   const btnYearlyRef  = useRef(null);
   const [sliderStyle, setSliderStyle] = useState({ width: 0, transform: "translateX(0)" });
@@ -56,10 +158,10 @@ export default function UpgradePage() {
     if (btnMonthlyRef.current) {
       setSliderStyle({ width: btnMonthlyRef.current.offsetWidth, transform: "translateX(0)" });
     }
-  }, []);
+  }, [tab]);
 
   const setB = (mode) => {
-    setBillingState(mode);
+    setBilling(mode);
     if (mode === "yearly" && btnYearlyRef.current) {
       setSliderStyle({ width: btnYearlyRef.current.offsetWidth, transform: `translateX(${btnMonthlyRef.current.offsetWidth}px)` });
     } else if (btnMonthlyRef.current) {
@@ -67,202 +169,239 @@ export default function UpgradePage() {
     }
   };
 
-  const price = (plan) => billing === "yearly" ? yearlyPerMonth(PRICES[plan]) : PRICES[plan];
-  const isYearly = billing === "yearly";
-
-  const cardStyle = (featured) => ({
-    background: featured ? T.active : T.card,
-    border: `1px solid ${featured ? T.activeBorder : T.cardBorder}`,
-    borderRadius: 22,
-    padding: featured ? "46px 24px 28px" : "28px 24px 28px",
-    position: "relative",
-    transition: "border-color 0.25s, background 0.25s, transform 0.25s, box-shadow 0.25s",
-  });
+  const ctaStyle = (style) => {
+    if (style === "accent") return { background: "linear-gradient(135deg,#7567C9,#9B8EE8)", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(117,103,201,0.3)" };
+    if (style === "green")  return { background: "rgba(61,190,130,0.08)", color: T.green, border: `1px solid rgba(61,190,130,0.25)` };
+    return { background: "transparent", color: T.textSub, border: `1px solid ${T.cardBorder}` };
+  };
 
   return (
-    <div style={{ position: "relative", overflowX: "hidden", minHeight: "100%", background: T.bg }}>
+    <div style={{ position: "relative", minHeight: "100%", background: T.bg, fontFamily: "'Satoshi', sans-serif" }}>
       {/* Ambient blobs */}
-      <div style={{ position: "fixed", width: 500, height: 500, borderRadius: "50%", filter: "blur(110px)", pointerEvents: "none", zIndex: 0, opacity: 0.13, background: T.accent, top: -160, right: -80 }} />
-      <div style={{ position: "fixed", width: 360, height: 360, borderRadius: "50%", filter: "blur(110px)", pointerEvents: "none", zIndex: 0, opacity: 0.13, background: "#3A2A7C", bottom: 40, left: -100 }} />
+      <div style={{ position: "fixed", width: 400, height: 400, borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none", zIndex: 0, opacity: 0.1, background: T.accent, top: -100, right: -50 }} />
+      <div style={{ position: "fixed", width: 300, height: 300, borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none", zIndex: 0, opacity: 0.08, background: "#3A2A7C", bottom: -50, left: -50 }} />
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "60px 20px 88px" }}>
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px) 80px" }}>
 
         {/* ── Header ── */}
-        <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: T.accentSoft, border: `1px solid ${T.activeBorder}`, color: T.accentText, fontSize: 11, fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", padding: "5px 14px", borderRadius: 100, marginBottom: 22 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, animation: "pulse 2.2s ease-in-out infinite" }} />
-            Choose Your Plan
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.accentSoft, border: `1px solid ${T.activeBorder}`, color: T.accentText, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "4px 12px", borderRadius: 100, marginBottom: 14 }}>
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, animation: "pulse 2.2s ease-in-out infinite" }} />
+            Simple, transparent pricing
           </div>
 
-          <h1 style={{ fontFamily: "'Syne', 'Satoshi', sans-serif", fontSize: "clamp(28px,5.5vw,50px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.025em", marginBottom: 14, color: T.text }}>
-            Find connections that<br />
-            <span style={{ background: "linear-gradient(130deg, #8E80DB 0%, #C4BAF5 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              actually mean something
+          <h1 style={{ fontFamily: "'Syne', 'Satoshi', sans-serif", fontSize: "clamp(26px,4.5vw,42px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 10, color: T.text }}>
+            Career clarity that{" "}
+            <span style={{ background: "linear-gradient(130deg,#8E80DB 0%,#C4BAF5 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+              actually moves you forward
             </span>
           </h1>
 
-          <p style={{ fontSize: 15, color: T.textSub, maxWidth: 380, margin: "0 auto 32px", lineHeight: 1.65, fontWeight: 300 }}>
-            Find your person, not just a match. Plans built around real connection.
+          <p style={{ fontSize: 14, color: T.textMuted, maxWidth: 480, margin: "0 auto 24px", lineHeight: 1.6 }}>
+            Verified paths from seniors who walked your exact journey. Free to explore, affordable to go deep.
           </p>
 
-          {/* Billing toggle */}
-          <div style={{ display: "inline-flex", alignItems: "center", background: T.sidebar, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: 4, position: "relative" }}>
-            <div style={{ position: "absolute", top: 4, left: 4, height: "calc(100% - 8px)", borderRadius: 8, background: T.active, border: `1px solid ${T.activeBorder}`, transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s", zIndex: 0, width: sliderStyle.width, transform: sliderStyle.transform }} />
-            <button ref={btnMonthlyRef} onClick={() => setB("monthly")}
-              style={{ position: "relative", zIndex: 1, padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 500, color: billing === "monthly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
-              Monthly
-            </button>
-            <button ref={btnYearlyRef} onClick={() => setB("yearly")}
-              style={{ position: "relative", zIndex: 1, padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 500, color: billing === "yearly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
-              Yearly <span style={{ display: "inline-block", background: T.green, color: "#071a0e", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", padding: "2px 7px", borderRadius: 100, marginLeft: 5, verticalAlign: "middle" }}>–20%</span>
-            </button>
+          {/* Tab switcher */}
+          <div style={{ display: "inline-flex", flexWrap: "wrap", justifyContent: "center", background: T.sidebar, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: 4, gap: 4 }}>
+            {[
+              { key: "student", label: "For Students" },
+              { key: "campus",  label: "For Colleges & B2B" },
+            ].map((t) => (
+              <button key={t.key} onClick={() => setTab(t.key)} style={{
+                padding: "8px 18px", borderRadius: 9, fontSize: 13, fontWeight: 600,
+                cursor: "pointer", border: "none", transition: "all 0.2s",
+                background: tab === t.key ? T.active : "transparent",
+                color: tab === t.key ? T.text : T.textMuted,
+                boxShadow: tab === t.key ? `0 0 0 1px ${T.activeBorder}` : "none",
+                fontFamily: "inherit",
+              }}>
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* ── Cards ── */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: 18, alignItems: "start" }}>
-
-          {/* Starter */}
-          <div style={cardStyle(false)}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 16, background: "rgba(95,87,111,0.22)" }}>🌱</div>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 4 }}>Starter</div>
-            <div style={{ fontSize: 12.5, color: T.textMuted, marginBottom: 22, lineHeight: 1.55, minHeight: 36 }}>A gentle start to finding your match.</div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-                <span style={{ fontSize: 18, fontWeight: 600, color: T.textSub }}>₹</span>
-                <span style={{ fontSize: 40, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.03em" }}>{fmt(price("starter"))}</span>
-                {isYearly && <span style={{ fontSize: 13, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{fmt(PRICES.starter)}</span>}
+        {/* ══ STUDENT PLANS ══ */}
+        {tab === "student" && (
+          <>
+            {/* Billing toggle */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", background: T.sidebar, border: `1px solid ${T.cardBorder}`, borderRadius: 10, padding: 3, position: "relative" }}>
+                <div style={{ position: "absolute", top: 3, left: 3, height: "calc(100% - 6px)", borderRadius: 7, background: T.active, border: `1px solid ${T.activeBorder}`, transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s", zIndex: 0, width: sliderStyle.width, transform: sliderStyle.transform }} />
+                <button ref={btnMonthlyRef} onClick={() => setB("monthly")} style={{ position: "relative", zIndex: 1, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: billing === "monthly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  Monthly
+                </button>
+                <button ref={btnYearlyRef} onClick={() => setB("yearly")} style={{ position: "relative", zIndex: 1, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: billing === "yearly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+                  Yearly
+                  <span style={{ background: T.green, color: "#071a0e", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100 }}>–20%</span>
+                </button>
               </div>
-              <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 4 }}>{isYearly ? "per month, billed yearly" : "per month"}</div>
-              {isYearly && <div style={{ fontSize: 11.5, color: T.green, marginTop: 3, fontWeight: 500 }}>Billed as ₹{fmt(yearlyTotal(PRICES.starter))}/yr — save ₹{fmt(yearlySave(PRICES.starter))}</div>}
             </div>
-            <div style={{ height: 1, background: T.cardBorder, marginBottom: 20 }} />
-            <ul style={{ listStyle: "none", marginBottom: 28, display: "flex", flexDirection: "column", gap: 10 }}>
-              <Feature text="50 profile matches / month" />
-              <Feature text="Basic compatibility insights" />
-              <Feature text="Unlimited likes" />
-              <Feature text="Standard support" />
-            </ul>
-            <button style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 14, fontWeight: 500, cursor: "pointer", background: "transparent", border: `1px solid ${T.cardBorder}`, color: T.textSub, fontFamily: "inherit", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = T.activeBorder; e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.accentSoft; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = T.cardBorder; e.currentTarget.style.color = T.textSub; e.currentTarget.style.background = "transparent"; }}>
-              Get started
-            </button>
-          </div>
 
-          {/* Pro — featured */}
-          <div style={{ ...cardStyle(true), overflow: "visible" }}>
-            <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(130deg,#7567C9,#A89EEB)", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "5px 16px", borderRadius: 100, whiteSpace: "nowrap", zIndex: 2, boxShadow: "0 4px 18px rgba(117,103,201,0.45)" }}>
-              ⭐ Most Popular
-            </div>
-            <div style={{ position: "absolute", inset: 0, borderRadius: 22, background: "radial-gradient(ellipse at 50% -10%, rgba(117,103,201,0.1) 0%, transparent 65%)", pointerEvents: "none" }} />
-            <div style={{ width: 42, height: 42, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 16, background: T.accentSoft }}>💜</div>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 4 }}>Pro</div>
-            <div style={{ fontSize: 12.5, color: T.textMuted, marginBottom: 22, lineHeight: 1.55, minHeight: 36 }}>For those serious about finding the one.</div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-                <span style={{ fontSize: 18, fontWeight: 600, color: T.textSub }}>₹</span>
-                <span style={{ fontSize: 40, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.03em" }}>{fmt(price("pro"))}</span>
-                {isYearly && <span style={{ fontSize: 13, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{fmt(PRICES.pro)}</span>}
-              </div>
-              <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 4 }}>{isYearly ? "per month, billed yearly" : "per month"}</div>
-              {isYearly && <div style={{ fontSize: 11.5, color: T.green, marginTop: 3, fontWeight: 500 }}>Billed as ₹{fmt(yearlyTotal(PRICES.pro))}/yr — save ₹{fmt(yearlySave(PRICES.pro))}</div>}
-            </div>
-            <div style={{ height: 1, background: T.activeBorder, marginBottom: 20 }} />
-            <ul style={{ listStyle: "none", marginBottom: 28, display: "flex", flexDirection: "column", gap: 10 }}>
-              <Feature text="Unlimited matches" green />
-              <Feature text="Advanced compatibility analysis" green />
-              <Feature text="Priority profile visibility" green />
-              <Feature text="See who liked you" green />
-              <Feature text="Priority support" green />
-            </ul>
-            <button style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", background: "linear-gradient(135deg,#7567C9 0%,#9B8EE8 100%)", color: "#fff", border: "none", fontFamily: "inherit", boxShadow: "0 6px 24px rgba(117,103,201,0.35)", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 32px rgba(117,103,201,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 6px 24px rgba(117,103,201,0.35)"; e.currentTarget.style.transform = "none"; }}>
-              {isYearly ? "Upgrade to Pro (Yearly)" : "Upgrade to Pro"}
-            </button>
-          </div>
+            {/* Session pricing note */}
+            <SessionPricingNote />
 
-          {/* Elite */}
-          <div style={cardStyle(false)}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 16, background: "rgba(61,190,130,0.14)" }}>🚀</div>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 4 }}>Elite</div>
-            <div style={{ fontSize: 12.5, color: T.textMuted, marginBottom: 22, lineHeight: 1.55, minHeight: 36 }}>Everything you need — nothing held back.</div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-                <span style={{ fontSize: 18, fontWeight: 600, color: T.textSub }}>₹</span>
-                <span style={{ fontSize: 40, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.03em" }}>{fmt(price("elite"))}</span>
-                {isYearly && <span style={{ fontSize: 13, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{fmt(PRICES.elite)}</span>}
-              </div>
-              <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 4 }}>{isYearly ? "per month, billed yearly" : "per month"}</div>
-              {isYearly && <div style={{ fontSize: 11.5, color: T.green, marginTop: 3, fontWeight: 500 }}>Billed as ₹{fmt(yearlyTotal(PRICES.elite))}/yr — save ₹{fmt(yearlySave(PRICES.elite))}</div>}
-            </div>
-            <div style={{ height: 1, background: T.cardBorder, marginBottom: 20 }} />
-            <ul style={{ listStyle: "none", marginBottom: 28, display: "flex", flexDirection: "column", gap: 10 }}>
-              <Feature text="Everything in Pro" green />
-              <Feature text="AI deep compatibility reports" green />
-              <Feature text="Profile boost every week" green />
-              <Feature text="Exclusive filters" green />
-              <Feature text="VIP support" green />
-            </ul>
-            <button style={{ width: "100%", padding: "13px 20px", borderRadius: 12, fontSize: 14, fontWeight: 500, cursor: "pointer", background: "rgba(61,190,130,0.1)", border: `1px solid rgba(61,190,130,0.28)`, color: T.green, fontFamily: "inherit", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(61,190,130,0.18)"; e.currentTarget.style.borderColor = T.green; e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(61,190,130,0.1)"; e.currentTarget.style.borderColor = "rgba(61,190,130,0.28)"; e.currentTarget.style.transform = "none"; }}>
-              {isYearly ? "Upgrade to Elite (Yearly)" : "Upgrade to Elite"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Compare Table ── */}
-        <div style={{ marginTop: 64, overflowX: "auto" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: T.textMuted, textAlign: "center", marginBottom: 24 }}>Full comparison</div>
-          <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr>
-                {["Feature","Starter","Pro","Elite"].map((h, i) => (
-                  <th key={h} style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: T.textMuted, padding: "10px 14px", textAlign: i === 0 ? "left" : "center", borderBottom: `1px solid ${T.cardBorder}` }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { section: "Matching" },
-                { label: "Profile matches",     cols: ["50 / month", "Unlimited", "Unlimited"],   types: ["val","green","green"] },
-                { label: "Unlimited likes",      cols: ["✓","✓","✓"],                              types: ["yes","green","green"] },
-                { label: "See who liked you",    cols: ["—","✓","✓"],                              types: ["no","green","green"] },
-                { label: "Exclusive filters",    cols: ["—","—","✓"],                              types: ["no","no","green"] },
-                { section: "Compatibility" },
-                { label: "Basic insights",       cols: ["✓","✓","✓"],                              types: ["yes","green","green"] },
-                { label: "Advanced analysis",    cols: ["—","✓","✓"],                              types: ["no","green","green"] },
-                { label: "AI deep reports",      cols: ["—","—","✓"],                              types: ["no","no","green"] },
-                { section: "Visibility" },
-                { label: "Priority visibility",  cols: ["—","✓","✓"],                              types: ["no","green","green"] },
-                { label: "Weekly profile boost", cols: ["—","—","Every week"],                     types: ["no","no","green"] },
-                { section: "Support" },
-                { label: "Support level",        cols: ["Standard","Priority","VIP"],              types: ["no","yes","green"] },
-              ].map((row, i) => {
-                if (row.section) return (
-                  <tr key={i}>
-                    <td colSpan={4} style={{ paddingTop: 22, paddingBottom: 4, fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: T.textMuted, borderBottom: "none", padding: "22px 14px 4px" }}>{row.section}</td>
-                  </tr>
-                );
-                const colColor = (t) => t === "green" ? T.green : t === "yes" ? T.accentText : t === "val" ? T.text : T.textMuted;
+            {/* Plan cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, alignItems: "stretch" }} className="up-grid-3">
+              {STUDENT_PLANS.map((plan) => {
+                const price = billing === "yearly" ? plan.yearly : plan.monthly;
                 return (
-                  <tr key={i}>
-                    <td style={{ padding: "12px 14px", color: T.text, textAlign: "left", borderBottom: `1px solid rgba(50,46,64,0.35)` }}>{row.label}</td>
-                    {row.cols.map((v, j) => (
-                      <td key={j} style={{ padding: "12px 14px", textAlign: "center", color: colColor(row.types[j]), fontWeight: row.types[j] === "val" ? 500 : 400, borderBottom: `1px solid rgba(50,46,64,0.35)` }}>{v}</td>
-                    ))}
-                  </tr>
+                  <div key={plan.key} style={{
+                    background: plan.featured ? T.active : T.card,
+                    border: `1px solid ${plan.featured ? T.activeBorder : T.cardBorder}`,
+                    borderRadius: 20, padding: plan.featured ? "38px 20px 24px" : "24px 20px",
+                    position: "relative", display: "flex", flexDirection: "column",
+                    boxShadow: plan.featured ? "0 10px 30px -10px rgba(117,103,201,0.25)" : "none",
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                  }}>
+                    {plan.featured && (
+                      <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(130deg,#7567C9,#A89EEB)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 14px", borderRadius: 100, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(117,103,201,0.4)" }}>
+                        ⭐ Most Popular
+                      </div>
+                    )}
+                    {plan.featured && (
+                      <div style={{ position: "absolute", inset: 0, borderRadius: 20, background: "radial-gradient(ellipse at 50% -10%, rgba(117,103,201,0.08) 0%, transparent 65%)", pointerEvents: "none" }} />
+                    )}
+
+                    <div style={{ fontSize: 22, marginBottom: 10 }}>{plan.emoji}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 3 }}>{plan.name}</div>
+                    <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 20, lineHeight: 1.5 }}>{plan.tagline}</div>
+
+                    {/* Price */}
+                    <div style={{ marginBottom: 20 }}>
+                      {price === 0 ? (
+                        <div style={{ fontSize: 36, fontWeight: 800, color: T.text, lineHeight: 1 }}>Free</div>
+                      ) : (
+                        <>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+                            <span style={{ fontSize: 16, fontWeight: 600, color: T.textSub }}>₹</span>
+                            <span style={{ fontSize: 36, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.03em" }}>{price}</span>
+                            {billing === "yearly" && (
+                              <span style={{ fontSize: 12, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{plan.monthly}</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>
+                            {billing === "yearly" ? "per month, billed yearly" : "per month"}
+                          </div>
+                          {billing === "yearly" && (
+                            <div style={{ fontSize: 11, color: T.green, marginTop: 2, fontWeight: 500 }}>
+                              Save ₹{(plan.monthly - plan.yearly) * 12}/yr
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div style={{ height: 1, background: plan.featured ? T.activeBorder : T.cardBorder, marginBottom: 18 }} />
+
+                    <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
+                      {plan.features.map((f, i) => (
+                        <Feature key={i} text={f.text} green={f.green} />
+                      ))}
+                    </ul>
+
+                    <button style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...ctaStyle(plan.ctaStyle) }}>
+                      {plan.cta}
+                    </button>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Compare table */}
+            <div style={{ marginTop: 56, overflowX: "auto" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: T.textMuted, textAlign: "center", marginBottom: 20 }}>Full comparison</div>
+              <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 13 }} className="up-compare-table">
+                <thead>
+                  <tr>
+                    {["Feature", "Explorer", "Clarity", "Pro"].map((h, i) => (
+                      <th key={h} style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: T.textMuted, padding: "10px 14px", textAlign: i === 0 ? "left" : "center", borderBottom: `1px solid ${T.cardBorder}` }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { section: "Content" },
+                    { label: "AnswerCards",          cols: ["3 / search", "Unlimited", "Unlimited"],  types: ["val", "green", "green"] },
+                    { label: "Senior profiles",      cols: ["Names only", "Full", "Full"],             types: ["val", "green", "green"] },
+                    { label: "Session credits/mo",   cols: ["—", "1", "3"],                           types: ["no", "yes", "green"] },
+                    { section: "Sessions" },
+                    { label: "Session notes",        cols: ["—", "✓", "✓"],                           types: ["no", "yes", "green"] },
+                    { label: "Mock interview cards", cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
+                    { label: "Resume review",        cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
+                    { section: "Reach" },
+                    { label: "Senior matching SLA",  cols: ["—", "4 hrs", "Priority"],                types: ["no", "yes", "green"] },
+                    { label: "WhatsApp connect",     cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
+                    { label: "Placement report",     cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
+                  ].map((row, i) => {
+                    if (row.section) return (
+                      <tr key={i}><td colSpan={4} style={{ padding: "20px 14px 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: T.textMuted }}>{row.section}</td></tr>
+                    );
+                    const color = (t) => t === "green" ? T.green : t === "yes" ? T.accentText : t === "val" ? T.text : T.textMuted;
+                    return (
+                      <tr key={i}>
+                        <td style={{ padding: "10px 14px", color: T.text, borderBottom: `1px solid rgba(50,46,64,0.4)` }}>{row.label}</td>
+                        {row.cols.map((v, j) => (
+                          <td key={j} style={{ padding: "10px 14px", textAlign: "center", color: color(row.types[j]), fontWeight: row.types[j] === "val" ? 500 : 400, borderBottom: `1px solid rgba(50,46,64,0.4)` }}>{v}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ══ B2B / CAMPUS PLANS ══ */}
+        {tab === "campus" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, alignItems: "stretch" }} className="up-grid-3">
+            {B2B_PLANS.map((plan) => (
+              <div key={plan.key} style={{
+                background: plan.featured ? T.active : T.card,
+                border: `1px solid ${plan.featured ? T.activeBorder : T.cardBorder}`,
+                borderRadius: 20, padding: plan.featured ? "38px 20px 24px" : "24px 20px",
+                position: "relative", display: "flex", flexDirection: "column",
+                boxShadow: plan.featured ? "0 10px 30px -10px rgba(117,103,201,0.2)" : "none",
+              }}>
+                {plan.featured && (
+                  <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(130deg,#7567C9,#A89EEB)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 14px", borderRadius: 100, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(117,103,201,0.4)" }}>
+                    ⭐ Most Popular
+                  </div>
+                )}
+
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 4 }}>{plan.name}</div>
+                <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 18, lineHeight: 1.5 }}>{plan.tagline}</div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ fontSize: 32, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.02em" }}>{plan.price}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>{plan.period}</div>
+                </div>
+
+                <div style={{ height: 1, background: plan.featured ? T.activeBorder : T.cardBorder, marginBottom: 16 }} />
+
+                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
+                  {plan.features.map((f, i) => (
+                    <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: T.textSub, lineHeight: 1.45 }}>
+                      <Check green={true} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...(plan.featured ? { background: "linear-gradient(135deg,#7567C9,#9B8EE8)", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(117,103,201,0.3)" } : { background: "transparent", color: T.textSub, border: `1px solid ${T.cardBorder}` }) }}>
+                  {plan.cta}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 48, color: T.textMuted, fontSize: 12.5, lineHeight: 1.8 }}>
-          Prices in INR. Cancel anytime — no questions asked.<br />
+          Prices in INR · Cancel anytime · No questions asked<br />
           Need help choosing? <span style={{ color: T.accentText, cursor: "pointer" }}>Chat with us</span>
         </div>
       </div>
@@ -271,6 +410,26 @@ export default function UpgradePage() {
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(0.65); }
+        }
+        .up-grid-3 {
+          grid-template-columns: repeat(3, 1fr) !important;
+        }
+        @media (max-width: 860px) {
+          .up-grid-3 {
+            grid-template-columns: 1fr !important;
+            max-width: 440px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+        }
+        @media (max-width: 540px) {
+          .up-compare-table {
+            font-size: 11px !important;
+          }
+          .up-compare-table th,
+          .up-compare-table td {
+            padding: 8px 8px !important;
+          }
         }
       `}</style>
     </div>

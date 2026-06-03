@@ -106,6 +106,20 @@ export const sessionAPI = {
   cancel:   (id)                                => api.patch(`/api/sessions/${id}/cancel`),
 };
 
+// Payments (Razorpay) — book a paid session + auto Meet link
+export const paymentAPI = {
+  // Returns { free, keyId, orderId, amount, currency, sessionId, mentorName, topic } | { free:true, session }
+  createOrder: ({ mentorId, date, time, topic, durationMin, serviceId }) =>
+    api.post('/api/payments/order', { mentorId, date, time, topic, durationMin, serviceId }),
+  // Confirms the session server-side after Razorpay checkout succeeds
+  verify: (payload) => api.post('/api/payments/verify', payload),
+};
+
+// Platform service catalog (labels + fixed prices set by Atyant)
+export const servicesAPI = {
+  catalog: () => api.get('/api/profile/services-catalog'),
+};
+
 // Saved Answers
 export const savedAnswerAPI = {
   list:   (search)  => api.get(`/api/saved-answers${search ? `?search=${encodeURIComponent(search)}` : ''}`),
