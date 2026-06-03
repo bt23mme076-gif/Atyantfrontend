@@ -3,6 +3,9 @@
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
+// Base URL for raw fetch / socket.io (used by the chat page).
+export const API_URL = BASE;
+
 function getToken() {
   return localStorage.getItem('atyant_token');
 }
@@ -47,7 +50,7 @@ export const api = {
 // Auth
 export const authAPI = {
   login:  (email, password)                   => api.post('/api/auth/login',  { email, password }),
-  signup: (username, email, password, phone)  => api.post('/api/auth/signup', { username, email, password, phone }),
+  signup: (username, email, password, phone, role)  => api.post('/api/auth/signup', { username, email, password, phone, role }),
   me:     ()                                  => api.get('/api/profile/me'),
 };
 
@@ -55,6 +58,31 @@ export const authAPI = {
 export const profileAPI = {
   get:    ()      => api.get('/api/profile/me'),
   update: (data)  => api.put('/api/profile/me', data),
+  // Upload a profile picture (multipart) — returns { profilePicture }.
+  uploadPicture: async (file) => uploadFile('/api/profile/upload-picture', 'profilePicture', file),
+  // Parse a LinkedIn/résumé PDF → { success, data:{ name, bio, topCompanies, expertise, education, ... } }
+  parseLinkedin: async (file) => uploadFile('/api/profile/parse-linkedin', 'resumePdf', file),
+};
+
+// Shared multipart uploader (FormData — no JSON Content-Type so the browser sets the boundary).
+async function uploadFile(path, field, file) {
+  const form = new FormData();
+  form.append(field, file);
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || data.error || 'Upload failed');
+  return data;
+}
+
+// Mentor onboarding
+export const mentorAPI = {
+  onboard: (payload) => api.post('/api/mentor/onboard', payload),
 };
 
 // Clarity (AI mentor matching)
@@ -67,6 +95,8 @@ export const clarityAPI = {
 // Atyant AI chat — 2-phase intake + execution engine
 export const aiAPI = {
   atyantChat: (message, sessionId) => api.post('/api/ai/atyant-chat', { message, sessionId }),
+  // Restore an existing conversation (messages + context) so chat survives refresh.
+  getSession: (sessionId) => api.get(`/api/ai/atyant-chat/${sessionId}`),
 };
 
 // Sessions

@@ -1,4 +1,6 @@
-﻿// Design tokens
+﻿import Avatar from "../Avatar";
+
+// Design tokens
 const T = {
   bg: "#13121A",
   card: "#1A1823",
@@ -21,8 +23,6 @@ const AVATAR = {
 };
 
 export default function SeniorCard({ mentor, isSelected, onClick }) {
-  const av = AVATAR[mentor.initials] || { bg: "rgba(150,144,171,0.2)", text: T.textSub };
-
   return (
     <div
       onClick={onClick}
@@ -38,12 +38,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
     >
       {/* Avatar + Name + Match% */}
       <div className="flex items-start gap-3 mb-2.5">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: av.bg, color: av.text, fontFamily: "Inter, sans-serif" }}
-        >
-          {mentor.initials}
-        </div>
+        <Avatar src={mentor.profilePicture} name={mentor.name || mentor.initials} size={36} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-tight truncate"
             style={{ color: T.text, fontFamily: "Fraunces, serif" }}>

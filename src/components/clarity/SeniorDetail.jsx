@@ -5,6 +5,7 @@ import {
   Check, Shield, Award, Sparkles, Gift, Lock, RefreshCw, X, Loader2
 } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
+import Avatar from "../Avatar";
 import { api } from "../../api";
 
 // Design tokens
@@ -65,7 +66,6 @@ const TIME_SLOTS = ["10:00 AM", "11:30 AM", "2:00 PM", "4:30 PM", "7:00 PM", "8:
 
 export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor }) {
   if (!mentor) return null;
-  const av = AVATAR[mentor.initials] || { bg: "rgba(150,144,171,0.2)", text: T.textSub };
 
   // Booking UI State
   const [showBooking, setShowBooking] = useState(false);
@@ -133,12 +133,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
       <div className="px-6 py-2.5 flex-shrink-0" style={{ borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
         <div className="flex items-center gap-3.5 max-w-3xl mx-auto">
           {/* Avatar */}
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{ background: av.bg, color: av.text, fontFamily: "Fraunces, serif" }}
-          >
-            {mentor.initials}
-          </div>
+          <Avatar src={mentor.profilePicture} name={mentor.name || mentor.initials} size={44} style={{ borderRadius: 12 }} />
 
           {/* Name block */}
           <div className="flex-1 min-w-0">

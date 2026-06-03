@@ -4,7 +4,7 @@ export default function SeniorsPanel({ mentors, selectedId, onSelect }) {
   return (
     <div
       className="flex flex-col h-full overflow-y-auto"
-      style={{ width: "300px", minWidth: "300px" }}
+      style={{ width: "100%" }}
     >
       {/* Panel Header */}
       <div className="px-4 pt-5 pb-4 flex-shrink-0">

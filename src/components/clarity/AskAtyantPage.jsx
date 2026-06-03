@@ -1,19 +1,37 @@
-﻿import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Send, Sparkles, ArrowRight } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI } from "../../api";
+import useIsMobile from "../../hooks/useIsMobile";
 
-// Stable per-browser session id for the Atyant chat engine
-function getChatSessionId() {
-  let sid = localStorage.getItem("atyant_chat_sid");
+const CHAT_SID_KEY = "atyant_chat_sid";
+
+function freshSid() {
+  return "sess_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+// Persistent session id — the SAME conversation survives a page refresh.
+// Reused on refresh so we can restore messages; rotated only by "New Chat".
+function getStoredSessionId() {
+  let sid = null;
+  try { sid = localStorage.getItem(CHAT_SID_KEY); } catch { /* ignore */ }
   if (!sid || sid.length < 8) {
-    sid = "sess_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
-    localStorage.setItem("atyant_chat_sid", sid);
+    sid = freshSid();
+    try { localStorage.setItem(CHAT_SID_KEY, sid); } catch { /* ignore */ }
   }
   return sid;
 }
 
-// Map the engine's context shape → the flat context this page uses
+// Called by the "New Chat" button BEFORE remounting this page, so the next mount
+// picks up a brand-new id (no old phase/context carried over).
+export function startNewChatSession() {
+  const sid = freshSid();
+  try { localStorage.setItem(CHAT_SID_KEY, sid); } catch { /* ignore */ }
+  return sid;
+}
+
+// Map the engine's context shape ? the flat context this page uses
 function mapEngineContext(ec) {
   if (!ec) return null;
   const id = ec.identity || {};
@@ -26,7 +44,17 @@ function mapEngineContext(ec) {
   };
 }
 
-// "VNIT Nagpur" → "VNIT" ; "iit bombay" → "IIT" ; "Manipal" → "Manipal"
+// Problem-first opener + quick-reply chips. Kept here so they can be re-shown
+// after a refresh (restored messages don't carry the chips from the server).
+const GREETING_OPENER = "What's confusing you right now?";
+const GREETING_CHIPS = [
+  { label: "🎯  I want an internship but don't know where to start", value: "I want an internship but I don't know where to start" },
+  { label: "🏢  Placement season is coming and I'm not prepared",    value: "Placement season is coming and I'm not prepared" },
+  { label: "🤔  Career confused — don't know what path to take",     value: "I'm career confused and don't know what path to take" },
+  { label: "📚  Thinking about higher studies (MS / MBA / GATE)",    value: "I'm thinking about higher studies — MS, MBA or GATE" },
+];
+
+// "VNIT Nagpur" ? "VNIT" ; "iit bombay" ? "IIT" ; "Manipal" ? "Manipal"
 function collegeShort(college) {
   const first = String(college || "").trim().split(/\s+/)[0] || "";
   if (!first) return "";
@@ -51,7 +79,7 @@ const C = {
   green: "#3DBE82",
 };
 
-// Message action buttons — add after every AI response bubble
+// Message action buttons � add after every AI response bubble
 const MessageActions = ({ message, onRegenerate }) => {
   const [copied, setCopied] = useState(false);
   const [liked, setLiked] = useState(null); // 'up' | 'down' | null
@@ -105,6 +133,7 @@ const MessageActions = ({ message, onRegenerate }) => {
 };
 
 export default function AskAtyantPage({ user, onGoToClarity }) {
+  const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -119,9 +148,10 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const [communityCount, setCommunityCount] = useState(0);
   const [problemStatement, setProblemStatement] = useState("");
   const chatEndRef = useRef(null);
-  const sessionIdRef = useRef(getChatSessionId());
+  const chatInputRef = useRef(null);
+  const sessionIdRef = useRef(getStoredSessionId());
 
-  // Live community count for the badge — refetched when the college changes.
+  // Live community count for the badge � refetched when the college changes.
   useEffect(() => {
     const college = context.college?.trim();
     if (!college) { setCommunityCount(0); return; }
@@ -137,6 +167,28 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     ? `${communityCount} ${short}ian${communityCount === 1 ? "" : "s"} found their path this week`
     : "100+ students found their path across India";
 
+  // Human-readable year, e.g. "4" → "4th Year", "final" → "Final Year".
+  const yearLabel = (y) => {
+    if (!y) return null;
+    const s = String(y).trim();
+    if (/year/i.test(s)) return s.replace(/\b\w/g, c => c.toUpperCase());
+    if (/^\d+$/.test(s)) {
+      const n = +s, suf = n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th";
+      return `${n}${suf} Year`;
+    }
+    return s.replace(/\b\w/g, c => c.toUpperCase()) + " Year";
+  };
+
+  // Profile badge pill shown each turn so the student sees their profile building up.
+  const profileBadge = [short || context.college, context.goal, yearLabel(context.year)]
+    .filter(Boolean)
+    .join("  ·  ");
+
+  // Specific match-button label, e.g. "See verified paths for MANIT Metallurgy".
+  const matchBtnLabel = short
+    ? `See verified paths for ${short}${context.branch ? " " + context.branch : ""}`
+    : "See verified senior paths";
+
   const quickActions = [
     { label: "Switch Field" },
     { label: "Build Skills" },
@@ -149,12 +201,14 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   useEffect(() => {
     if (user) {
       const edu = user.education?.[0] || {};
+      // Use only the user's real profile — no fake "VNIT/Metallurgy/6.0" defaults,
+      // which would otherwise misrepresent students from other colleges.
       setContext({
-        college: edu.institutionName || edu.institution || "VNIT Nagpur",
-        branch: edu.field || "Metallurgy",
-        year: edu.year || "3rd",
-        cgpa: edu.cgpa ? String(edu.cgpa) : "6.0",
-        goal: user.interests?.[0] || "AI/ML Internship",
+        college: edu.institutionName || edu.institution || "",
+        branch: edu.field || "",
+        year: edu.year || "",
+        cgpa: edu.cgpa ? String(edu.cgpa) : "",
+        goal: user.interests?.[0] || "",
       });
     } else {
       setContext({
@@ -167,8 +221,51 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     }
   }, [user]);
 
+  // Restore the saved conversation on mount so chat survives a refresh.
+  // A "New Chat" mount uses a fresh session id → nothing to restore → clean start.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await aiAPI.getSession(sessionIdRef.current);
+        const s = res?.session;
+        if (cancelled || !s || !Array.isArray(s.messages) || s.messages.length === 0) return;
+
+        const msgs = s.messages.map(m => ({
+          sender: m.role === "assistant" ? "atyant" : "user",
+          text: m.content,
+          showMatch: false,
+          // Re-attach the greeting chips after a refresh (server doesn't store them).
+          chips: m.role === "assistant" && m.content?.trim() === GREETING_OPENER ? GREETING_CHIPS : null,
+        }));
+        // Re-show the match button on the latest Atyant message if the engine was ready.
+        const ready = s.phase === "engine" || s.outputMode === "MENTOR_ROUTING";
+        if (ready) {
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].sender === "atyant") { msgs[i].showMatch = true; break; }
+          }
+        }
+        setMessages(msgs);
+
+        const mapped = mapEngineContext(s.context);
+        if (mapped) setContext(prev => ({
+          college: mapped.college || prev.college,
+          branch:  mapped.branch  || prev.branch,
+          year:    mapped.year    || prev.year,
+          cgpa:    mapped.cgpa    || prev.cgpa,
+          goal:    mapped.goal    || prev.goal,
+        }));
+        if (s.problemStatement) setProblemStatement(s.problemStatement);
+      } catch {
+        // No saved session (404) or fetch failed → start fresh, nothing to do.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!isTyping) chatInputRef.current?.focus();
   }, [messages, isTyping]);
 
   useEffect(() => {
@@ -178,7 +275,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     }
   }, [query]);
 
-  // Real chat — calls the 2-phase Atyant engine (context intake → execution).
+  // Real chat � calls the 2-phase Atyant engine (context intake ? execution).
   const sendToEngine = async (text) => {
     const res = await aiAPI.atyantChat(text, sessionIdRef.current);
     // Engine is "ready" once it routes to a mentor or has mapped enough context.
@@ -194,8 +291,9 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     }));
     if (res.problemStatement) setProblemStatement(res.problemStatement);
     return {
-      text: res.reply || "Hmm, I didn't catch that — could you rephrase?",
+      text: res.reply || "Hmm, I didn't catch that � could you rephrase?",
       showMatch: ready,
+      chips: Array.isArray(res.quickReplies) ? res.quickReplies : null,
     };
   };
 
@@ -209,12 +307,12 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
 
     try {
       const reply = await sendToEngine(text);
-      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch }]);
+      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips }]);
     } catch (e) {
       setMessages(prev => [...prev, {
         sender: "atyant",
         text: e?.status === 429
-          ? "I'm getting a lot of questions right now — give me a few seconds and try again."
+          ? "I'm getting a lot of questions right now � give me a few seconds and try again."
           : "Something glitched on my end. Try sending that again?",
         showMatch: false,
       }]);
@@ -268,55 +366,48 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
         /* Landing View */
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
           <h1 style={{ textAlign: "center", fontSize: "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: "2rem", color: C.text, fontFamily: "Georgia,'Times New Roman',serif" }}>
-            Find someone exactly like you…
+            Find someone exactly like you...
           </h1>
 
           <div
-            style={{ width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 18, padding: "1.1rem 1.4rem 1rem", marginBottom: "0.6rem" }}
+            style={{ width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: 10, height: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
             onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22`; }}
             onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}
           >
-            <textarea
+            {/* + */}
+            <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.3rem", lineHeight: 1, padding: 0, flexShrink: 0 }}>+</button>
+
+            {/* Input */}
+            <input
+              autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="How do I get an AI/ML internship from VNIT Metallurgy with no prior experience?"
-              rows={1}
-              style={{ width: "100%", background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "1rem", lineHeight: 1.5, resize: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+              placeholder="Ask Atyant.."
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "1rem", fontFamily: "inherit" }}
             />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: wordCount >= 3 ? "space-between" : "flex-end", marginTop: "0.5rem" }}>
-              {wordCount >= 3 && (
-                <button
-                  type="button"
-                  onClick={() => setShowContext(!showContext)}
-                  style={{
-                    background: showContext ? C.accentSoft : "transparent",
-                    border: `1.5px solid ${showContext ? C.accent : "transparent"}`,
-                    borderRadius: 8,
-                    color: showContext ? C.accentText : C.textMuted,
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    padding: "4px 10px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    transition: "all 0.2s"
-                  }}
-                >
-                  + {showContext ? "Hide Context" : "Add Context"}
-                </button>
-              )}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: "0.74rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 11px", display: "flex", alignItems: "center", gap: 5 }}>
+
+            {/* Right: badge + mic + send */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              {!isMobile && (
+                <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 11px", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
                   {badgeText}
                 </span>
-                <button onClick={() => handleSend()}
-                  style={{ background: query.trim().length > 1 ? C.accent : C.active, border: "none", borderRadius: 10, width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}>
-                  <Send size={15} color="#fff" />
-                </button>
-              </div>
+              )}
+              <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                title="Voice input">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </button>
+              <button onClick={() => handleSend()}
+                style={{ background: query.trim().length > 1 ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
+                <Send size={15} color="#fff" />
+              </button>
             </div>
           </div>
 
@@ -420,16 +511,40 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
             Matched to 800+ verified journeys from Tier-2 colleges across India
           </p>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-            {quickActions.map((a, i) => (
-              <button key={i} onClick={() => handleSend(a.label)}
-                style={{ background: "#221E33", border: `1px solid #322E40`, borderRadius: 999, padding: "7px 18px", color: C.textSub, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "88"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#221E33"; e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = "#322E40"; }}>
-                {a.label}
-              </button>
-            ))}
-          </div>
+          <AnimatePresence mode="wait">
+            {query.trim().length === 0 && (
+              <motion.div
+                key="quick-actions"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={{
+                  hidden: {},
+                  visible: { transition: { staggerChildren: 0.06, delayChildren: 0 } },
+                  exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
+                }}
+                style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}
+              >
+                {quickActions.map((a, i) => (
+                  <motion.button
+                    key={a.label}
+                    onClick={() => handleSend(a.label)}
+                    variants={{
+                      hidden: { opacity: 0, y: 10, scale: 0.98 },
+                      visible: { opacity: 1, y: 0, scale: 1 },
+                      exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.22, ease: "easeOut" } },
+                    }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    style={{ background: "#221E33", border: `1px solid #322E40`, borderRadius: 999, padding: "7px 18px", color: C.textSub, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", transition: "background-color 0.15s, color 0.15s, border-color 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "88"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#221E33"; e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = "#322E40"; }}
+                  >
+                    {a.label}
+                  </motion.button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : (
         /* Chat Mode */
@@ -465,9 +580,36 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                           onRegenerate={() => handleRegenerate(m, i)}
                         />
                       )}
+                      {/* Quick-reply chips — only on the latest message, vanish after the user replies */}
+                      {!isUser && m.chips?.length > 0 && i === messages.length - 1 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, maxWidth: 520 }}>
+                          {m.chips.map((chip, ci) => (
+                            <button
+                              key={ci}
+                              onClick={() => handleSend(chip.value)}
+                              style={{
+                                background: C.active,
+                                border: `1px solid ${C.cardBorder}`,
+                                borderRadius: 999,
+                                padding: "8px 14px",
+                                color: C.textSub,
+                                fontSize: "0.82rem",
+                                fontFamily: "inherit",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                transition: "all 0.15s",
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "88"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = C.active; e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = C.cardBorder; }}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {m.showMatch && (
                         <button
-                          onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "metallurgy to AI/ML", context)}
+                          onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", context)}
                           style={{
                             marginTop: 12,
                             background: "linear-gradient(135deg, #7567C9, #8E80DB)",
@@ -484,7 +626,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                             boxShadow: "0 3px 10px rgba(117,103,201,0.3)",
                           }}
                         >
-                          <Sparkles size={12} /> Find Verified Seniors & Roadmaps <ArrowRight size={12} />
+                          <Sparkles size={12} /> {matchBtnLabel} <ArrowRight size={12} />
                         </button>
                       )}
                     </div>
@@ -504,10 +646,27 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
           </div>
 
 
+          {/* Context Badge — shows Atyant building the student's profile each turn */}
+          {profileBadge && (
+            <div style={{ maxWidth: 780, margin: "0 auto", width: "100%", padding: "0 1rem", boxSizing: "border-box" }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: C.active, border: `1px solid ${C.activeBorder}`,
+                borderRadius: 999, padding: "4px 12px",
+                fontSize: "0.72rem", fontWeight: 500, color: C.accentText,
+                letterSpacing: "0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>
+                <Sparkles size={11} /> {profileBadge}
+              </span>
+            </div>
+          )}
+
           {/* Chat Input Footer */}
-          <div style={{ padding: "1rem", paddingBottom: "1.5rem" }}>
-            <div style={{ maxWidth: 780, margin: "0 auto", background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "14px 16px", display: "flex", gap: 14, alignItems: "center" }}>
-              {/* Plus Icon */}
+          <div style={{ padding: "0.75rem 1rem 1.5rem" }}>
+            <div style={{ maxWidth: 780, margin: "0 auto", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "center", height: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
+              onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22`; }}
+              onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}>
+              {/* Plus */}
               <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.4rem", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, transition: "color 0.2s", flexShrink: 0 }}
                 onMouseEnter={e => e.currentTarget.style.color = C.text}
                 onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
@@ -515,50 +674,36 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                 +
               </button>
 
-              {/* Input Field */}
+              {/* Input */}
               <input
+                ref={chatInputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Write a message..."
+                placeholder="Ask Atyant.."
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "0.95rem", fontFamily: "inherit" }}
               />
 
-              {/* Right Side Controls */}
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
-                {/* Model Selector */}
+              {/* Right controls */}
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
                 <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "0.78rem", padding: "4px 8px", display: "flex", alignItems: "center", gap: 4, transition: "color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.color = C.text}
                   onMouseLeave={e => e.currentTarget.style.color = C.textMuted}>
                   <span style={{ fontWeight: 500 }}>Atyant</span>
                 </button>
-
-                {/* Microphone Icon */}
                 <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, transition: "color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.color = C.text}
                   onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
                   title="Voice input">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
                     <line x1="8" y1="23" x2="16" y2="23" />
                   </svg>
                 </button>
-
-                {/* Audio Waves Icon */}
-                <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, transition: "color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.color = C.text}
-                  onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
-                  title="Audio waves">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 8c0-1 0-2 0-3M12 2c0 3 0 6 0 10s0 7 0 10M6 5c0 2 0 4 0 6s0 4 0 8" />
-                  </svg>
-                </button>
-
-                {/* Send Button */}
                 <button onClick={() => handleSend()}
-                  style={{ background: query.trim().length > 0 ? C.accent : "transparent", border: "none", color: query.trim().length > 0 ? "#fff" : C.textMuted, borderRadius: 6, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
+                  style={{ background: query.trim().length > 0 ? C.accent : "transparent", border: "none", color: query.trim().length > 0 ? "#fff" : C.textMuted, borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
                   <Send size={16} />
                 </button>
               </div>
@@ -569,3 +714,4 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     </div>
   );
 }
+

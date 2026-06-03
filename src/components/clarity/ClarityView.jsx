@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, CheckCircle, Loader2, Sparkles, ArrowRight } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
+import useIsMobile from "../../hooks/useIsMobile";
 import { clarityAPI } from "../../api";
 
 export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor }) {
+  const isMobile = useIsMobile();
   const [mentors,        setMentors]        = useState([]);
   const [answerCard,     setAnswerCard]     = useState(null);
   const [selectedMentor, setSelectedMentor] = useState(null);
@@ -19,7 +21,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     const q =
       initialQuery && initialQuery.trim().length > 2
         ? initialQuery.trim()
-        : "How do I get an AI/ML internship from VNIT Metallurgy with no prior experience?";
+        : "How do I land a strong internship with no prior experience?";
     setActiveQuery(q);
     setSelectedMentor(null);
     fetchMentors(q);
@@ -38,13 +40,15 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     setFetchError("");
     try {
       const edu  = user?.education?.[0] || {};
+      // Send only what we actually know. No fake defaults — an unknown college must
+      // stay empty so the engine matches on the query, not on a wrong college.
       const data = await clarityAPI.match({
         query,
-        college: initialContext?.college || edu.institutionName || edu.institution || "VNIT Nagpur",
-        branch:  initialContext?.branch  || edu.field           || "Metallurgy",
-        year:    initialContext?.year    || edu.year            || "Y3",
-        goal:    initialContext?.goal    || user?.interests?.[0]|| "AI/ML Internship",
-        cgpa:    initialContext?.cgpa    || edu.cgpa            || "6.0",
+        college: initialContext?.college || edu.institutionName || edu.institution || "",
+        branch:  initialContext?.branch  || edu.field           || "",
+        year:    initialContext?.year    || edu.year            || "",
+        goal:    initialContext?.goal    || user?.interests?.[0]|| "",
+        cgpa:    initialContext?.cgpa    || edu.cgpa            || "",
       });
       setMentors(data.mentors || []);
       setAnswerCard(data.answerCard || null);
@@ -65,25 +69,27 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   };
 
   const edu = user?.education?.[0] || {};
+  // Show only what we actually know — no fabricated college/branch/CGPA.
+  const goalText = initialContext?.goal || user?.interests?.[0] || null;
   const contextLine = [
-    initialContext?.college || edu.institutionName || edu.institution || "VNIT Nagpur",
-    initialContext?.branch  || edu.field || "Metallurgy",
-    initialContext?.year    || edu.year  || "Y3",
+    initialContext?.college || edu.institutionName || edu.institution || null,
+    initialContext?.branch  || edu.field || null,
+    initialContext?.year    || edu.year  || null,
     initialContext?.cgpa    ? `CGPA ${initialContext.cgpa}` : (edu.cgpa ? `CGPA ${edu.cgpa}` : null),
-    initialContext?.goal    ? `Goal: ${initialContext.goal}` : (user?.interests?.[0] ? `Goal: ${user.interests[0]}` : "Goal: AI/ML"),
+    goalText ? `Goal: ${goalText}` : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" · ") || "Based on your question";
 
   return (
     <div
       className="flex h-full w-full overflow-hidden"
-      style={{ background: "#13121A", fontFamily: "Inter, sans-serif", minHeight: 0 }}
+      style={{ background: "#13121A", fontFamily: "Inter, sans-serif", minHeight: 0, flexDirection: isMobile ? "column" : "row" }}
     >
       {/* ── Left: Main content ── */}
       <div
         className="flex flex-col flex-1 overflow-hidden"
-        style={{ borderRight: "1px solid #211F2B" }}
+        style={{ borderRight: isMobile ? "none" : "1px solid #211F2B", minHeight: 0 }}
       >
         {/* Question header */}
         <div
@@ -173,8 +179,8 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   </span>
                 </div>
 
-                {/* Senior detail fills the rest */}
-                <div className="flex-1 overflow-hidden">
+                {/* Senior detail fills the rest — scrollable */}
+                <div className="flex-1 overflow-y-auto">
                   <SeniorDetail
                     mentor={selectedMentor}
                     user={user}
@@ -190,7 +196,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex flex-col h-full"
+                className="flex flex-col h-full overflow-y-auto"
               >
                 <InstantAnswerCard
                   card={answerCard}
@@ -213,50 +219,17 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
           </AnimatePresence>
         </div>
 
-        {/* Input bar */}
-        <div
-          className="px-4 py-3 flex-shrink-0"
-          style={{ borderTop: "1px solid #211F2B" }}
-        >
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-xl"
-            style={{ background: "#1A1823", border: "1px solid #322E40" }}
-          >
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Ask a follow-up question…"
-              className="flex-1 bg-transparent text-sm outline-none"
-              style={{ color: "#ECEAF3", fontFamily: "Inter, sans-serif" }}
-            />
-            <button
-              onClick={handleSend}
-              disabled={fetchLoading}
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{
-                background: "linear-gradient(135deg,#7567C9,#5a52a8)",
-                opacity: fetchLoading ? 0.6 : 1,
-              }}
-            >
-              {fetchLoading ? (
-                <Loader2
-                  size={13}
-                  style={{ color: "#13121A", animation: "spin 1s linear infinite" }}
-                />
-              ) : (
-                <Send size={13} style={{ color: "#13121A" }} />
-              )}
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* ── Right: Matched Seniors panel (always visible) ── */}
       <div
         className="flex flex-col overflow-hidden flex-shrink-0"
-        style={{ width: "300px", background: "#0D0C12" }}
+        style={{
+          width: isMobile ? "100%" : "300px",
+          maxHeight: isMobile ? "42vh" : undefined,
+          borderTop: isMobile ? "1px solid #211F2B" : "none",
+          background: "#0D0C12",
+        }}
       >
         {fetchLoading ? (
           <div

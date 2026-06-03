@@ -29,15 +29,20 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const data = await authAPI.login(email, password);
     localStorage.setItem('atyant_token', data.token);
-    setUser(data.user);
-    return data.user;
+    // Fetch the FULL profile so the user object matches the refresh path
+    // (login response is trimmed and lacks education/interests/bio/etc.).
+    const fullUser = await authAPI.me().catch(() => data.user);
+    setUser(fullUser);
+    return fullUser;
   }, []);
 
-  const signup = useCallback(async (username, email, password, phone) => {
-    const data = await authAPI.signup(username, email, password, phone);
+  const signup = useCallback(async (username, email, password, phone, role) => {
+    const data = await authAPI.signup(username, email, password, phone, role);
     localStorage.setItem('atyant_token', data.token);
-    setUser(data.user);
-    return data.user;
+    // Same as login: load the complete profile so no field is missing on first render.
+    const fullUser = await authAPI.me().catch(() => data.user);
+    setUser(fullUser);
+    return fullUser;
   }, []);
 
   const logout = useCallback(() => {

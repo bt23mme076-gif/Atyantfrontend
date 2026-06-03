@@ -3,12 +3,17 @@ import {
   MessageSquare, Target, CalendarDays, Video,
   TrendingUp, Bookmark, Pencil,
   Plus, Clock, Lock, ChevronRight, Search,
-  LogIn, LogOut, X, Loader2,
+  LogIn, LogOut, X, Loader2, Menu, Camera, Sparkles,
 } from "lucide-react";
 
+import useIsMobile  from "./hooks/useIsMobile";
 import BookingPage   from "./pages/user";
+import UpgradePage   from "./pages/UpgradePage";
 import ClarityView    from "./components/clarity/ClarityView";
-import AskAtyantPage  from "./components/clarity/AskAtyantPage";
+import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
+import ChatPage       from "./components/clarity/ChatPage";
+import MentorOnboard  from "./pages/MentorOnboard";
+import Avatar         from "./components/Avatar";
 import { useAuth }    from "./context/AuthContext";
 import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI } from "./api";
 
@@ -52,9 +57,7 @@ function MySessionsPage() {
 
   const SessionCard = ({ s, isUpcoming }) => (
     <div style={{ background:C.card, border:`1px solid ${isUpcoming ? C.accent+"55" : C.cardBorder}`, borderRadius:14, padding:"1.1rem 1.4rem", display:"flex", alignItems:"center", gap:14 }}>
-      <div style={{ width:44, height:44, borderRadius:"50%", background:isUpcoming ? C.accentSoft : C.active, border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:600, color:C.accentText, flexShrink:0 }}>
-        {s.mentorInitials || "YM"}
-      </div>
+      <Avatar src={s.mentorProfilePicture} name={s.mentorName || "Your Mentor"} size={44} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
       <div style={{ flex:1 }}>
         <div style={{ fontWeight:500, color:C.text, fontSize:"0.88rem" }}>{s.mentorName || "Your Mentor"}</div>
         <div style={{ fontSize:"0.8rem", color:C.textSub, marginTop:2 }}>{s.topic || "Career Guidance"}</div>
@@ -270,11 +273,95 @@ const Field = ({ label, value, onChange, editing }) => (
   </div>
 );
 
+// Dropdown field (matches Field styling). `options` = [{ value, label }].
+const SelectField = ({ label, value, onChange, editing, options }) => (
+  <div style={{ marginBottom:"1rem" }}>
+    <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>{label}</label>
+    {editing
+      ? <select value={value || ""} onChange={e => onChange(e.target.value)}
+          style={{ width:"100%", background:C.active, border:`1px solid ${C.accent}55`, borderRadius:8, padding:"9px 13px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}>
+          <option value="">— Select —</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      : <div style={{ fontSize:"0.9rem", color:C.text, padding:"9px 0" }}>{options.find(o => o.value === value)?.label || "—"}</div>
+    }
+  </div>
+);
+
+// Reusable tag/chip section (display + add/remove while editing).
+// `highlightFirst` styles the first chip as the primary one (used for goals).
+const ChipSection = ({ title, items, editing, onChange, placeholder, emptyText, highlightFirst }) => {
+  const add = (val) => {
+    const v = val.trim();
+    if (v && !items.includes(v)) onChange([...items, v]);
+  };
+  const remove = (idx) => onChange(items.filter((_, i) => i !== idx));
+  return (
+    <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
+      <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1rem" }}>{title}</div>
+      {items.length===0 && !editing
+        ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>{emptyText}</p>
+        : <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: editing ? 12 : 0 }}>
+            {items.map((s,i) => {
+              const primary = highlightFirst && i===0;
+              return (
+                <span key={i} style={{ background:primary ? C.accentSoft : C.active, border:`1px solid ${primary ? C.accent+"55" : C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:primary ? C.accentText : C.textSub, display:"flex", alignItems:"center", gap:6 }}>
+                  {primary && "→ "}{s}
+                  {editing && (
+                    <button type="button" onClick={() => remove(i)}
+                      style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <X size={11} />
+                    </button>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+      }
+      {editing && (
+        <div style={{ display:"flex", gap:8, marginTop:8 }}>
+          <input
+            placeholder={placeholder}
+            onKeyDown={e => { if (e.key==='Enter') { e.preventDefault(); add(e.target.value); e.target.value=''; } }}
+            style={{ flex:1, background:C.active, border:`1px solid ${C.accent}33`, borderRadius:8, padding:"8px 12px", color:C.text, fontSize:"0.82rem", outline:"none", fontFamily:"inherit" }}
+          />
+          <button type="button"
+            onClick={e => { const input = e.currentTarget.previousSibling; add(input.value); input.value=''; }}
+            style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit", display:"flex", alignItems:"center", fontWeight:500 }}>
+            Add
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 function ProfilePage() {
   const { user, setUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving,  setSaving]  = useState(false);
-  const [form,    setForm]    = useState({ name:"", college:"", branch:"", year:"", cgpa:"", bio:"", goals:[], skills:[] });
+  const [uploading, setUploading] = useState(false);
+
+  const onPickImage = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("Please choose an image file."); return; }
+    if (file.size > 5 * 1024 * 1024)     { alert("Image too large (max 5MB)."); return; }
+    setUploading(true);
+    try {
+      const res = await profileAPI.uploadPicture(file);
+      setUser(prev => ({ ...(prev || {}), profilePicture: res.profilePicture }));
+    } catch (err) {
+      alert(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+  const isMentor = user?.role === "mentor";
+  const [form,    setForm]    = useState({ name:"", college:"", branch:"", year:"", cgpa:"", bio:"", goals:[], skills:[],
+    expertise:[], topCompanies:[], specialTags:[], city:"", linkedinProfile:"", price:"", yearsOfExperience:"",
+    primaryDomain:"", companyDomain:"" });
 
   useEffect(() => {
     if (!user) return;
@@ -288,13 +375,29 @@ function ProfilePage() {
       bio:     user.bio   || "",
       goals:   user.interests || [],
       skills:  user.skills    || [],
+      // Mentor-specific
+      expertise:    user.expertise    || [],
+      topCompanies: user.topCompanies || [],
+      specialTags:  user.specialTags  || [],
+      city:         user.city || "",
+      linkedinProfile: user.linkedinProfile || "",
+      price:        user.price ? String(user.price) : "",
+      yearsOfExperience: user.yearsOfExperience ? String(user.yearsOfExperience) : "",
+      primaryDomain: user.primaryDomain || "",
+      companyDomain: user.companyDomain || "",
     });
   }, [user]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await profileAPI.update({ username:form.name, bio:form.bio, college:form.college, branch:form.branch, year:form.year, cgpa:form.cgpa, goals:form.goals, skills:form.skills });
+      const base = { username:form.name, bio:form.bio, college:form.college, branch:form.branch, year:form.year, cgpa:form.cgpa };
+      const payload = isMentor
+        ? { ...base, expertise:form.expertise, topCompanies:form.topCompanies, specialTags:form.specialTags,
+            city:form.city, linkedinProfile:form.linkedinProfile, price:Number(form.price)||0, yearsOfExperience:Number(form.yearsOfExperience)||0,
+            primaryDomain:form.primaryDomain, companyDomain:form.companyDomain }
+        : { ...base, goals:form.goals, skills:form.skills };
+      const res = await profileAPI.update(payload);
       setUser(res.user || res);
       setEditing(false);
     } catch (e) { alert(e.message || "Save failed"); }
@@ -308,16 +411,29 @@ function ProfilePage() {
     <div style={{ padding:"2rem", maxWidth:640 }}>
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"2rem" }}>
         <div style={{ display:"flex", alignItems:"center", gap:18 }}>
-          <div style={{ position:"relative" }}>
-            {user?.profilePicture
-              ? <img src={user.profilePicture} alt="" style={{ width:72, height:72, borderRadius:"50%", objectFit:"cover", border:`2.5px solid ${C.accent}` }} />
-              : <div style={{ width:72, height:72, borderRadius:"50%", background:C.accentSoft, border:`2.5px solid ${C.accent}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, fontWeight:700, color:C.accentText }}>{initials}</div>
-            }
-            <span style={{ position:"absolute", bottom:3, right:3, width:13, height:13, borderRadius:"50%", background:C.green, border:`2.5px solid ${C.bg}` }} />
-          </div>
+          <label style={{ position:"relative", cursor:"pointer", display:"inline-block" }} title="Change photo">
+            <Avatar src={user?.profilePicture} name={user?.username || user?.name || "You"} size={72} bg="7567c9" style={{ border:`2.5px solid ${C.accent}`, opacity: uploading ? 0.5 : 1 }} />
+            <input type="file" accept="image/*" onChange={onPickImage} style={{ display:"none" }} disabled={uploading} />
+            <span style={{ position:"absolute", bottom:0, right:0, width:24, height:24, borderRadius:"50%", background:C.accent, border:`2.5px solid ${C.bg}`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff" }}>
+              {uploading ? <Spin size={12} /> : <Camera size={12} />}
+            </span>
+          </label>
           <div>
-            <h2 style={{ fontSize:"1.4rem", fontWeight:600, color:C.text, margin:0, marginBottom:4 }}>{user?.username || user?.name || "—"}</h2>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
+              <h2 style={{ fontSize:"1.4rem", fontWeight:600, color:C.text, margin:0 }}>{user?.username || user?.name || "—"}</h2>
+              {isMentor && (
+                <span style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:999, padding:"2px 10px", fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.06em" }}>MENTOR</span>
+              )}
+            </div>
             <div style={{ fontSize:"0.82rem", color:C.textSub }}>{edu.institutionName||edu.institution||"—"} · {edu.field||"—"} · {edu.year||"—"}</div>
+            {isMentor && (
+              <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:3 }}>
+                {form.yearsOfExperience ? `${form.yearsOfExperience} yrs experience` : "Experience not set"}
+                {" · "}
+                {Number(form.price) > 0 ? `₹${form.price}/session` : "Free sessions"}
+                {typeof user?.profileViews === "number" ? ` · ${user.profileViews} profile views` : ""}
+              </div>
+            )}
             <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:C.green, display:"inline-block" }} />
               <span style={{ fontSize:"0.72rem", color:C.textMuted }}>Active now</span>
@@ -337,6 +453,16 @@ function ProfilePage() {
         <Field label="BRANCH"       value={form.branch}  onChange={v => setForm(f=>({...f,branch:v}))} editing={editing} />
         <Field label="YEAR"         value={form.year}    onChange={v => setForm(f=>({...f,year:v}))} editing={editing} />
         <Field label="CGPA"         value={form.cgpa}    onChange={v => setForm(f=>({...f,cgpa:v}))} editing={editing} />
+        {isMentor && <>
+          <Field label="CITY"             value={form.city}              onChange={v => setForm(f=>({...f,city:v}))} editing={editing} />
+          <Field label="LINKEDIN"         value={form.linkedinProfile}   onChange={v => setForm(f=>({...f,linkedinProfile:v}))} editing={editing} />
+          <Field label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f=>({...f,yearsOfExperience:v}))} editing={editing} />
+          <Field label="PRICE PER SESSION (₹)" value={form.price}         onChange={v => setForm(f=>({...f,price:v}))} editing={editing} />
+          <SelectField label="MENTORING DOMAIN" value={form.primaryDomain} onChange={v => setForm(f=>({...f,primaryDomain:v}))} editing={editing}
+            options={[{value:"internship",label:"Internship"},{value:"placement",label:"Placement"},{value:"both",label:"Both"}]} />
+          <SelectField label="COMPANY DOMAIN" value={form.companyDomain} onChange={v => setForm(f=>({...f,companyDomain:v}))} editing={editing}
+            options={[{value:"Tech",label:"Tech"},{value:"Data Analytics",label:"Data Analytics"},{value:"Consulting",label:"Consulting"},{value:"Product",label:"Product"},{value:"Core Engineering",label:"Core Engineering"}]} />
+        </>}
         <div>
           <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>BIO</label>
           {editing
@@ -347,109 +473,29 @@ function ProfilePage() {
         </div>
       </div>
 
-      <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
-        <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1rem" }}>CURRENT GOALS</div>
-        {form.goals.length===0 && !editing
-          ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>No goals set. Edit profile to add goals.</p>
-          : <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: editing ? 12 : 0 }}>
-              {form.goals.map((g,i) => (
-                <span key={i} style={{ background:i===0 ? C.accentSoft : C.active, border:`1px solid ${i===0 ? C.accent+"55" : C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:i===0 ? C.accentText : C.textSub, display:"flex", alignItems:"center", gap:6 }}>
-                  {i===0 && "→ "}{g}
-                  {editing && (
-                    <button type="button" onClick={() => setForm(f => ({ ...f, goals: f.goals.filter((_, idx) => idx !== i) }))}
-                      style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <X size={11} />
-                    </button>
-                  )}
-                </span>
-              ))}
-            </div>
-        }
-        {editing && (
-          <div style={{ display:"flex", gap:8, marginTop:8 }}>
-            <input
-              placeholder="Add a new goal..."
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const val = e.target.value.trim();
-                  if (val && !form.goals.includes(val)) {
-                    setForm(f => ({ ...f, goals: [...f.goals, val] }));
-                    e.target.value = '';
-                  }
-                }
-              }}
-              style={{ flex:1, background:C.active, border:`1px solid ${C.accent}33`, borderRadius:8, padding:"8px 12px", color:C.text, fontSize:"0.82rem", outline:"none", fontFamily:"inherit" }}
-            />
-            <button
-              type="button"
-              onClick={e => {
-                const input = e.currentTarget.previousSibling;
-                const val = input.value.trim();
-                if (val && !form.goals.includes(val)) {
-                  setForm(f => ({ ...f, goals: [...f.goals, val] }));
-                  input.value = '';
-                }
-              }}
-              style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit", display:"flex", alignItems:"center", fontWeight:500 }}
-            >
-              Add
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem" }}>
-        <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1rem" }}>SKILLS</div>
-        {form.skills.length===0 && !editing
-          ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>No skills added yet.</p>
-          : <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: editing ? 12 : 0 }}>
-              {form.skills.map((s,i) => (
-                <span key={i} style={{ background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:C.textSub, display:"flex", alignItems:"center", gap:6 }}>
-                  {s}
-                  {editing && (
-                    <button type="button" onClick={() => setForm(f => ({ ...f, skills: f.skills.filter((_, idx) => idx !== i) }))}
-                      style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <X size={11} />
-                    </button>
-                  )}
-                </span>
-              ))}
-            </div>
-        }
-        {editing && (
-          <div style={{ display:"flex", gap:8, marginTop:8 }}>
-            <input
-              placeholder="Add a new skill..."
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const val = e.target.value.trim();
-                  if (val && !form.skills.includes(val)) {
-                    setForm(f => ({ ...f, skills: [...f.skills, val] }));
-                    e.target.value = '';
-                  }
-                }
-              }}
-              style={{ flex:1, background:C.active, border:`1px solid ${C.accent}33`, borderRadius:8, padding:"8px 12px", color:C.text, fontSize:"0.82rem", outline:"none", fontFamily:"inherit" }}
-            />
-            <button
-              type="button"
-              onClick={e => {
-                const input = e.currentTarget.previousSibling;
-                const val = input.value.trim();
-                if (val && !form.skills.includes(val)) {
-                  setForm(f => ({ ...f, skills: [...f.skills, val] }));
-                  input.value = '';
-                }
-              }}
-              style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit", display:"flex", alignItems:"center", fontWeight:500 }}
-            >
-              Add
-            </button>
-          </div>
-        )}
-      </div>
+      {isMentor ? <>
+        <ChipSection title="EXPERTISE" items={form.expertise} editing={editing}
+          onChange={v => setForm(f=>({...f, expertise:v}))}
+          placeholder="Add an expertise, e.g. System Design"
+          emptyText="No expertise added yet. Edit profile to add what you mentor on." />
+        <ChipSection title="TOP COMPANIES" items={form.topCompanies} editing={editing}
+          onChange={v => setForm(f=>({...f, topCompanies:v}))}
+          placeholder="Add a company, e.g. Amazon"
+          emptyText="No companies added yet." />
+        <ChipSection title="ACHIEVEMENTS" items={form.specialTags} editing={editing}
+          onChange={v => setForm(f=>({...f, specialTags:v}))}
+          placeholder="Add a tag, e.g. FAANG, PPO, GATE"
+          emptyText="No achievements added yet." />
+      </> : <>
+        <ChipSection title="CURRENT GOALS" items={form.goals} editing={editing} highlightFirst
+          onChange={v => setForm(f=>({...f, goals:v}))}
+          placeholder="Add a new goal..."
+          emptyText="No goals set. Edit profile to add goals." />
+        <ChipSection title="SKILLS" items={form.skills} editing={editing}
+          onChange={v => setForm(f=>({...f, skills:v}))}
+          placeholder="Add a new skill..."
+          emptyText="No skills added yet." />
+      </>}
     </div>
   );
 }
@@ -469,7 +515,16 @@ function AuthModal({ onClose }) {
     setError(""); setLoading(true);
     try {
       if (mode==="login") await login(email, password);
-      else await signup(username, email, password, phone);
+      else {
+        // Normalize phone → bare 10-digit Indian number (strip +91 / spaces / leading 0).
+        const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+        if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+          setError("Enter a valid 10-digit Indian mobile number");
+          setLoading(false);
+          return;
+        }
+        await signup(username, email, password, cleanPhone);
+      }
       onClose();
     } catch (e) {
       setError(e.message || "Something went wrong");
@@ -581,8 +636,11 @@ export default function App() {
   const [showAuth,     setShowAuth]     = useState(false);
   const [clarityQuery, setClarityQuery] = useState("");
   const [bookingMentor, setBookingMentor] = useState(null);
+  const [chatMentor,   setChatMentor]   = useState(null);
   const [chatSession,  setChatSession]  = useState(0);
   const [clarityContext, setClarityContext] = useState(null);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -605,6 +663,12 @@ export default function App() {
     setActivePage("book");
   };
 
+  // "Talk to Senior" → open the real-time chat with that mentor
+  const handleOpenChat = (mentor) => {
+    setChatMentor(mentor);
+    setActivePage("chat");
+  };
+
   const workspaceItems = [
     { id:"ask",      Icon:MessageSquare, label:"Ask Atyant"     },
     { id:"clarity",  Icon:Target,        label:"Clarity Results" },
@@ -619,11 +683,14 @@ export default function App() {
   const pages = {
     ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} />,
     clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} />,
-    book:     <BookingPage    mentor={bookingMentor} />,
+    chat:     <ChatPage       key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
+    "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
+    book:     <BookingPage    mentor={bookingMentor} onOpenChat={() => { setChatMentor(bookingMentor); setActivePage("chat"); }} />,
     sessions: <MySessionsPage />,
     roadmap:  <MyRoadmapPage  user={user} />,
     saved:    <SavedAnswersPage />,
     profile:  <ProfilePage />,
+    upgrade:  <UpgradePage />,
   };
 
   const initials = user ? (user.username||user.name||"?").slice(0,2).toUpperCase() : null;
@@ -637,7 +704,7 @@ export default function App() {
   const NavItem = ({ item }) => {
     const isActive = activePage===item.id;
     return (
-      <button onClick={() => setActivePage(item.id)}
+      <button onClick={() => { setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
         style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"8px 14px", borderRadius:9, border:"none", background:isActive ? C.active : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.86rem", textAlign:"left", transition:"all 0.15s", fontWeight:isActive ? 500 : 400 }}>
         <item.Icon size={15} strokeWidth={isActive ? 2 : 1.5} />
         {item.label}
@@ -648,8 +715,16 @@ export default function App() {
   return (
     <div style={{ background:C.bg, minHeight:"100vh", display:"flex", fontFamily:"'Satoshi',-apple-system,sans-serif", color:C.text }}>
 
+      {/* ── Mobile overlay behind the drawer ── */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:45 }}
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100vh", position:"sticky", top:0 }}>
+      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100vh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
         <div style={{ height:57, display:"flex", alignItems:"center", padding:"0 1.25rem", flexShrink:0 }}>
           <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1 }}>
             <span style={{ fontWeight:700, color:"#ffffff" }}>Aty</span><span style={{ color:C.text }}>ant</span>
@@ -660,9 +735,11 @@ export default function App() {
           {/* ── New Chat Button ── */}
           <button
             onClick={() => {
+              startNewChatSession();   // rotate to a fresh session id
               setClarityQuery("");
               setActivePage("ask");
-              setChatSession(prev => prev + 1);
+              setChatSession(prev => prev + 1);  // remount AskAtyantPage clean
+              if (isMobile) setSidebarOpen(false);
             }}
             style={{
               width: "100%",
@@ -724,16 +801,22 @@ export default function App() {
         </div>
 
         <div style={{ padding:"0.875rem", borderTop:`1px solid ${C.sidebarBorder}` }}>
+          {/* Become a mentor — only for logged-out visitors */}
+          {!user && (
+            <button onClick={() => { setActivePage("mentor-onboard"); if (isMobile) setSidebarOpen(false); }}
+              style={{ width:"100%", marginBottom:10, display:"flex", alignItems:"center", justifyContent:"center", gap:7, background:"transparent", border:`1px solid ${C.accent}55`, borderRadius:10, padding:"9px 12px", color:C.accentText, fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.accentSoft; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+              <Sparkles size={13} /> Become a mentor
+            </button>
+          )}
           {user ? (
-            <div onClick={() => setActivePage("profile")}
+            <div onClick={() => { setActivePage("profile"); if (isMobile) setSidebarOpen(false); }}
               style={{ background:activePage==="profile" ? C.cardHover : C.active, border:`1px solid ${activePage==="profile" ? C.accent+"55" : C.activeBorder}`, borderRadius:12, padding:"11px 13px", display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}
               onMouseEnter={e => { e.currentTarget.style.background=C.cardHover; e.currentTarget.style.borderColor=C.accent+"55"; }}
               onMouseLeave={e => { e.currentTarget.style.background=activePage==="profile" ? C.cardHover : C.active; e.currentTarget.style.borderColor=activePage==="profile" ? C.accent+"55" : C.activeBorder; }}>
               <div style={{ position:"relative", flexShrink:0 }}>
-                {user.profilePicture
-                  ? <img src={user.profilePicture} alt="" style={{ width:34, height:34, borderRadius:"50%", objectFit:"cover", border:`1.5px solid ${C.accent}70` }} />
-                  : <div style={{ width:34, height:34, borderRadius:"50%", background:C.accentSoft, border:`1.5px solid ${C.accent}70`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:600, color:C.accentText }}>{initials}</div>
-                }
+                <Avatar src={user.profilePicture} name={user.username||user.name||"You"} size={34} bg="7567c9" style={{ border:`1.5px solid ${C.accent}70` }} />
                 <span style={{ position:"absolute", bottom:0, right:0, width:9, height:9, borderRadius:"50%", background:C.green, border:`2px solid ${C.sidebar}` }} />
               </div>
               <div style={{ flex:1 }}>
@@ -758,14 +841,20 @@ export default function App() {
       </div>
 
       {/* ── Main ── */}
-      <div style={{ flex:1, overflowY:"auto", height:"100vh", display:"flex", flexDirection:"column" }}>
-        <div style={{ height:57, display:"flex", justifyContent:"flex-end", alignItems:"center", padding:"0 24px", borderBottom:`1px solid ${C.sidebarBorder}`, background:C.bg, flexShrink:0 }}>
+      <div style={{ flex:1, overflow:"hidden", height:"100vh", display:"flex", flexDirection:"column" }}>
+        <div style={{ height:57, display:"flex", justifyContent:"space-between", alignItems:"center", padding:isMobile ? "0 16px" : "0 24px", background:C.bg, flexShrink:0 }}>
+          {isMobile ? (
+            <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
+              style={{ width:36, height:36, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}>
+              <Menu size={18} />
+            </button>
+          ) : <div />}
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <span style={{ background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:7, padding:"5px 12px", color:C.textMuted, fontSize:"0.75rem" }}>Free Plan</span>
-            <button style={{ background:C.accent, border:"none", borderRadius:7, padding:"5px 12px", color:"#fff", fontSize:"0.75rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>
+            <button onClick={() => setActivePage("upgrade")} style={{ background:C.accent, border:"none", borderRadius:7, padding:"5px 12px", color:"#fff", fontSize:"0.75rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>
           </div>
         </div>
-        <div style={{ flex:1 }}>{pages[activePage]}</div>
+        <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>{pages[activePage]}</div>
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
