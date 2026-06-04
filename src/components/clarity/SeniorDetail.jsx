@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import Avatar from "../Avatar";
-import { api } from "../../api";
+import { payForSession } from "../../lib/checkout";
 
 // Design tokens
 const T = {
@@ -28,35 +28,41 @@ const AVATAR = {
   RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
 };
 
+// `serviceId` maps each tier to the platform service catalog (backend
+// config/serviceCatalog.js). The server fixes the price from this id — the client
+// price below is only for display and must match the catalog.
 const SESSIONS = [
   {
     id: 1,
-    title: "Audio Call",
+    serviceId: "quick-chat",
+    title: "1:1 Chat",
     subtitle: "Quick & Focused",
-    price: 499,
-    originalPrice: 699,
-    duration: "30 mins",
+    price: 149,
+    originalPrice: 249,
+    duration: "20 mins",
     icon: Phone,
     color: "blue",
   },
   {
     id: 2,
-    title: "Video Call",
+    serviceId: "video-call",
+    title: "1:1 Video Call",
     subtitle: "Deep Dive Review",
-    price: 699,
-    originalPrice: 999,
-    duration: "45 mins",
+    price: 399,
+    originalPrice: 599,
+    duration: "30 mins",
     icon: Video,
     color: "gold",
     popular: true,
   },
   {
     id: 3,
+    serviceId: "roadmap",
     title: "Career Roadmap",
     subtitle: "Full Strategy Session",
-    price: 999,
-    originalPrice: 1499,
-    duration: "60 mins",
+    price: 499,
+    originalPrice: 799,
+    duration: "30 mins",
     icon: CalendarRange,
     color: "green",
   },
@@ -106,25 +112,25 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
   };
 
   const handleBookingSubmit = async () => {
+    const mentorId = mentor._id || mentor.id;
+    if (!mentorId) { alert("This mentor can't be booked yet (missing id)."); return; }
+    if (!date || !time) { alert("Pick a date and time first."); return; }
+
     setIsBooking(true);
-    try {
-      await api.post("/api/book-session", {
-        mentor: mentor.name,
-        sessionType: selectedSession.title,
-        date,
-        time,
-        amount: selectedSession.price + 25 - couponDiscount,
-        goals: [selectedSession.title],
-        brief,
-        name,
-        email,
-      });
-      setShowSuccess(true);
-    } catch (err) {
-      alert("Booking failed. Please try again.");
-    } finally {
-      setIsBooking(false);
-    }
+    // Real, inline checkout — money goes to the company Razorpay account; the server
+    // fixes the price from serviceId and records the mentor's payout share on success.
+    await payForSession({
+      mentorId,
+      serviceId: selectedSession.serviceId,
+      date,
+      time,
+      topic: selectedSession.title,
+      durationMin: parseInt(selectedSession.duration, 10) || 30,
+      prefill: { name, email, contact: "" },
+      onSuccess: () => { setIsBooking(false); setShowSuccess(true); },
+      onError: (msg) => { setIsBooking(false); alert(msg); },
+      onClose: () => setIsBooking(false),
+    });
   };
 
   return (
@@ -257,12 +263,9 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => {
-              // Route into the ONE real checkout (BookingPage → company Razorpay → payout
-              // ledger). The old local sheet posted to /api/book-session, which collected
-              // ₹0 and created orphan records — never use it. onTalkToMentor is wired in
-              // App.jsx to handleStartBooking(mentor) (opens BookingPage with mentor preselected).
-              if (onTalkToMentor) onTalkToMentor(mentor);
-              else { setShowBooking(true); if (onSelect) onSelect(); }
+              // Open the inline booking sheet — booking stays right here in Clarity (no page jump).
+              setShowBooking(true);
+              if (onSelect) onSelect();
             }}
             className="w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
