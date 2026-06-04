@@ -9,6 +9,7 @@ import {
 import useIsMobile  from "./hooks/useIsMobile";
 import BookingPage   from "./pages/user";
 import UpgradePage   from "./pages/UpgradePage";
+import ShareProfile  from "./components/ShareProfile";
 import ClarityView    from "./components/clarity/ClarityView";
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 import ChatPage       from "./components/clarity/ChatPage";
@@ -343,6 +344,14 @@ function ProfilePage() {
   const [saving,  setSaving]  = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // Capture referral when someone lands on a shared profile link
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ref") === "share" && user?.username) {
+      sessionStorage.setItem("referredBy", user.username);
+    }
+  }, [user]);
+
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -448,10 +457,13 @@ function ProfilePage() {
             </div>
           </div>
         </div>
-        <button onClick={() => editing ? handleSave() : setEditing(true)} disabled={saving}
-          style={{ display:"flex", alignItems:"center", gap:6, background:editing ? C.accent : C.card, border:`1px solid ${editing ? C.accent : C.cardBorder}`, borderRadius:9, padding:"8px 16px", color:editing ? "#fff" : C.textSub, fontSize:"0.82rem", cursor:"pointer", fontFamily:"inherit", fontWeight:500 }}>
-          {saving ? <><Spin size={13}/> Saving…</> : <><Pencil size={13}/>{editing ? "Save" : "Edit Profile"}</>}
-        </button>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          {!editing && <ShareProfile />}
+          <button onClick={() => editing ? handleSave() : setEditing(true)} disabled={saving}
+            style={{ display:"flex", alignItems:"center", gap:6, background:editing ? C.accent : C.card, border:`1px solid ${editing ? C.accent : C.cardBorder}`, borderRadius:9, padding:"8px 16px", color:editing ? "#fff" : C.textSub, fontSize:"0.82rem", cursor:"pointer", fontFamily:"inherit", fontWeight:500 }}>
+            {saving ? <><Spin size={13}/> Saving…</> : <><Pencil size={13}/>{editing ? "Save" : "Edit Profile"}</>}
+          </button>
+        </div>
       </div>
 
       <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
@@ -465,7 +477,6 @@ function ProfilePage() {
           <Field label="CITY"             value={form.city}              onChange={v => setForm(f=>({...f,city:v}))} editing={editing} />
           <Field label="LINKEDIN"         value={form.linkedinProfile}   onChange={v => setForm(f=>({...f,linkedinProfile:v}))} editing={editing} />
           <Field label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f=>({...f,yearsOfExperience:v}))} editing={editing} />
-          <Field label="PRICE PER SESSION (₹)" value={form.price}         onChange={v => setForm(f=>({...f,price:v}))} editing={editing} />
           <SelectField label="MENTORING DOMAIN" value={form.primaryDomain} onChange={v => setForm(f=>({...f,primaryDomain:v}))} editing={editing}
             options={[{value:"internship",label:"Internship"},{value:"placement",label:"Placement"},{value:"both",label:"Both"}]} />
           <SelectField label="COMPANY DOMAIN" value={form.companyDomain} onChange={v => setForm(f=>({...f,companyDomain:v}))} editing={editing}
@@ -570,7 +581,10 @@ function AuthModal({ onClose }) {
           setLoading(false);
           return;
         }
-        await signup(username, email, password, cleanPhone);
+        // Carry referral credit if someone landed via a shared profile link
+        const referredBy = sessionStorage.getItem("referredBy") || undefined;
+        await signup(username, email, password, cleanPhone, undefined, referredBy);
+        sessionStorage.removeItem("referredBy");
       }
       onClose();
     } catch (e) {
