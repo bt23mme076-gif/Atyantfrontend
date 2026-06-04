@@ -257,10 +257,12 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => {
-              // Go straight to booking — the intermediate "Talk to" step was redundant
-              // friction since the user is here to book anyway.
-              setShowBooking(true);
-              if (onSelect) onSelect();
+              // Route into the ONE real checkout (BookingPage → company Razorpay → payout
+              // ledger). The old local sheet posted to /api/book-session, which collected
+              // ₹0 and created orphan records — never use it. onTalkToMentor is wired in
+              // App.jsx to handleStartBooking(mentor) (opens BookingPage with mentor preselected).
+              if (onTalkToMentor) onTalkToMentor(mentor);
+              else { setShowBooking(true); if (onSelect) onSelect(); }
             }}
             className="w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
