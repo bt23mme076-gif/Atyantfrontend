@@ -147,7 +147,7 @@ function SessionPricingNote() {
   );
 }
 
-export default function UpgradePage() {
+export default function UpgradePage({ onBack }) {
   const [tab, setTab] = useState("student");
   const [billing, setBilling] = useState("monthly");
   const btnMonthlyRef = useRef(null);
@@ -300,7 +300,9 @@ export default function UpgradePage() {
                       ))}
                     </ul>
 
-                    <button style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...ctaStyle(plan.ctaStyle) }}>
+                    <button
+                      onClick={() => { if (plan.key === "free") onBack?.(); }}
+                      style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...ctaStyle(plan.ctaStyle) }}>
                       {plan.cta}
                     </button>
                   </div>

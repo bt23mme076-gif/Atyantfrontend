@@ -61,21 +61,23 @@ function collegeShort(college) {
   return first.length <= 5 ? first.toUpperCase() : first;
 }
 
+// Theme-aware palette — maps to CSS vars defined in index.css (light + dark).
+// `accent`/`green` stay literal (used with alpha concatenation / identical in both themes).
 const C = {
-  bg: "#13121A",
-  sidebar: "#0D0C12",
-  sidebarBorder: "#211F2B",
-  card: "#1A1823",
-  cardHover: "#211E2C",
-  cardBorder: "#322E40",
-  active: "#221E33",
-  activeBorder: "#443A6B",
+  bg: "var(--c-bg)",
+  sidebar: "var(--c-sidebar)",
+  sidebarBorder: "var(--c-sidebarBorder)",
+  card: "var(--c-card)",
+  cardHover: "var(--c-cardHover)",
+  cardBorder: "var(--c-cardBorder)",
+  active: "var(--c-active)",
+  activeBorder: "var(--c-activeBorder)",
   accent: "#7567C9",
-  accentSoft: "#7567C922",
-  accentText: "#8E80DB",
-  text: "#ECEAF3",
-  textSub: "#978FAB",
-  textMuted: "#5F576F",
+  accentSoft: "var(--c-accentSoft)",
+  accentText: "var(--c-accentText)",
+  text: "var(--c-text)",
+  textSub: "var(--c-textSub)",
+  textMuted: "var(--c-textMuted)",
   green: "#3DBE82",
 };
 
@@ -93,7 +95,7 @@ const MessageActions = ({ message, onRegenerate }) => {
   return (
     <div className="flex items-center gap-3 mt-2 ml-1 opacity-60 hover:opacity-100 transition-opacity">
       {/* Copy */}
-      <button onClick={handleCopy} title="Copy" className="hover:text-white text-gray-400">
+      <button onClick={handleCopy} title="Copy" className="text-gray-400 hover:text-gray-900 dark:hover:text-white">
         {copied ? <FiCheck size={15} /> : <FiCopy size={15} />}
       </button>
 
@@ -101,7 +103,7 @@ const MessageActions = ({ message, onRegenerate }) => {
       <button
         onClick={() => setLiked(liked === 'up' ? null : 'up')}
         title="Good response"
-        className={liked === 'up' ? 'text-green-400' : 'hover:text-white text-gray-400'}
+        className={liked === 'up' ? 'text-green-400' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}
       >
         <FiThumbsUp size={15} />
       </button>
@@ -110,7 +112,7 @@ const MessageActions = ({ message, onRegenerate }) => {
       <button
         onClick={() => setLiked(liked === 'down' ? null : 'down')}
         title="Bad response"
-        className={liked === 'down' ? 'text-red-400' : 'hover:text-white text-gray-400'}
+        className={liked === 'down' ? 'text-red-400' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white'}
       >
         <FiThumbsDown size={15} />
       </button>
@@ -119,13 +121,13 @@ const MessageActions = ({ message, onRegenerate }) => {
       <button
         onClick={() => navigator.share?.({ text: message })}
         title="Share"
-        className="hover:text-white text-gray-400"
+        className="text-gray-400 hover:text-gray-900 dark:hover:text-white"
       >
         <FiShare size={15} />
       </button>
 
       {/* Regenerate */}
-      <button onClick={onRegenerate} title="Regenerate" className="hover:text-white text-gray-400">
+      <button onClick={onRegenerate} title="Regenerate" className="text-gray-400 hover:text-gray-900 dark:hover:text-white">
         <FiRefreshCw size={15} />
       </button>
     </div>
@@ -149,7 +151,21 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const [problemStatement, setProblemStatement] = useState("");
   const chatEndRef = useRef(null);
   const chatInputRef = useRef(null);
+  const heroInputRef = useRef(null);
   const sessionIdRef = useRef(getStoredSessionId());
+
+  // Auto-grow a textarea up to a max height, then scroll internally.
+  const autoGrow = (el) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+  };
+  // When the query is cleared (e.g. after sending), collapse both inputs back to one line.
+  useEffect(() => {
+    if (query === "") {
+      [heroInputRef, chatInputRef].forEach((r) => { if (r.current) r.current.style.height = "auto"; });
+    }
+  }, [query]);
 
   // Live community count for the badge � refetched when the college changes.
   useEffect(() => {
@@ -299,7 +315,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
 
   const handleSend = async (textToSend) => {
     const text = (textToSend || query).trim();
-    if (text.length < 2) return;
+    if (text.length < 1) return;  // allow short but valid answers like "3"
 
     setMessages(prev => [...prev, { sender: "user", text }]);
     setQuery("");
@@ -359,7 +375,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
           50% { opacity: 1; }
         }
         .msg-row { animation: fadeIn 0.2s ease-out; }
-        .msg-row:hover { background: rgba(255,255,255,0.025); }
+        .msg-row:hover { background: var(--c-rowHover); }
       `}</style>
 
       {messages.length === 0 ? (
@@ -370,25 +386,27 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
           </h1>
 
           <div
-            style={{ width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: 10, height: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
+            style={{ width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", marginBottom: "0.6rem", display: "flex", alignItems: "flex-end", gap: 10, minHeight: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
             onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22`; }}
             onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}
           >
             {/* + */}
-            <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.3rem", lineHeight: 1, padding: 0, flexShrink: 0 }}>+</button>
+            <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.3rem", lineHeight: 1, padding: 0, flexShrink: 0, height: 54, display: "flex", alignItems: "center" }}>+</button>
 
-            {/* Input */}
-            <input
+            {/* Input — auto-growing textarea */}
+            <textarea
+              ref={heroInputRef}
               autoFocus
+              rows={1}
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="Ask Atyant.."
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "1rem", fontFamily: "inherit" }}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "1rem", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: 140, overflowY: "auto" }}
             />
 
             {/* Right: badge + mic + send */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, height: 54 }}>
               {!isMobile && (
                 <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 11px", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
@@ -405,7 +423,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                 </svg>
               </button>
               <button onClick={() => handleSend()}
-                style={{ background: query.trim().length > 1 ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
+                style={{ background: query.trim().length > 0 ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
                 <Send size={15} color="#fff" />
               </button>
             </div>
@@ -415,7 +433,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
           {showContext && (
             <div style={{
               animation: "fadeIn 0.3s ease-out",
-              background: "rgba(26, 24, 35, 0.65)",
+              background: "var(--c-glass)",
               border: `1px solid ${C.cardBorder}`,
               borderRadius: 14,
               padding: "1.25rem",
@@ -535,9 +553,9 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                       exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.22, ease: "easeOut" } },
                     }}
                     transition={{ duration: 0.22, ease: "easeOut" }}
-                    style={{ background: "#221E33", border: `1px solid #322E40`, borderRadius: 999, padding: "7px 18px", color: C.textSub, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", transition: "background-color 0.15s, color 0.15s, border-color 0.15s" }}
+                    style={{ background: "var(--c-active)", border: `1px solid var(--c-cardBorder)`, borderRadius: 999, padding: "7px 18px", color: C.textSub, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", transition: "background-color 0.15s, color 0.15s, border-color 0.15s" }}
                     onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "88"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#221E33"; e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = "#322E40"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "var(--c-active)"; e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = "var(--c-cardBorder)"; }}
                   >
                     {a.label}
                   </motion.button>
@@ -611,7 +629,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                           onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", context)}
                           style={{
                             marginTop: 12,
-                            background: "linear-gradient(135deg, #7567C9, #8E80DB)",
+                            background: "linear-gradient(135deg, #7567C9, var(--c-accentText))",
                             border: "none",
                             borderRadius: 8,
                             padding: "9px 14px",
@@ -662,34 +680,37 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
 
           {/* Chat Input Footer */}
           <div style={{ padding: "0.75rem 1rem 1.5rem" }}>
-            <div style={{ maxWidth: 780, margin: "0 auto", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "center", height: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
+            <div style={{ maxWidth: 780, margin: "0 auto", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "flex-end", minHeight: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
               onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22`; }}
               onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}>
               {/* Plus */}
-              <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.4rem", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, transition: "color 0.2s", flexShrink: 0 }}
+              <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.4rem", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 54, transition: "color 0.2s", flexShrink: 0 }}
                 onMouseEnter={e => e.currentTarget.style.color = C.text}
                 onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
                 title="Add attachment">
                 +
               </button>
 
-              {/* Input */}
-              <input
+              {/* Input — auto-growing textarea */}
+              <textarea
                 ref={chatInputRef}
+                rows={1}
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Ask Atyant.."
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "0.95rem", fontFamily: "inherit" }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "0.95rem", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: 140, overflowY: "auto" }}
               />
 
               {/* Right controls */}
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
-                <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "0.78rem", padding: "4px 8px", display: "flex", alignItems: "center", gap: 4, transition: "color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.color = C.text}
-                  onMouseLeave={e => e.currentTarget.style.color = C.textMuted}>
-                  <span style={{ fontWeight: 500 }}>Atyant</span>
-                </button>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0, height: 54 }}>
+                {!isMobile && (
+                  <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "0.78rem", padding: "4px 8px", display: "flex", alignItems: "center", gap: 4, transition: "color 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.color = C.text}
+                    onMouseLeave={e => e.currentTarget.style.color = C.textMuted}>
+                    <span style={{ fontWeight: 500 }}>Atyant</span>
+                  </button>
+                )}
                 <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, transition: "color 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.color = C.text}
                   onMouseLeave={e => e.currentTarget.style.color = C.textMuted}

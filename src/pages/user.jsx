@@ -343,13 +343,13 @@ function CountdownBanner() {
 function ProgressStepper({ percent }) {
   const steps = ["Session", "Schedule", "Details", "Payment"];
   return (
-    <div className="mb-8 rounded-2xl border p-5 shadow-sm border-[#322E40]/50 bg-[#1A1823]">
+    <div className="mb-8 rounded-2xl border p-5 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-xs font-semibold text-[#978FAB]">Booking progress</span>
+        <span className="text-xs font-semibold text-[var(--c-textSub)]">Booking progress</span>
         <span className="text-xs font-bold text-[#7567C9]">{percent}% complete</span>
       </div>
       <div className="relative">
-        <div className="h-1.5 w-full rounded-full bg-[#221E33]">
+        <div className="h-1.5 w-full rounded-full bg-[var(--c-active)]">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#7567C9] to-[#8E80DB] transition-all duration-700 ease-out"
             style={{ width: `${percent}%` }}
@@ -363,7 +363,7 @@ function ProgressStepper({ percent }) {
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shadow-sm transition-all duration-300 ${done
                     ? "bg-[#7567C9] text-white shadow-[#7567C9]/30"
-                    : "bg-black/5 text-[#5F576F] bg-[#221E33] text-[#978FAB]"
+                    : "bg-black/5 text-[var(--c-textMuted)] bg-[var(--c-active)] text-[var(--c-textSub)]"
                     }`}
                 >
                   {done ? <FiCheck size={12} /> : i + 1}
@@ -384,7 +384,7 @@ function ProgressStepper({ percent }) {
 
 function MentorCard({ mentor }) {
   return (
-    <div className="relative overflow-hidden rounded-[1.5rem] border shadow-sm border-[#322E40] bg-[#1A1823]">
+    <div className="relative overflow-hidden rounded-[1.5rem] border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#7567C9]/3 via-transparent to-transparent pointer-events-none" />
       <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#7567C9]/5 pointer-events-none" />
@@ -407,7 +407,7 @@ function MentorCard({ mentor }) {
                 {mentor.name ? mentor.name.split(" ").map(n => n[0]).join("") : "KT"}
               </div>
             </div>
-            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-emerald-400 dark:border-[#1A1823]">
+            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-emerald-400 dark:border-[var(--c-card)]">
               <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
             </div>
           </div>
@@ -417,13 +417,13 @@ function MentorCard({ mentor }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl font-black text-[#ECEAF3] sm:text-3xl">
+                  <h2 className="text-2xl font-black text-[var(--c-text)] sm:text-3xl">
                     {mentor.name}
                   </h2>
                   <MdVerified className="text-blue-500 flex-shrink-0" size={20} />
                 </div>
                 <p className="mt-0.5 text-sm font-semibold text-[#7567C9]">{mentor.title}</p>
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-[#5F576F]">
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--c-textMuted)]">
                   <FiMapPin size={11} />
                   {mentor.location}
                 </div>
@@ -435,8 +435,8 @@ function MentorCard({ mentor }) {
                   {[...Array(5)].map((_, i) => (
                     <FiStar key={i} size={14} className="fill-yellow-400 text-yellow-400" />
                   ))}
-                  <span className="ml-1 text-sm font-bold text-[#ECEAF3]">4.9</span>
-                  <span className="text-xs text-[#5F576F]">(94 reviews)</span>
+                  <span className="ml-1 text-sm font-bold text-[var(--c-text)]">4.9</span>
+                  <span className="text-xs text-[var(--c-textMuted)]">(94 reviews)</span>
                 </div>
                 <div className="flex gap-2">
                   {[
@@ -447,7 +447,7 @@ function MentorCard({ mentor }) {
                     <a
                       key={href}
                       href={href}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border text-[#978FAB] transition hover:border-[#7567C9] hover:text-[#7567C9] border-[#322E40] text-[#5F576F]"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9] border-[var(--c-cardBorder)] text-[var(--c-textMuted)]"
                     >
                       <Icon size={13} />
                     </a>
@@ -457,7 +457,7 @@ function MentorCard({ mentor }) {
             </div>
 
             {/* Bio */}
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#978FAB]">
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--c-textSub)]">
               {mentor.bio}
             </p>
 
@@ -466,7 +466,7 @@ function MentorCard({ mentor }) {
               {mentor.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="rounded-full border border-[#7567C9]/20 bg-[#7567C9]/5 px-3 py-1 text-xs font-semibold text-[#8E80DB]"
+                  className="rounded-full border border-[#7567C9]/20 bg-[#7567C9]/5 px-3 py-1 text-xs font-semibold text-[var(--c-accentText)]"
                 >
                   {skill}
                 </span>
@@ -486,7 +486,7 @@ function MentorCard({ mentor }) {
             Only {mentor.slotsLeft} slots left today
           </div>
           {mentor.badges.map((b) => (
-            <div key={b} className="flex items-center gap-1.5 rounded-full border bg-[#221E33] px-3 py-1.5 text-xs font-semibold text-[#978FAB] border-[#322E40] bg-[#221E33] text-[#5F576F]">
+            <div key={b} className="flex items-center gap-1.5 rounded-full border bg-[var(--c-active)] px-3 py-1.5 text-xs font-semibold text-[var(--c-textSub)] border-[var(--c-cardBorder)] bg-[var(--c-active)] text-[var(--c-textMuted)]">
               <RiMedalLine size={11} className="text-[#7567C9]" />
               {b}
             </div>
@@ -498,11 +498,11 @@ function MentorCard({ mentor }) {
           {mentor.stats.map(({ value, label, icon: Icon }) => (
             <div
               key={label}
-              className="group rounded-2xl border bg-[#221E33] p-4 transition-all hover:border-[#7567C9]/40 hover:shadow-sm border-[#322E40] bg-[#221E33]"
+              className="group rounded-2xl border bg-[var(--c-active)] p-4 transition-all hover:border-[#7567C9]/40 hover:shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-active)]"
             >
               <Icon size={16} className="mb-2 text-[#7567C9]" />
-              <div className="text-xl font-black text-[#ECEAF3]">{value}</div>
-              <div className="mt-0.5 text-xs text-[#978FAB]">{label}</div>
+              <div className="text-xl font-black text-[var(--c-text)]">{value}</div>
+              <div className="mt-0.5 text-xs text-[var(--c-textSub)]">{label}</div>
             </div>
           ))}
         </div>
@@ -521,8 +521,8 @@ function SessionCard({ session, selected, onSelect }) {
       type="button"
       onClick={() => onSelect(session)}
       className={`group relative flex min-h-[300px] flex-col rounded-[1.25rem] border p-5 text-left transition-all duration-300 ${isSelected
-        ? "border-[#7567C9] bg-gradient-to-b from-[#1A1823] to-white shadow-xl shadow-[#7567C9]/15 ring-1 ring-[#7567C9]/40 dark:from-[#221E33] dark:to-[#1A1823]"
-        : "hover:border-[#7567C9]/50 hover:shadow-md border-[#322E40] bg-[#1A1823]"
+        ? "border-[#7567C9] bg-gradient-to-b from-[var(--c-card)] to-white shadow-xl shadow-[#7567C9]/15 ring-1 ring-[#7567C9]/40 dark:from-[var(--c-active)] dark:to-[var(--c-card)]"
+        : "hover:border-[#7567C9]/50 hover:shadow-md border-[var(--c-cardBorder)] bg-[var(--c-card)]"
         }`}
     >
       {/* Tag */}
@@ -555,19 +555,19 @@ function SessionCard({ session, selected, onSelect }) {
 
       {/* Title */}
       <div>
-        <h3 className="text-xl font-black text-[#ECEAF3]">{session.title}</h3>
+        <h3 className="text-xl font-black text-[var(--c-text)]">{session.title}</h3>
         <p className="text-xs font-semibold text-[#7567C9]">{session.subtitle}</p>
       </div>
 
       {/* Description */}
-      <p className="mt-3 flex-1 text-sm leading-6 text-[#978FAB]">
+      <p className="mt-3 flex-1 text-sm leading-6 text-[var(--c-textSub)]">
         {session.bestFor}
       </p>
 
       {/* Outcomes */}
       <div className="mt-4 space-y-1.5">
         {session.outcomes.map((o) => (
-          <div key={o} className="flex items-center gap-2 text-xs text-[#978FAB] text-[#5F576F]">
+          <div key={o} className="flex items-center gap-2 text-xs text-[var(--c-textSub)] text-[var(--c-textMuted)]">
             <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isSelected ? "bg-[#7567C9]" : "bg-emerald-500"}`} />
             {o}
           </div>
@@ -575,17 +575,17 @@ function SessionCard({ session, selected, onSelect }) {
       </div>
 
       {/* Price + check */}
-      <div className="mt-5 flex items-end justify-between border-t pt-4 border-[#322E40]/50">
+      <div className="mt-5 flex items-end justify-between border-t pt-4 border-[var(--c-cardBorder)]">
         <div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-[#8E80DB]">
+            <span className="text-2xl font-black text-[var(--c-accentText)]">
               ₹{session.price}
             </span>
-            <span className="text-sm text-[#5F576F] line-through">
+            <span className="text-sm text-[var(--c-textMuted)] line-through">
               ₹{session.originalPrice}
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-1.5 text-xs text-[#5F576F]">
+          <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--c-textMuted)]">
             <FiClock size={11} />
             {session.duration}
           </div>
@@ -593,7 +593,7 @@ function SessionCard({ session, selected, onSelect }) {
         <div
           className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${isSelected
             ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-            : "bg-black/5 text-[#5F576F] group-hover:bg-[#7567C9]/15 group-hover:text-[#7567C9] bg-[#221E33]"
+            : "bg-black/5 text-[var(--c-textMuted)] group-hover:bg-[#7567C9]/15 group-hover:text-[#7567C9] bg-[var(--c-active)]"
             }`}
         >
           <FiCheck size={16} />
@@ -631,13 +631,13 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
   const visibleSlots = showAll ? slots : slots.slice(0, 4);
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
-      <h2 className="text-xl font-black text-[#ECEAF3]">Schedule</h2>
-      <p className="mt-1 text-sm text-[#978FAB]">Pick your preferred date and time slot.</p>
+    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-black text-[var(--c-text)]">Schedule</h2>
+      <p className="mt-1 text-sm text-[var(--c-textSub)]">Pick your preferred date and time slot.</p>
 
       {/* Date */}
       <div className="mt-6">
-        <label className="mb-2 flex items-center gap-2 text-sm font-bold text-[#ECEAF3]">
+        <label className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--c-text)]">
           <FiCalendar size={14} className="text-[#7567C9]" />
           Preferred Date
         </label>
@@ -646,7 +646,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
           min={today}
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-2xl border bg-[#13121A] p-4 text-sm outline-none transition focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[#322E40] text-[#ECEAF3]"
+          className="w-full rounded-2xl border bg-[var(--c-bg)] p-4 text-sm outline-none transition focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] text-[var(--c-text)]"
         />
       </div>
 
@@ -654,7 +654,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
       {date && (
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold text-[#ECEAF3]">
+            <div className="flex items-center gap-2 text-sm font-bold text-[var(--c-text)]">
               <FiClock size={14} className="text-[#7567C9]" />
               Time Slots
             </div>
@@ -674,7 +674,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-16 animate-pulse rounded-2xl border border-[#322E40] bg-[#221E33]"
+                  className="h-16 animate-pulse rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-active)]"
                 />
               ))}
             </div>
@@ -690,7 +690,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
 
           {/* Empty state */}
           {!loading && !error && slots.length === 0 && (
-            <div className="rounded-2xl border border-[#322E40] bg-[#221E33] p-6 text-center text-sm text-[#978FAB]">
+            <div className="rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-active)] p-6 text-center text-sm text-[var(--c-textSub)]">
               No slots available for this date. Try another day.
             </div>
           )}
@@ -708,10 +708,10 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
                     disabled={booked}
                     onClick={() => !booked && setTime(slot.time)}
                     className={`relative flex flex-col items-center rounded-2xl border py-3.5 text-sm font-bold transition-all ${booked
-                      ? 'cursor-not-allowed border-[#322E40]/50 text-[#978FAB] opacity-50'
+                      ? 'cursor-not-allowed border-[var(--c-cardBorder)] text-[var(--c-textSub)] opacity-50'
                       : isSelected
                         ? 'border-[#7567C9] bg-gradient-to-b from-[#7567C9] to-[#5a52a8] text-white shadow-lg shadow-[#7567C9]/30'
-                        : 'border-[#322E40] bg-[#13121A] text-[#ECEAF3] hover:border-[#7567C9]/60'
+                        : 'border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)] hover:border-[#7567C9]/60'
                       }`}
                   >
                     {booked ? (
@@ -753,9 +753,9 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
 
 function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
-      <h2 className="text-xl font-black text-[#ECEAF3]">Your Details</h2>
-      <p className="mt-1 text-sm text-[#978FAB]">
+    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-black text-[var(--c-text)]">Your Details</h2>
+      <p className="mt-1 text-sm text-[var(--c-textSub)]">
         We'll send your confirmation and meeting link here.
       </p>
 
@@ -766,7 +766,7 @@ function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
           { label: "Phone (optional)", value: phone, setter: setPhone, type: "tel", placeholder: "+91 98765 43210", icon: null },
         ].map(({ label, value, setter, type, placeholder }) => (
           <div key={label}>
-            <label className="mb-2 block text-sm font-bold text-[#ECEAF3]">
+            <label className="mb-2 block text-sm font-bold text-[var(--c-text)]">
               {label}
             </label>
             <input
@@ -774,7 +774,7 @@ function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
               value={value}
               onChange={(e) => setter(e.target.value)}
               placeholder={placeholder}
-              className="w-full rounded-2xl border bg-[#1A1823] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#5F576F] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[#322E40] bg-[#13121A] text-[#ECEAF3]"
+              className="w-full rounded-2xl border bg-[var(--c-card)] px-4 py-3.5 text-sm outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
             />
           </div>
         ))}
@@ -792,15 +792,15 @@ function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
 
 function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
+    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-black text-[#ECEAF3]">Session Brief</h2>
-          <p className="mt-1 text-sm text-[#978FAB]">
+          <h2 className="text-xl font-black text-[var(--c-text)]">Session Brief</h2>
+          <p className="mt-1 text-sm text-[var(--c-textSub)]">
             Select up to {MAX_GOALS} focus areas.
           </p>
         </div>
-        <span className="rounded-full border border-[#7567C9]/30 bg-[#221E33] px-2.5 py-1 text-xs font-bold text-[#8E80DB] bg-[#221E33] text-[#8E80DB]">
+        <span className="rounded-full border border-[#7567C9]/30 bg-[var(--c-active)] px-2.5 py-1 text-xs font-bold text-[var(--c-accentText)] bg-[var(--c-active)] text-[var(--c-accentText)]">
           {selectedGoals.length}/{MAX_GOALS}
         </span>
       </div>
@@ -817,10 +817,10 @@ function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
               onClick={() => toggleGoal(goal.label)}
               disabled={maxed}
               className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${active
-                ? "border-[#7567C9] bg-[#1A1823] shadow-sm bg-[#221E33]"
+                ? "border-[#7567C9] bg-[var(--c-card)] shadow-sm bg-[var(--c-active)]"
                 : maxed
-                  ? "cursor-not-allowed opacity-40 border-[#322E40]/50"
-                  : "hover:border-[#7567C9]/40 border-[#322E40]"
+                  ? "cursor-not-allowed opacity-40 border-[var(--c-cardBorder)]"
+                  : "hover:border-[#7567C9]/40 border-[var(--c-cardBorder)]"
                 }`}
             >
               <div
@@ -833,11 +833,11 @@ function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
               </div>
               <div>
                 <div
-                  className={`text-sm font-bold ${active ? "text-[#8E80DB]" : "text-[#ECEAF3]"}`}
+                  className={`text-sm font-bold ${active ? "text-[var(--c-accentText)]" : "text-[var(--c-text)]"}`}
                 >
                   {goal.label}
                 </div>
-                <div className="text-xs text-[#978FAB]">{goal.desc}</div>
+                <div className="text-xs text-[var(--c-textSub)]">{goal.desc}</div>
               </div>
               {active && (
                 <FiCheck size={14} className="ml-auto flex-shrink-0 text-[#7567C9]" />
@@ -848,9 +848,9 @@ function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
       </div>
 
       <div className="mt-5">
-        <label className="mb-2 block text-sm font-bold text-[#ECEAF3]">
+        <label className="mb-2 block text-sm font-bold text-[var(--c-text)]">
           Additional context{""}
-          <span className="font-normal text-[#5F576F]">(optional but recommended)</span>
+          <span className="font-normal text-[var(--c-textMuted)]">(optional but recommended)</span>
         </label>
         <textarea
           value={brief}
@@ -858,10 +858,10 @@ function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
           maxLength={600}
           rows={4}
           placeholder="Example: I'm in 3rd year CSE, know Python basics, and want a roadmap to crack ML internships before my final year. Currently on LeetCode for 2 weeks."
-          className="w-full resize-none rounded-2xl border bg-[#1A1823] p-4 text-sm leading-6 outline-none transition placeholder:text-[#5F576F] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[#322E40] bg-[#13121A] text-[#ECEAF3]"
+          className="w-full resize-none rounded-2xl border bg-[var(--c-card)] p-4 text-sm leading-6 outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
         />
         <div className="mt-1.5 flex items-center justify-between">
-          <p className="text-xs text-[#5F576F]">
+          <p className="text-xs text-[var(--c-textMuted)]">
             More context = more impactful session
           </p>
           <span className={`text-xs font-semibold ${brief.length > 500 ? "text-red-500" : "text-gray-400"}`}>
@@ -877,13 +877,13 @@ function TestimonialsSection({ active, setActive }) {
   const [helpfulClicked, setHelpfulClicked] = useState({});
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
+    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-[#ECEAF3]">
+          <h2 className="text-xl font-black text-[var(--c-text)]">
             What Students Say
           </h2>
-          <p className="mt-1 text-sm text-[#978FAB]">
+          <p className="mt-1 text-sm text-[var(--c-textSub)]">
             {TESTIMONIALS.length} verified reviews · 4.9 average rating
           </p>
         </div>
@@ -892,7 +892,7 @@ function TestimonialsSection({ active, setActive }) {
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`rounded-full transition-all duration-300 ${active === i ? "h-2 w-6 bg-[#7567C9]" : "h-2 w-2 bg-black/10 hover:bg-black/20 bg-[#221E33]"
+              className={`rounded-full transition-all duration-300 ${active === i ? "h-2 w-6 bg-[#7567C9]" : "h-2 w-2 bg-black/10 hover:bg-black/20 bg-[var(--c-active)]"
                 }`}
             />
           ))}
@@ -904,8 +904,8 @@ function TestimonialsSection({ active, setActive }) {
           <div
             key={t.name}
             className={`rounded-2xl border p-5 transition-all duration-500 ${active === i
-              ? "border-[#7567C9]/40 bg-gradient-to-br from-[#1A1823] to-white shadow-md dark:from-[#221E33] dark:to-[#1A1823]"
-              : "bg-[#221E33] border-[#322E40] bg-[#221E33]"
+              ? "border-[#7567C9]/40 bg-gradient-to-br from-[var(--c-card)] to-white shadow-md dark:from-[var(--c-active)] dark:to-[var(--c-card)]"
+              : "bg-[var(--c-active)] border-[var(--c-cardBorder)] bg-[var(--c-active)]"
               }`}
           >
             {/* Header */}
@@ -916,15 +916,15 @@ function TestimonialsSection({ active, setActive }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-black text-[#ECEAF3]">
+                    <span className="text-sm font-black text-[var(--c-text)]">
                       {t.name}
                     </span>
                     {t.verified && (
                       <MdVerified size={13} className="text-blue-500" />
                     )}
                   </div>
-                  <div className="text-xs text-[#978FAB]">{t.role}</div>
-                  <div className="text-[10px] text-[#5F576F]">{t.college}</div>
+                  <div className="text-xs text-[var(--c-textSub)]">{t.role}</div>
+                  <div className="text-[10px] text-[var(--c-textMuted)]">{t.college}</div>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -933,27 +933,27 @@ function TestimonialsSection({ active, setActive }) {
                     <FiStar key={j} size={11} className="fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <span className="rounded-full border bg-[#1A1823] px-2 py-0.5 text-[10px] font-semibold text-[#978FAB] border-[#322E40] bg-[#1A1823]">
+                <span className="rounded-full border bg-[var(--c-card)] px-2 py-0.5 text-[10px] font-semibold text-[var(--c-textSub)] border-[var(--c-cardBorder)] bg-[var(--c-card)]">
                   {t.session}
                 </span>
               </div>
             </div>
 
             {/* Review text */}
-            <p className="mt-4 text-sm leading-6 text-[#978FAB]">
+            <p className="mt-4 text-sm leading-6 text-[var(--c-textSub)]">
               "{t.text}"
             </p>
 
             {/* Footer */}
             <div className="mt-4 flex items-center justify-between">
-              <span className="text-xs text-[#5F576F]">{t.date}</span>
+              <span className="text-xs text-[var(--c-textMuted)]">{t.date}</span>
               <button
                 onClick={() =>
                   setHelpfulClicked((prev) => ({ ...prev, [i]: !prev[i] }))
                 }
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${helpfulClicked[i]
                   ? "bg-[#7567C9]/10 text-[#7567C9]"
-                  : "bg-black/5 text-[#978FAB] hover:bg-[#7567C9]/10 hover:text-[#7567C9] bg-[#221E33]"
+                  : "bg-black/5 text-[var(--c-textSub)] hover:bg-[#7567C9]/10 hover:text-[#7567C9] bg-[var(--c-active)]"
                   }`}
               >
                 <FiThumbsUp size={11} />
@@ -976,7 +976,7 @@ function AgendaSection() {
       num: "bg-blue-500",
     },
     gold: {
-      bg: "bg-[#221E33]",
+      bg: "bg-[var(--c-active)]",
       text: "text-[#7567C9]",
       ring: "ring-[#7567C9]/20",
       num: "bg-[#7567C9]",
@@ -990,11 +990,11 @@ function AgendaSection() {
   };
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
-      <h2 className="text-xl font-black text-[#ECEAF3]">
+    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-black text-[var(--c-text)]">
         What Happens After Booking
       </h2>
-      <p className="mt-1 text-sm text-[#978FAB]">
+      <p className="mt-1 text-sm text-[var(--c-textSub)]">
         A structured 3-part experience built for maximum impact.
       </p>
 
@@ -1020,9 +1020,9 @@ function AgendaSection() {
                     {i + 1}
                   </div>
                 </div>
-                <div className="flex-1 rounded-2xl border bg-[#221E33] p-5 transition group-hover:group-hover:shadow-sm border-[#322E40]/50 bg-[#221E33]">
-                  <h3 className="font-black text-[#ECEAF3]">{step.title}</h3>
-                  <p className="mt-1.5 text-sm leading-6 text-[#978FAB]">
+                <div className="flex-1 rounded-2xl border bg-[var(--c-active)] p-5 transition group-hover:group-hover:shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-active)]">
+                  <h3 className="font-black text-[var(--c-text)]">{step.title}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-[var(--c-textSub)]">
                     {step.desc}
                   </p>
                 </div>
@@ -1039,11 +1039,11 @@ function FAQSection() {
   const [expanded, setExpanded] = useState(null);
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
-      <h2 className="text-xl font-black text-[#ECEAF3]">
+    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-black text-[var(--c-text)]">
         Frequently Asked Questions
       </h2>
-      <p className="mt-1 text-sm text-[#978FAB]">
+      <p className="mt-1 text-sm text-[var(--c-textSub)]">
         Everything you need to know before booking.
       </p>
 
@@ -1056,7 +1056,7 @@ function FAQSection() {
               key={i}
               className={`overflow-hidden rounded-2xl border transition-all ${open
                 ? "border-[#7567C9]/30 shadow-sm"
-                : "border-[#322E40]"
+                : "border-[var(--c-cardBorder)]"
                 }`}
             >
               <button
@@ -1071,7 +1071,7 @@ function FAQSection() {
                 >
                   <Icon size={14} />
                 </div>
-                <span className="flex-1 text-sm font-bold text-[#ECEAF3]">
+                <span className="flex-1 text-sm font-bold text-[var(--c-text)]">
                   {faq.q}
                 </span>
                 <div
@@ -1084,8 +1084,8 @@ function FAQSection() {
                 </div>
               </button>
               {open && (
-                <div className="border-t px-5 pb-5 pt-3 border-[#322E40]/50">
-                  <p className="text-sm leading-7 text-[#978FAB]">
+                <div className="border-t px-5 pb-5 pt-3 border-[var(--c-cardBorder)]">
+                  <p className="text-sm leading-7 text-[var(--c-textSub)]">
                     {faq.a}
                   </p>
                 </div>
@@ -1127,18 +1127,18 @@ function BookingSidebar({
   return (
     <div className="space-y-4">
       {/* Main summary card */}
-      <div className="rounded-[1.5rem] border shadow-sm border-[#322E40] bg-[#1A1823]">
+      <div className="rounded-[1.5rem] border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b p-6 border-[#322E40]/50">
+        <div className="flex items-center justify-between border-b p-6 border-[var(--c-cardBorder)]">
           <div>
-            <h2 className="text-xl font-black text-[#ECEAF3]">
+            <h2 className="text-xl font-black text-[var(--c-text)]">
               Booking Summary
             </h2>
-            <p className="mt-0.5 text-xs text-[#978FAB]">Review before payment</p>
+            <p className="mt-0.5 text-xs text-[var(--c-textSub)]">Review before payment</p>
           </div>
           <button
             onClick={onReset}
-            className="rounded-xl border p-2 text-[#5F576F] transition hover:border-red-300 hover:text-red-500 border-[#322E40]"
+            className="rounded-xl border p-2 text-[var(--c-textMuted)] transition hover:border-red-300 hover:text-red-500 border-[var(--c-cardBorder)]"
             title="Reset selections"
           >
             <FiRefreshCw size={14} />
@@ -1147,7 +1147,7 @@ function BookingSidebar({
 
         <div className="p-6 space-y-5">
           {/* Session info */}
-          <div className="rounded-2xl bg-[#221E33] p-4 bg-[#221E33]">
+          <div className="rounded-2xl bg-[var(--c-active)] p-4 bg-[var(--c-active)]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7567C9]/10 text-[#7567C9]">
                 {(() => {
@@ -1156,10 +1156,10 @@ function BookingSidebar({
                 })()}
               </div>
               <div>
-                <div className="font-black text-[#ECEAF3]">
+                <div className="font-black text-[var(--c-text)]">
                   {selectedSession.title}
                 </div>
-                <div className="text-xs text-[#978FAB]">{selectedSession.duration} · {selectedSession.subtitle}</div>
+                <div className="text-xs text-[var(--c-textSub)]">{selectedSession.duration} · {selectedSession.subtitle}</div>
               </div>
             </div>
           </div>
@@ -1174,7 +1174,7 @@ function BookingSidebar({
               <div key={label} className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">{label}</span>
                 <span
-                  className={`font-semibold ${value.includes("Not") ? "text-gray-400" : "text-[#ECEAF3]"
+                  className={`font-semibold ${value.includes("Not") ? "text-gray-400" : "text-[var(--c-text)]"
                     }`}
                 >
                   {value}
@@ -1184,14 +1184,14 @@ function BookingSidebar({
           </div>
 
           {/* Price breakdown */}
-          <div className="rounded-2xl border p-4 space-y-3 border-[#322E40]/50">
+          <div className="rounded-2xl border p-4 space-y-3 border-[var(--c-cardBorder)]">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Session fee</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#5F576F] line-through">
+                <span className="text-xs text-[var(--c-textMuted)] line-through">
                   ₹{selectedSession.originalPrice}
                 </span>
-                <span className="font-bold text-[#ECEAF3]">
+                <span className="font-bold text-[var(--c-text)]">
                   ₹{selectedSession.price}
                 </span>
               </div>
@@ -1206,7 +1206,7 @@ function BookingSidebar({
             )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Platform fee</span>
-              <span className="font-bold text-[#ECEAF3]">₹{PLATFORM_FEE}</span>
+              <span className="font-bold text-[var(--c-text)]">₹{PLATFORM_FEE}</span>
             </div>
             {couponApplied && couponMeta && (
               <div className="flex justify-between text-sm">
@@ -1226,11 +1226,11 @@ function BookingSidebar({
                 </div>
               </div>
             )}
-            <div className="border-t pt-3 border-[#322E40]/50">
+            <div className="border-t pt-3 border-[var(--c-cardBorder)]">
               <div className="flex items-end justify-between">
-                <span className="text-base font-black text-[#ECEAF3]">Total</span>
+                <span className="text-base font-black text-[var(--c-text)]">Total</span>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-[#ECEAF3]">
+                  <div className="text-2xl font-black text-[var(--c-text)]">
                     ₹{total}
                   </div>
                   {totalSaved > 0 && (
@@ -1250,7 +1250,7 @@ function BookingSidebar({
                 <div className="relative flex-1">
                   <FiGift
                     size={14}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F576F]"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--c-textMuted)]"
                   />
                   <input
                     type="text"
@@ -1258,7 +1258,7 @@ function BookingSidebar({
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
                     placeholder="COUPON CODE"
-                    className="w-full rounded-xl border bg-[#1A1823] py-3 pl-9 pr-4 font-mono text-sm font-bold uppercase tracking-wide outline-none transition focus:border-[#7567C9] border-[#322E40] bg-[#13121A] text-[#ECEAF3]"
+                    className="w-full rounded-xl border bg-[var(--c-card)] py-3 pl-9 pr-4 font-mono text-sm font-bold uppercase tracking-wide outline-none transition focus:border-[#7567C9] border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
                   />
                 </div>
                 <button
@@ -1270,12 +1270,12 @@ function BookingSidebar({
                 </button>
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
-                <span className="text-xs text-[#5F576F]">Try:</span>
+                <span className="text-xs text-[var(--c-textMuted)]">Try:</span>
                 {["FIRST50", "CAREER20"].map((code) => (
                   <button
                     key={code}
                     onClick={() => setCouponCode(code)}
-                    className="rounded-full border border-[#7567C9]/30 bg-[#221E33] px-2.5 py-0.5 font-mono text-xs font-bold text-[#8E80DB] hover:bg-[#7567C9]/10 bg-[#221E33] text-[#8E80DB]"
+                    className="rounded-full border border-[#7567C9]/30 bg-[var(--c-active)] px-2.5 py-0.5 font-mono text-xs font-bold text-[var(--c-accentText)] hover:bg-[#7567C9]/10 bg-[var(--c-active)] text-[var(--c-accentText)]"
                   >
                     {code}
                   </button>
@@ -1295,8 +1295,8 @@ function BookingSidebar({
 
           {/* Focus areas */}
           {selectedGoals.length > 0 && (
-            <div className="rounded-2xl bg-[#221E33] p-4 bg-[#221E33]">
-              <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#ECEAF3]">
+            <div className="rounded-2xl bg-[var(--c-active)] p-4 bg-[var(--c-active)]">
+              <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[var(--c-text)]">
                 <FiTarget size={14} className="text-[#7567C9]" />
                 Focus areas ({selectedGoals.length}/{MAX_GOALS})
               </div>
@@ -1304,7 +1304,7 @@ function BookingSidebar({
                 {selectedGoals.map((g) => (
                   <span
                     key={g}
-                    className="inline-flex items-center gap-1 rounded-full bg-[#1A1823] px-3 py-1.5 text-xs font-semibold text-[#978FAB] shadow-sm bg-[#1A1823] text-[#5F576F]"
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--c-card)] px-3 py-1.5 text-xs font-semibold text-[var(--c-textSub)] shadow-sm bg-[var(--c-card)] text-[var(--c-textMuted)]"
                   >
                     <FiCheck size={9} className="text-emerald-500" />
                     {g}
@@ -1322,7 +1322,7 @@ function BookingSidebar({
               [FiShield, "256-bit SSL encrypted payment"],
               [FiRefreshCw, "Free reschedule up to 4 hrs before"],
             ].map(([Icon, text]) => (
-              <div key={text} className="flex items-center gap-3 text-xs text-[#978FAB]">
+              <div key={text} className="flex items-center gap-3 text-xs text-[var(--c-textSub)]">
                 <Icon size={13} className="flex-shrink-0 text-[#7567C9]" />
                 {text}
               </div>
@@ -1374,12 +1374,12 @@ function BookingSidebar({
               </button>
               <button
                 onClick={() => setShowPayment(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-bold text-[#978FAB] transition hover:bg-gray-50 border-[#322E40] text-[#5F576F] hover:bg-[#221E33]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
               >
                 <FiArrowLeft size={14} />
                 Go Back
               </button>
-              <div className="flex items-center justify-center gap-2 text-xs text-[#5F576F]">
+              <div className="flex items-center justify-center gap-2 text-xs text-[var(--c-textMuted)]">
                 <FiLock size={11} />
                 256-bit SSL · Razorpay secured
               </div>
@@ -1389,23 +1389,23 @@ function BookingSidebar({
       </div>
 
       {/* Social proof */}
-      <div className="rounded-2xl border p-4 shadow-sm border-[#322E40] bg-[#1A1823]">
+      <div className="rounded-2xl border p-4 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
         <div className="flex items-center gap-3">
           <div className="flex -space-x-2">
             {["AK", "PS", "RV", "SM"].map((init, i) => (
               <div
                 key={i}
-                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#7567C9] to-[#a07035] text-[10px] font-black text-white dark:border-[#1A1823]"
+                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#7567C9] to-[#a07035] text-[10px] font-black text-white dark:border-[var(--c-card)]"
               >
                 {init}
               </div>
             ))}
           </div>
           <div>
-            <p className="text-xs font-bold text-[#ECEAF3]">
+            <p className="text-xs font-bold text-[var(--c-text)]">
               18 students booked this week
             </p>
-            <p className="text-[10px] text-[#978FAB]">
+            <p className="text-[10px] text-[var(--c-textSub)]">
               Next available slot: Today
             </p>
           </div>
@@ -1448,14 +1448,14 @@ function SuccessModal({ isOpen, onClose, bookingDetails }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border shadow-2xl border-[#322E40] bg-[#1A1823]">
+      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border shadow-2xl border-[var(--c-cardBorder)] bg-[var(--c-card)]">
         {/* Top gradient bar */}
         <div className="h-1.5 w-full bg-gradient-to-r from-[#7567C9] via-yellow-400 to-emerald-400" />
 
         <div className="p-8">
           <button
             onClick={onClose}
-            className="absolute right-5 top-5 rounded-full p-2 text-[#5F576F] hover:bg-gray-100 hover:bg-[#221E33]"
+            className="absolute right-5 top-5 rounded-full p-2 text-[var(--c-textMuted)] hover:bg-gray-100 hover:bg-[var(--c-active)]"
           >
             <FiX size={18} />
           </button>
@@ -1468,16 +1468,16 @@ function SuccessModal({ isOpen, onClose, bookingDetails }) {
                 <FiCheck className="text-4xl text-emerald-500" />
               </div>
             </div>
-            <h3 className="text-2xl font-black text-[#ECEAF3]">
+            <h3 className="text-2xl font-black text-[var(--c-text)]">
               You're all set! 🎉
             </h3>
-            <p className="mt-2 text-sm text-[#978FAB]">
+            <p className="mt-2 text-sm text-[var(--c-textSub)]">
               Check your email for the meeting link and calendar invite.
             </p>
           </div>
 
           {/* Details */}
-          <div className="mt-6 space-y-3 rounded-2xl border bg-[#221E33] p-5 border-[#322E40]/50 bg-[#221E33]">
+          <div className="mt-6 space-y-3 rounded-2xl border bg-[var(--c-active)] p-5 border-[var(--c-cardBorder)] bg-[var(--c-active)]">
             {[
               ["Session", bookingDetails?.sessionType],
               ["Date", bookingDetails?.date],
@@ -1485,17 +1485,17 @@ function SuccessModal({ isOpen, onClose, bookingDetails }) {
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between text-sm">
                 <span className="text-gray-500">{label}</span>
-                <span className="font-bold text-[#ECEAF3]">{value}</span>
+                <span className="font-bold text-[var(--c-text)]">{value}</span>
               </div>
             ))}
-            <div className="border-t pt-3 border-[#322E40]/50">
+            <div className="border-t pt-3 border-[var(--c-cardBorder)]">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Booking ID</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-black text-[#7567C9]">{bookingId}</span>
                   <button
                     onClick={handleCopy}
-                    className="rounded-lg p-1 text-[#5F576F] hover:text-[#7567C9] transition"
+                    className="rounded-lg p-1 text-[var(--c-textMuted)] hover:text-[#7567C9] transition"
                   >
                     {copied ? <FiCheck size={13} className="text-emerald-500" /> : <FiShare2 size={13} />}
                   </button>
@@ -1506,13 +1506,13 @@ function SuccessModal({ isOpen, onClose, bookingDetails }) {
 
           {/* What's next */}
           <div className="mt-5 space-y-2">
-            <p className="text-xs font-bold text-[#978FAB] uppercase tracking-wide">What happens next</p>
+            <p className="text-xs font-bold text-[var(--c-textSub)] uppercase tracking-wide">What happens next</p>
             {[
               "Check your email for the Google Meet link",
               "Share your resume and GitHub before the session",
               "Join 5 minutes early for a smooth start",
             ].map((step, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-xs text-[#978FAB]">
+              <div key={i} className="flex items-center gap-2.5 text-xs text-[var(--c-textSub)]">
                 <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#7567C9]/10 text-[10px] font-black text-[#7567C9]">
                   {i + 1}
                 </div>
@@ -1538,7 +1538,7 @@ function SuccessModal({ isOpen, onClose, bookingDetails }) {
                   });
                 }
               }}
-              className="flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold text-[#978FAB] transition hover:bg-gray-50 border-[#322E40] text-[#5F576F] hover:bg-[#221E33]"
+              className="flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
             >
               <FiShare2 size={15} />
               Share
@@ -1558,7 +1558,7 @@ function NoMentorState({ onFindMentor }) {
 
       <div className="relative w-full max-w-lg text-center">
         {/* Icon cluster */}
-        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-[#7567C9]/20 bg-[#1A1823] shadow-xl shadow-[#7567C9]/10">
+        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-[#7567C9]/20 bg-[var(--c-card)] shadow-xl shadow-[#7567C9]/10">
           <div className="relative">
             <FiUsers size={32} className="text-[#7567C9]" />
             <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#7567C9] shadow-lg shadow-[#7567C9]/40">
@@ -1567,10 +1567,10 @@ function NoMentorState({ onFindMentor }) {
           </div>
         </div>
 
-        <h2 className="text-2xl font-black text-[#ECEAF3] sm:text-3xl">
+        <h2 className="text-2xl font-black text-[var(--c-text)] sm:text-3xl">
           Find your mentor first
         </h2>
-        <p className="mt-3 text-sm leading-7 text-[#978FAB] max-w-sm mx-auto">
+        <p className="mt-3 text-sm leading-7 text-[var(--c-textSub)] max-w-sm mx-auto">
           Tell us your goal and we'll match you with the right mentor — then booking takes under 2 minutes.
         </p>
 
@@ -1581,11 +1581,11 @@ function NoMentorState({ onFindMentor }) {
             { icon: FiUsers, label: "Get matched" },
             { icon: FiCalendar, label: "Book in 2 mins" },
           ].map(({ icon: Icon, label }, i) => (
-            <div key={label} className="flex flex-col items-center gap-2 rounded-2xl border border-[#322E40] bg-[#1A1823] p-4">
+            <div key={label} className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] p-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7567C9]/10">
                 <Icon size={16} className="text-[#7567C9]" />
               </div>
-              <span className="text-xs font-semibold text-[#978FAB]">{label}</span>
+              <span className="text-xs font-semibold text-[var(--c-textSub)]">{label}</span>
             </div>
           ))}
         </div>
@@ -1601,7 +1601,7 @@ function NoMentorState({ onFindMentor }) {
           <FiArrowRight size={18} />
         </button>
 
-        <p className="mt-4 text-xs text-[#5F576F]">
+        <p className="mt-4 text-xs text-[var(--c-textMuted)]">
           Free to use · No sign-up required to explore
         </p>
       </div>
@@ -1699,13 +1699,10 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     let p = 25;
     if (date && time !== '') p += 25;       // Schedule: slot picked
     if (name.trim() && email.trim()) p += 25; // Details: name + email filled
-    if (selectedGoals.length > 0 && brief.trim()) p += 25; // Brief: goals + context
     if (showPayment) p += 25;               // Payment: continued to pay
     return p;
-  }, [activeMentor, date, time, name, email, selectedGoals, brief, showPayment]);
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
+  }, [activeMentor, date, time, name, email, showPayment]);
+  // Theme is now managed globally by ThemeProvider (persisted, user-toggleable).
 
   useEffect(() => {
     const id = setInterval(
@@ -1864,33 +1861,17 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   };
 
   return (
-    <div className="min-h-screen bg-[#13121A] text-[#ECEAF3]">
+    <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:px-8">
 
-        <CountdownBanner />
-
-        {/* Header */}
-        <header className="mb-8 flex flex-col gap-5 border-b pb-6 border-[#322E40] sm:flex-row sm:items-center sm:justify-between">
+        {/* Header — kept minimal: this page is a checkout, not a landing page. */}
+        <header className="mb-8 flex flex-col gap-5 border-b pb-6 border-[var(--c-cardBorder)] sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-3 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#7567C9]/30 bg-[#1A1823] px-3 py-1 text-xs font-bold text-[#8E80DB]">
-                <FiShield size={12} />
-                Verified Career Mentor
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-800 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Online Now
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-800 bg-purple-50 px-3 py-1 text-xs font-bold text-purple-400">
-                <HiSparkles size={12} />
-                Top Mentor 2025
-              </span>
-            </div>
-            <h1 className="text-3xl font-black tracking-tight text-[#ECEAF3] sm:text-4xl md:text-5xl">
+            <h1 className="text-3xl font-black tracking-tight text-[var(--c-text)] sm:text-4xl md:text-5xl">
               Book a Session
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-7 text-[#978FAB] sm:text-base">
-              Get personalized guidance from someone who's been exactly where you are. No fluff — just a clear plan.
+            <p className="mt-2 max-w-xl text-sm leading-7 text-[var(--c-textSub)] sm:text-base">
+              Pick a time and confirm — that's it.
             </p>
           </div>
 
@@ -1902,7 +1883,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                   navigator.share({ title: "Book a mentor session", url: window.location.href });
                 }
               }}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#322E40] bg-[#1A1823] text-[#978FAB] transition hover:border-[#7567C9] hover:text-[#7567C9]"
+              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9]"
             >
               <FiShare2 size={17} />
             </button>
@@ -1921,13 +1902,13 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
               <MentorCard mentor={activeMentor} />
 
               {/* Sessions */}
-              <div className="rounded-[1.5rem] border p-6 shadow-sm border-[#322E40] bg-[#1A1823] md:p-8">
+              <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
                 <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-black text-[#ECEAF3]">
+                    <h2 className="text-xl font-black text-[var(--c-text)]">
                       Available Sessions
                     </h2>
-                    <p className="mt-1 text-sm text-[#978FAB]">
+                    <p className="mt-1 text-sm text-[var(--c-textSub)]">
                       Pick the format that matches your current goal.
                     </p>
                   </div>
@@ -1979,18 +1960,12 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                     phone={phone}
                     setPhone={setPhone}
                   />
-                  <SessionBriefForm
-                    selectedGoals={selectedGoals}
-                    toggleGoal={toggleGoal}
-                    brief={brief}
-                    setBrief={setBrief}
-                  />
                 </div>
               </div>
 
-              <TestimonialsSection active={activeTestimonial} setActive={setActiveTestimonial} />
-              <AgendaSection />
-              <FAQSection />
+              {/* Removed from the checkout flow to reduce clutter (moved to info pages):
+                  Session Brief, Testimonials ("What students say"),
+                  Agenda ("What happens after booking"), and FAQ. */}
             </section>
 
             {/* Sidebar Section */}

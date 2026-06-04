@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
   TrendingUp, Bookmark, Pencil,
@@ -16,23 +16,29 @@ import ChatPage       from "./components/clarity/ChatPage";
 import MentorOnboard  from "./pages/MentorOnboard";
 import Avatar         from "./components/Avatar";
 import { useAuth }    from "./context/AuthContext";
+import { ThemeToggle } from "./context/ThemeContext";
 import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI, servicesAPI } from "./api";
 
+// Theme palette. Each value maps to a CSS variable defined in index.css for both
+// light (:root) and dark (.dark) modes, so every inline style auto-switches when
+// the theme class flips on <html>. `accent` stays a literal hex because it's
+// string-concatenated with alpha suffixes (e.g. C.accent + "55") in places, and
+// the brand purple is identical in both themes anyway.
 const C = {
-  bg:           "#13121A",
-  sidebar:      "#0D0C12",
-  sidebarBorder:"#211F2B",
-  card:         "#1A1823",
-  cardHover:    "#211E2C",
-  cardBorder:   "#322E40",
-  active:       "#221E33",
-  activeBorder: "#443A6B",
+  bg:           "var(--c-bg)",
+  sidebar:      "var(--c-sidebar)",
+  sidebarBorder:"var(--c-sidebarBorder)",
+  card:         "var(--c-card)",
+  cardHover:    "var(--c-cardHover)",
+  cardBorder:   "var(--c-cardBorder)",
+  active:       "var(--c-active)",
+  activeBorder: "var(--c-activeBorder)",
   accent:       "#7567C9",
-  accentSoft:   "#7567C922",
-  accentText:   "#8E80DB",
-  text:         "#ECEAF3",
-  textSub:      "#978FAB",
-  textMuted:    "#5F576F",
+  accentSoft:   "var(--c-accentSoft)",
+  accentText:   "var(--c-accentText)",
+  text:         "var(--c-text)",
+  textSub:      "var(--c-textSub)",
+  textMuted:    "var(--c-textMuted)",
   green:        "#3DBE82",
 };
 
@@ -694,7 +700,38 @@ function AuthModal({ onClose }) {
 export default function App() {
   const { user, loading, logout } = useAuth();
   const [activePage,   setActivePage]   = useState("ask");
+  const [prevPage,     setPrevPage]     = useState("ask");  // page to return to from Upgrade
   const [showAuth,     setShowAuth]     = useState(false);
+
+  // Go to the upgrade/premium view, remembering where we came from.
+  const goToUpgrade = () => { setPrevPage(activePage === "upgrade" ? prevPage : activePage); setActivePage("upgrade"); };
+  // Return to the free-plan experience (the page the user was on before upgrading).
+  const goToFree = () => setActivePage(prevPage && prevPage !== "upgrade" ? prevPage : "ask");
+
+  // ── Browser / phone back-button support ──────────────────────────────────────
+  // The app navigates by `activePage` state rather than routes, so without this the
+  // browser back button would exit the site. We mirror each in-app navigation into
+  // the history stack and restore the page on popstate.
+  const fromPopRef = useRef(false);
+  useEffect(() => {
+    if (!window.history.state || !window.history.state.page) {
+      window.history.replaceState({ page: activePage }, "");
+    }
+    const onPop = (e) => {
+      fromPopRef.current = true;
+      setActivePage((e.state && e.state.page) || "ask");
+      if (isMobile) setSidebarOpen(false);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (fromPopRef.current) { fromPopRef.current = false; return; }   // don't re-push on a back/forward
+    if (!window.history.state || window.history.state.page !== activePage) {
+      window.history.pushState({ page: activePage }, "");
+    }
+  }, [activePage]);
   const [clarityQuery, setClarityQuery] = useState("");
   const [bookingMentor, setBookingMentor] = useState(null);
   const [chatMentor,   setChatMentor]   = useState(null);
@@ -751,7 +788,7 @@ export default function App() {
     roadmap:  <MyRoadmapPage  user={user} />,
     saved:    <SavedAnswersPage />,
     profile:  <ProfilePage />,
-    upgrade:  <UpgradePage />,
+    upgrade:  <UpgradePage onBack={goToFree} />,
   };
 
   const initials = user ? (user.username||user.name||"?").slice(0,2).toUpperCase() : null;
@@ -786,10 +823,18 @@ export default function App() {
 
       {/* ── Sidebar ── */}
       <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100vh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
-        <div style={{ height:57, display:"flex", alignItems:"center", padding:"0 1.25rem", flexShrink:0 }}>
+        <div style={{ height:57, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.25rem", flexShrink:0 }}>
           <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1 }}>
-            <span style={{ fontWeight:700, color:"#ffffff" }}>Aty</span><span style={{ color:C.text }}>ant</span>
+            <span style={{ fontWeight:700, color:C.accent }}>Aty</span><span style={{ color:C.text }}>ant</span>
           </span>
+          {isMobile && (
+            <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
+              style={{ width:34, height:34, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}
+              onMouseEnter={e => { e.currentTarget.style.color = C.text; }}
+              onMouseLeave={e => { e.currentTarget.style.color = C.textSub; }}>
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         <div style={{ flex:1, overflowY:"auto", padding:"1rem 0.625rem" }}>
@@ -824,12 +869,12 @@ export default function App() {
             onMouseEnter={e => {
               e.currentTarget.style.color = C.text;
               const circle = e.currentTarget.querySelector(".new-chat-circle");
-              if (circle) circle.style.background = "rgba(255, 255, 255, 0.15)";
+              if (circle) circle.style.background = C.cardHover;
             }}
             onMouseLeave={e => {
               e.currentTarget.style.color = C.textSub;
               const circle = e.currentTarget.querySelector(".new-chat-circle");
-              if (circle) circle.style.background = "rgba(255, 255, 255, 0.07)";
+              if (circle) circle.style.background = C.active;
             }}
           >
             <div
@@ -838,7 +883,8 @@ export default function App() {
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.07)",
+                background: C.active,
+                border: `1px solid ${C.cardBorder}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -911,8 +957,13 @@ export default function App() {
             </button>
           ) : <div />}
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:7, padding:"5px 12px", color:C.textMuted, fontSize:"0.75rem" }}>Free Plan</span>
-            <button onClick={() => setActivePage("upgrade")} style={{ background:C.accent, border:"none", borderRadius:7, padding:"5px 12px", color:"#fff", fontSize:"0.75rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Upgrade</button>
+            <ThemeToggle size={16} style={{ padding:7, borderRadius:7 }} />
+            {(() => { const onUpgrade = activePage === "upgrade"; return (<>
+            <button onClick={goToFree}
+              style={{ background: onUpgrade ? "transparent" : C.active, border:`1px solid ${onUpgrade ? C.accent+"55" : C.cardBorder}`, borderRadius:7, padding:"5px 12px", color: onUpgrade ? C.accentText : C.textMuted, fontSize:"0.75rem", fontWeight:500, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>Free Plan</button>
+            <button onClick={goToUpgrade}
+              style={{ background: onUpgrade ? C.accent : "transparent", border:`1px solid ${onUpgrade ? C.accent : C.cardBorder}`, borderRadius:7, padding:"5px 12px", color: onUpgrade ? "#fff" : C.textSub, fontSize:"0.75rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>Upgrade</button>
+            </>); })()}
           </div>
         </div>
         <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>{pages[activePage]}</div>

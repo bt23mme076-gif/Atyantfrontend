@@ -2,9 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   THEME TOKENS
+   These power the inline-styled app shell (App.jsx's `C` object maps to them).
+   `:root` = LIGHT mode. `.dark` (toggled on <html>) = DARK mode (the original look).
+   The brand accent (#7567C9) is intentionally identical in both themes.
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* App shell palette — light */
+  --c-bg:            #F6F6FB;
+  --c-sidebar:       #FFFFFF;
+  --c-sidebarBorder: #E7E5EE;
+  --c-card:          #FFFFFF;
+  --c-cardHover:     #F2F1F8;
+  --c-cardBorder:    #E3E0EC;
+  --c-active:        #EFECF9;
+  --c-activeBorder:  #CFC6EE;
+  --c-accentSoft:    #7567C914;
+  --c-accentText:    #5A4CB0;
+  --c-text:          #1B1830;
+  --c-textSub:       #5A5470;
+  --c-textMuted:     #8A8399;
+
+  /* Legacy vars referenced by App.css */
+  --accent:        #7567C9;
+  --accent-bg:     #7567C914;
+  --accent-border: #7567C955;
+  --border:        #E3E0EC;
+  --text-h:        #1B1830;
+  --social-bg:     #FFFFFF;
+  --shadow:        0 8px 24px rgba(20, 18, 40, 0.08);
+
+  /* Translucent "glass" panel + subtle row hover (theme-aware overlays) */
+  --c-glass:       rgba(255, 255, 255, 0.72);
+  --c-rowHover:    rgba(117, 103, 201, 0.06);
+
+  color-scheme: light;
+}
+
+.dark {
+  /* App shell palette — dark (original values) */
+  --c-bg:            #13121A;
+  --c-sidebar:       #0D0C12;
+  --c-sidebarBorder: #211F2B;
+  --c-card:          #1A1823;
+  --c-cardHover:     #211E2C;
+  --c-cardBorder:    #322E40;
+  --c-active:        #221E33;
+  --c-activeBorder:  #443A6B;
+  --c-accentSoft:    #7567C922;
+  --c-accentText:    #8E80DB;
+  --c-text:          #ECEAF3;
+  --c-textSub:       #978FAB;
+  --c-textMuted:     #5F576F;
+
+  /* Legacy vars referenced by App.css */
+  --accent:        #7567C9;
+  --accent-bg:     #7567C922;
+  --accent-border: #7567C955;
+  --border:        #322E40;
+  --text-h:        #ECEAF3;
+  --social-bg:     #1A1823;
+  --shadow:        0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Translucent "glass" panel + subtle row hover (theme-aware overlays) */
+  --c-glass:       rgba(26, 24, 35, 0.65);
+  --c-rowHover:    rgba(255, 255, 255, 0.025);
+
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-family: Inter, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* DATE & TIME ICONS DARK MODE */

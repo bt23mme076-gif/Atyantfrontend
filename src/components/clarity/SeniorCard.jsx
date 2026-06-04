@@ -2,22 +2,22 @@
 
 // Design tokens
 const T = {
-  bg: "#13121A",
-  card: "#1A1823",
-  cardBorder: "#322E40",
-  active: "#221E33",
+  bg: "var(--c-bg)",
+  card: "var(--c-card)",
+  cardBorder: "var(--c-cardBorder)",
+  active: "var(--c-active)",
   activeBorder: "#7567C955",
   accent: "#7567C9",
-  accentSoft: "#7567C922",
-  accentText: "#8E80DB",
-  text: "#ECEAF3",
-  textSub: "#978FAB",
-  textMuted: "#5F576F",
+  accentSoft: "var(--c-accentSoft)",
+  accentText: "var(--c-accentText)",
+  text: "var(--c-text)",
+  textSub: "var(--c-textSub)",
+  textMuted: "var(--c-textMuted)",
   green: "#3DBE82",
 };
 
 const AVATAR = {
-  AK: { bg: "rgba(117,103,201,0.28)", text: "#8E80DB" },
+  AK: { bg: "rgba(117,103,201,0.28)", text: "var(--c-accentText)" },
   PS: { bg: "rgba(59,130,246,0.22)",  text: "#7EB8F7" },
   RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
 };

@@ -10,20 +10,20 @@ import { api } from "../../api";
 
 // Design tokens
 const T = {
-  bg: "#13121A",
-  card: "#1A1823",
-  cardBorder: "#322E40",
+  bg: "var(--c-bg)",
+  card: "var(--c-card)",
+  cardBorder: "var(--c-cardBorder)",
   accent: "#7567C9",
-  accentSoft: "#7567C922",
-  accentText: "#8E80DB",
-  text: "#ECEAF3",
-  textSub: "#978FAB",
-  textMuted: "#5F576F",
+  accentSoft: "var(--c-accentSoft)",
+  accentText: "var(--c-accentText)",
+  text: "var(--c-text)",
+  textSub: "var(--c-textSub)",
+  textMuted: "var(--c-textMuted)",
   green: "#3DBE82",
 };
 
 const AVATAR = {
-  AK: { bg: "rgba(117,103,201,0.28)", text: "#8E80DB" },
+  AK: { bg: "rgba(117,103,201,0.28)", text: "var(--c-accentText)" },
   PS: { bg: "rgba(59,130,246,0.22)",  text: "#7EB8F7" },
   RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
 };
@@ -66,6 +66,9 @@ const TIME_SLOTS = ["10:00 AM", "11:30 AM", "2:00 PM", "4:30 PM", "7:00 PM", "8:
 
 export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor }) {
   if (!mentor) return null;
+
+  // Cheapest session — surfaced on the CTA so the price is visible before clicking.
+  const startingPrice = Math.min(...SESSIONS.map((s) => s.price));
 
   // Booking UI State
   const [showBooking, setShowBooking] = useState(false);
@@ -254,12 +257,10 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => {
-              if (onTalkToMentor) {
-                onTalkToMentor(mentor);
-              } else {
-                setShowBooking(true);
-                if (onSelect) onSelect();
-              }
+              // Go straight to booking — the intermediate "Talk to" step was redundant
+              // friction since the user is here to book anyway.
+              setShowBooking(true);
+              if (onSelect) onSelect();
             }}
             className="w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
@@ -272,8 +273,8 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
               cursor: "pointer",
             }}
           >
-            <Phone size={15} />
-            Talk to {mentor.name.split(" ")[0]}
+            <Video size={15} />
+            Book 1:1 session — starting ₹{startingPrice}
           </button>
         </div>
       </div>
@@ -303,7 +304,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                 style={{
                   position: "absolute",
                   inset: 0,
-                  background: "#1A1823",
+                  background: "var(--c-card)",
                   zIndex: 40,
                   display: "flex",
                   flexDirection: "column",
@@ -316,8 +317,8 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                 <div className="w-16 h-16 rounded-full bg-[#3DBE82]/10 border border-[#3DBE82]/30 flex items-center justify-center mb-4">
                   <Check size={32} className="text-[#3DBE82]" />
                 </div>
-                <h3 className="text-xl font-bold text-[#ECEAF3] mb-2">Booking Confirmed! 🎉</h3>
-                <p className="text-xs text-[#978FAB] leading-relaxed max-w-xs mb-6">
+                <h3 className="text-xl font-bold text-[var(--c-text)] mb-2">Booking Confirmed! 🎉</h3>
+                <p className="text-xs text-[var(--c-textSub)] leading-relaxed max-w-xs mb-6">
                   Your session with {mentor.name.split(" ")[0]} has been booked. A calendar invite and Google Meet link have been sent to <strong>{email}</strong>.
                 </p>
                 <button
@@ -325,7 +326,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                     setShowBooking(false);
                     setShowSuccess(false);
                   }}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#322E40] hover:bg-[#322E40] transition border border-transparent"
+                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--c-cardBorder)] hover:bg-[var(--c-cardBorder)] transition border border-transparent"
                 >
                   Back to Profile
                 </button>
@@ -333,14 +334,14 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
             )}
 
             {/* Booking Sheet Header */}
-            <div className="flex items-center justify-between p-4 border-b border-[#322E40] bg-[#1A1823]">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--c-cardBorder)] bg-[var(--c-card)]">
               <button
                 onClick={() => setShowBooking(false)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[#978FAB] hover:text-[#ECEAF3] transition"
+                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--c-textSub)] hover:text-[var(--c-text)] transition"
               >
                 <ArrowLeft size={14} /> Back
               </button>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#5F576F]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--c-textMuted)]">
                 Book a Session
               </span>
               <div className="w-8" />
@@ -350,7 +351,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {/* 1. Format */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[#5F576F]">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
                   1. Call Format
                 </label>
                 <div className="space-y-1.5">
@@ -367,7 +368,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                         className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
                           isSelected
                             ? "border-[#7567C9] bg-[#7567C9]/5"
-                            : "border-[#322E40] bg-[#1A1823] hover:border-[#7567C9]/30"
+                            : "border-[var(--c-cardBorder)] bg-[var(--c-card)] hover:border-[#7567C9]/30"
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -375,13 +376,13 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                             <Icon size={14} />
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-[#ECEAF3]">{s.title}</p>
-                            <p className="text-[10px] text-[#978FAB]">{s.duration} · {s.subtitle}</p>
+                            <p className="text-xs font-semibold text-[var(--c-text)]">{s.title}</p>
+                            <p className="text-[10px] text-[var(--c-textSub)]">{s.duration} · {s.subtitle}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-bold text-[#8E80DB]">₹{s.price}</p>
-                          <p className="text-[9px] text-[#5F576F] line-through">₹{s.originalPrice}</p>
+                          <p className="text-xs font-bold text-[var(--c-accentText)]">₹{s.price}</p>
+                          <p className="text-[9px] text-[var(--c-textMuted)] line-through">₹{s.originalPrice}</p>
                         </div>
                       </button>
                     )
@@ -392,7 +393,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
               {/* 2. Schedule */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[#5F576F]">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
                     2. Date
                   </label>
                   <input
@@ -400,17 +401,17 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                     min={new Date().toISOString().split("T")[0]}
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className="w-full bg-[#1A1823] border border-[#322E40] rounded-xl px-3 py-2 text-xs text-[#ECEAF3] outline-none focus:border-[#7567C9]"
+                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[#5F576F]">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
                     3. Time Slot
                   </label>
                   <select
                     value={time}
                     onChange={e => setTime(e.target.value)}
-                    className="w-full bg-[#1A1823] border border-[#322E40] rounded-xl px-3 py-2 text-xs text-[#ECEAF3] outline-none focus:border-[#7567C9]"
+                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
                   >
                     <option value="">Select time...</option>
                     {TIME_SLOTS.map(t => (
@@ -422,7 +423,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
 
               {/* 3. Personal Details */}
               <div className="space-y-2">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[#5F576F]">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
                   4. Your Details
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -431,14 +432,14 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                     placeholder="Your Name"
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="w-full bg-[#1A1823] border border-[#322E40] rounded-xl px-3 py-2 text-xs text-[#ECEAF3] outline-none focus:border-[#7567C9]"
+                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
                   />
                   <input
                     type="email"
                     placeholder="Your Email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-[#1A1823] border border-[#322E40] rounded-xl px-3 py-2 text-xs text-[#ECEAF3] outline-none focus:border-[#7567C9]"
+                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
                   />
                 </div>
                 <textarea
@@ -446,13 +447,13 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                   value={brief}
                   onChange={e => setBrief(e.target.value)}
                   rows={2}
-                  className="w-full bg-[#1A1823] border border-[#322E40] rounded-xl p-2.5 text-xs text-[#ECEAF3] outline-none focus:border-[#7567C9] resize-none"
+                  className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl p-2.5 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9] resize-none"
                 />
               </div>
 
               {/* 4. Coupons */}
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[#5F576F]">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
                   5. Coupon Code
                 </label>
                 {!couponApplied ? (
@@ -462,11 +463,11 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                       placeholder="e.g. FIRST50"
                       value={couponCode}
                       onChange={e => setCouponCode(e.target.value)}
-                      className="flex-1 bg-[#1A1823] border border-[#322E40] rounded-xl px-3 py-2 text-xs text-[#ECEAF3] outline-none focus:border-[#7567C9] uppercase"
+                      className="flex-1 bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9] uppercase"
                     />
                     <button
                       onClick={applyCoupon}
-                      className="px-4 py-2 bg-[#322E40] hover:bg-[#322E40] text-xs font-bold text-[#ECEAF3] rounded-xl transition"
+                      className="px-4 py-2 bg-[var(--c-cardBorder)] hover:bg-[var(--c-cardBorder)] text-xs font-bold text-[var(--c-text)] rounded-xl transition"
                     >
                       Apply
                     </button>
@@ -474,7 +475,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                 ) : (
                   <div className="flex items-center justify-between p-2 bg-[#3DBE82]/10 border border-[#3DBE82]/30 rounded-xl">
                     <span className="text-xs text-[#3DBE82] font-semibold">✓ Coupon Applied (Saved ₹{couponDiscount})</span>
-                    <button onClick={removeCoupon} className="text-[#5F576F] hover:text-[#f87171] p-1">
+                    <button onClick={removeCoupon} className="text-[var(--c-textMuted)] hover:text-[#f87171] p-1">
                       <X size={12} />
                     </button>
                   </div>
@@ -482,12 +483,12 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
               </div>
 
               {/* 5. Summary */}
-              <div className="p-3.5 rounded-xl border border-[#322E40] bg-[#1A1823] space-y-2">
-                <div className="flex justify-between text-[11px] text-[#978FAB]">
+              <div className="p-3.5 rounded-xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] space-y-2">
+                <div className="flex justify-between text-[11px] text-[var(--c-textSub)]">
                   <span>Session Fee</span>
                   <span>₹{selectedSession.price}</span>
                 </div>
-                <div className="flex justify-between text-[11px] text-[#978FAB]">
+                <div className="flex justify-between text-[11px] text-[var(--c-textSub)]">
                   <span>Platform Fee</span>
                   <span>₹25</span>
                 </div>
@@ -497,9 +498,9 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                     <span>−₹{couponDiscount}</span>
                   </div>
                 )}
-                <div className="border-t border-[#322E40] pt-2 flex justify-between items-center">
-                  <span className="text-xs font-bold text-[#ECEAF3]">Total Due</span>
-                  <span className="text-base font-black text-[#8E80DB]">
+                <div className="border-t border-[var(--c-cardBorder)] pt-2 flex justify-between items-center">
+                  <span className="text-xs font-bold text-[var(--c-text)]">Total Due</span>
+                  <span className="text-base font-black text-[var(--c-accentText)]">
                     ₹{selectedSession.price + 25 - couponDiscount}
                   </span>
                 </div>
@@ -507,7 +508,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
             </div>
 
             {/* Footer Pay Button */}
-            <div className="p-4 border-t border-[#322E40] bg-[#1A1823]">
+            <div className="p-4 border-t border-[var(--c-cardBorder)] bg-[var(--c-card)]">
               <button
                 disabled={isBooking || !date || !time || !name || !email}
                 onClick={handleBookingSubmit}
@@ -529,7 +530,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
                   </>
                 )}
               </button>
-              <div className="flex items-center justify-center gap-1.5 mt-2 text-[10px] text-[#5F576F]">
+              <div className="flex items-center justify-center gap-1.5 mt-2 text-[10px] text-[var(--c-textMuted)]">
                 <Shield size={10} /> Secure SSL · Razorpay Gateway
               </div>
             </div>

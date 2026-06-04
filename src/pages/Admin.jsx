@@ -1591,7 +1591,10 @@ function SettingsSection({ darkMode, setDarkMode, notify }) {
 // ─── Main Admin App ───────────────────────────────────────────────────────────
 
 export default function AdminApp() {
-  const [darkMode, setDarkMode] = useState(true);
+  // Initialise from the globally-persisted theme so Admin stays in sync with the rest of the site.
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem("atyant-theme") !== "light"; } catch { return true; }
+  });
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -1605,6 +1608,8 @@ export default function AdminApp() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
+    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
+    try { localStorage.setItem("atyant-theme", darkMode ? "dark" : "light"); } catch { /* ignore */ }
   }, [darkMode]);
 
   const notify = useCallback((type, title, message) => {

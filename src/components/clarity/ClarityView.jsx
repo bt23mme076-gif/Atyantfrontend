@@ -106,20 +106,20 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   const header = (
     <div
       className="px-4 sm:px-6 pt-5 pb-4 flex-shrink-0"
-      style={{ borderBottom: "1px solid #211F2B" }}
+      style={{ borderBottom: "1px solid var(--c-sidebarBorder)" }}
     >
       <div className="flex items-start gap-3">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
           style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)" }}
         >
-          <span className="text-xs font-bold" style={{ color: "#ECEAF3", fontFamily: "Fraunces, serif" }}>A</span>
+          <span className="text-xs font-bold" style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>A</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold leading-snug" style={{ color: "#ECEAF3", fontFamily: "Fraunces, serif" }}>
+          <p className="text-sm font-semibold leading-snug" style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
             {activeQuery}
           </p>
-          <p className="text-xs mt-1" style={{ color: "#5F576F", fontFamily: "Inter, sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
             Context: {contextLine}
           </p>
         </div>
@@ -132,7 +132,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   const answerFeed = answerCards.length > 0 ? (
     <div>
       {answerCards.map((card, i) => (
-        <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid #0D0C12" : "none" }}>
+        <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid var(--c-sidebar)" : "none" }}>
           <InstantAnswerCard card={card} onTalk={() => setSelectedMentor(resolveMentor(card.mentor))} />
         </div>
       ))}
@@ -142,11 +142,11 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   // ── MOBILE: single column, one view at a time ──
   if (isMobile) {
     return (
-      <div className="flex flex-col w-full" style={{ background: "#13121A", fontFamily: "Inter, sans-serif", height: "100%", minHeight: 0 }}>
+      <div className="flex flex-col w-full" style={{ background: "var(--c-bg)", fontFamily: "Inter, sans-serif", height: "100%", minHeight: 0 }}>
         {header}
         <div className="flex-1" style={{ minHeight: 0 }}>
           {fetchLoading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16" style={{ color: "#5F576F" }}>
+            <div className="flex flex-col items-center justify-center gap-3 py-16" style={{ color: "var(--c-textMuted)" }}>
               <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
               <p className="text-xs">Finding seniors from your exact background…</p>
             </div>
@@ -158,7 +158,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
               <button
                 onClick={() => setSelectedMentor(null)}
                 className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold flex-shrink-0"
-                style={{ color: "#8E80DB", borderBottom: "1px solid #211F2B", background: "rgba(117,103,201,0.06)" }}
+                style={{ color: "var(--c-accentText)", borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}
               >
                 ← Back to matched seniors
               </button>
@@ -175,34 +175,56 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             // Mobile: interleaved — mentor profile then their answer card, one pair at a time
             <div className="h-full overflow-y-auto hide-scrollbar">
               {answerCards.length > 0 ? (
-                answerCards.map((card, i) => {
+                [...answerCards]
+                  .sort((a, b) => (resolveMentor(b.mentor)?.matchPct || 0) - (resolveMentor(a.mentor)?.matchPct || 0))
+                  .map((card, i) => {
                   const mentor = resolveMentor(card.mentor);
+                  const isTop = i === 0;
+                  const rankLabel = i === 0 ? "★ Best Match" : i === 1 ? "2nd Best" : i === 2 ? "3rd Best" : null;
                   return (
-                    <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid #0D0C12" : "none" }}>
+                    <div
+                      key={card.id || i}
+                      style={{
+                        margin: "0 4px 16px",
+                        border: `1px solid ${isTop ? "rgba(117,103,201,0.45)" : "var(--c-cardBorder)"}`,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        background: "var(--c-card)",
+                        boxShadow: isTop ? "0 6px 24px rgba(117,103,201,0.18)" : "0 1px 5px rgba(0,0,0,0.04)",
+                      }}
+                    >
                       {/* Mentor profile pill — tappable to open detail */}
                       {mentor && (
                         <button
                           onClick={() => setSelectedMentor(mentor)}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                          style={{ background: "#0D0C12", borderBottom: "1px solid #211F2B" }}
+                          style={{ background: isTop ? "rgba(117,103,201,0.06)" : "var(--c-sidebar)", borderBottom: "1px solid var(--c-sidebarBorder)" }}
                         >
                           {mentor.profilePicture ? (
-                            <img src={mentor.profilePicture} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                            <img src={mentor.profilePicture} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                           ) : (
-                            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "1.5px solid rgba(117,103,201,0.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#8E80DB", flexShrink: 0 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "1.5px solid rgba(117,103,201,0.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--c-accentText)", flexShrink: 0 }}>
                               {mentor.initials}
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "#ECEAF3", fontFamily: "Fraunces, serif" }}>{mentor.name}</div>
-                            <div style={{ fontSize: 11, color: "#5F576F", fontFamily: "Inter, sans-serif", marginTop: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>{mentor.name}</span>
+                              {rankLabel && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: isTop ? "#fff" : "var(--c-accentText)", background: isTop ? "#7567C9" : "var(--c-accentSoft)", borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{rankLabel}</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
                               {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
                             </div>
                           </div>
                           {mentor.matchPct > 0 && (
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "#7567C9", fontFamily: "Fraunces, serif", flexShrink: 0 }}>{mentor.matchPct}%</span>
+                            <div style={{ textAlign: "center", flexShrink: 0 }}>
+                              <div style={{ fontSize: 15, fontWeight: 800, color: "#7567C9", fontFamily: "Fraunces, serif", lineHeight: 1 }}>{mentor.matchPct}%</div>
+                              <div style={{ fontSize: 9, color: "var(--c-textMuted)", letterSpacing: "0.06em", marginTop: 2 }}>MATCH</div>
+                            </div>
                           )}
-                          <span style={{ fontSize: 10, color: "#443A6B", marginLeft: 4 }}>→</span>
+                          <span style={{ fontSize: 12, color: "var(--c-activeBorder)", marginLeft: 6 }}>→</span>
                         </button>
                       )}
                       {/* Answer card */}
@@ -217,7 +239,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   onSelect={(m) => setSelectedMentor(m)}
                 />
               ) : (
-                <p className="text-xs text-center px-6 py-16" style={{ color: "#5F576F" }}>
+                <p className="text-xs text-center px-6 py-16" style={{ color: "var(--c-textMuted)" }}>
                   No verified answers yet. Try a different question.
                 </p>
               )}
@@ -232,12 +254,12 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   return (
     <div
       className="flex h-full w-full overflow-hidden"
-      style={{ background: "#13121A", fontFamily: "Inter, sans-serif", minHeight: 0, flexDirection: "row" }}
+      style={{ background: "var(--c-bg)", fontFamily: "Inter, sans-serif", minHeight: 0, flexDirection: "row" }}
     >
       {/* ── Left: Main content ── */}
       <div
         className="flex flex-col flex-1 overflow-hidden"
-        style={{ borderRight: "1px solid #211F2B", minHeight: 0 }}
+        style={{ borderRight: "1px solid var(--c-sidebarBorder)", minHeight: 0 }}
       >
         {header}
 
@@ -248,7 +270,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
               <motion.div
                 key="loading"
                 className="flex flex-col items-center justify-center h-full gap-3"
-                style={{ color: "#5F576F" }}
+                style={{ color: "var(--c-textMuted)" }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -282,9 +304,9 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 <button
                   onClick={() => setSelectedMentor(null)}
                   className="flex items-center gap-2 px-6 py-2.5 flex-shrink-0 text-left"
-                  style={{ borderBottom: "1px solid #211F2B", background: "rgba(117,103,201,0.06)" }}
+                  style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}
                 >
-                  <span className="text-xs font-bold tracking-wide" style={{ color: "#8E80DB", fontFamily: "Inter, sans-serif" }}>
+                  <span className="text-xs font-bold tracking-wide" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
                     ← Back to answers · Connect with {selectedMentor.name}
                   </span>
                 </button>
@@ -317,7 +339,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <p className="text-xs" style={{ color: "#5F576F", fontFamily: "Inter, sans-serif" }}>
+                <p className="text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
                   No matching seniors found. Try a different question below.
                 </p>
               </motion.div>
@@ -333,14 +355,14 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         style={{
           width: isMobile ? "100%" : "300px",
           maxHeight: isMobile ? "42vh" : undefined,
-          borderTop: isMobile ? "1px solid #211F2B" : "none",
-          background: "#0D0C12",
+          borderTop: isMobile ? "1px solid var(--c-sidebarBorder)" : "none",
+          background: "var(--c-sidebar)",
         }}
       >
         {fetchLoading ? (
           <div
             className="flex flex-col items-center justify-center h-full gap-3"
-            style={{ color: "#5F576F" }}
+            style={{ color: "var(--c-textMuted)" }}
           >
             <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
             <p className="text-xs" style={{ fontFamily: "Inter, sans-serif" }}>
@@ -356,7 +378,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         ) : (
           <div
             className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center"
-            style={{ color: "#5F576F" }}
+            style={{ color: "var(--c-textMuted)" }}
           >
             <p className="text-xs" style={{ fontFamily: "Inter, sans-serif" }}>
               {activeQuery
@@ -378,10 +400,10 @@ function AnswerSection({ label, children }) {
   return (
     <div className="mb-5">
       <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-        style={{ color: "#8E80DB", fontFamily: "Inter, sans-serif" }}>
+        style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
         {label}
       </p>
-      <div className="text-sm leading-relaxed" style={{ color: "#C9C4D6", fontFamily: "Inter, sans-serif" }}>
+      <div className="text-sm leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: "Inter, sans-serif" }}>
         {children}
       </div>
     </div>
@@ -401,11 +423,11 @@ function InstantAnswerCard({ card, onTalk }) {
     <div className="flex flex-col h-full">
       {/* Instant Answer banner */}
       <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-2.5 flex-shrink-0"
-        style={{ borderBottom: "1px solid #211F2B", background: "rgba(117,103,201,0.06)" }}>
+        style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}>
         <div className="flex items-center gap-2 min-w-0">
-          <Sparkles size={13} style={{ color: "#8E80DB", flexShrink: 0 }} />
+          <Sparkles size={13} style={{ color: "var(--c-accentText)", flexShrink: 0 }} />
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest truncate"
-            style={{ color: "#8E80DB", fontFamily: "Inter, sans-serif" }}>
+            style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
             Instant Clarity · from {mentorName}'s journey
           </span>
         </div>
@@ -419,7 +441,7 @@ function InstantAnswerCard({ card, onTalk }) {
       {/* Answer body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
         {/* Mentor identity line */}
-        <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "#5F576F", fontFamily: "Inter, sans-serif" }}>
+        <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
           <CheckCircle size={12} style={{ color: "#3DBE82" }} />
           <span>
             {mentorName}
@@ -430,7 +452,7 @@ function InstantAnswerCard({ card, onTalk }) {
 
         {c.mainAnswer && (
           <p className="text-base font-semibold leading-snug mb-5"
-            style={{ color: "#ECEAF3", fontFamily: "Fraunces, serif" }}>
+            style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
             {c.mainAnswer}
           </p>
         )}
@@ -444,11 +466,11 @@ function InstantAnswerCard({ card, onTalk }) {
               {steps.map((s, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ background: "rgba(117,103,201,0.22)", color: "#8E80DB" }}>
+                    style={{ background: "rgba(117,103,201,0.22)", color: "var(--c-accentText)" }}>
                     {i + 1}
                   </span>
                   <span>
-                    {s.step && <strong style={{ color: "#ECEAF3" }}>{s.step}: </strong>}
+                    {s.step && <strong style={{ color: "var(--c-text)" }}>{s.step}: </strong>}
                     {s.description}
                   </span>
                 </li>
@@ -478,7 +500,7 @@ function InstantAnswerCard({ card, onTalk }) {
           <button
             onClick={onTalk}
             className="mt-2 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#ECEAF3", fontFamily: "Inter, sans-serif" }}
+            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "var(--c-text)", fontFamily: "Inter, sans-serif" }}
           >
             Talk to {mentorName} <ArrowRight size={14} />
           </button>
