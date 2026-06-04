@@ -151,11 +151,34 @@ function MyRoadmapPage({ user }) {
           {genLoading ? <><Spin size={13} /> Generating…</> : "↻ Regenerate"}
         </button>
       </div>
-      <p style={{ color:C.textSub, fontSize:"0.88rem", marginBottom:"2rem" }}>
+      <p style={{ color:C.textSub, fontSize:"0.88rem", marginBottom:"1.25rem" }}>
         {user?.interests?.[0]
           ? `${user?.education?.[0]?.field||"Engineering"} → ${user.interests[0]} · personalised for your profile`
           : "Personalised for your profile"}
       </p>
+
+      {/* How the roadmap is generated — hybrid (AI draft + mentor refinement) */}
+      <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1rem 1.25rem", marginBottom:"2rem" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+          <Sparkles size={15} color={C.accentText} />
+          <span style={{ fontSize:"0.82rem", fontWeight:600, color:C.text }}>How your roadmap is built</span>
+        </div>
+        <div style={{ display:"grid", gap:12, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+          {[
+            { n:"1", t:"AI draft", d:"Generated from your branch, goals, CGPA and the questions you've asked Atyant." },
+            { n:"2", t:"Mentor refinement", d:"A verified senior who's walked your path tailors the steps after your 1:1 session." },
+            { n:"3", t:"You track progress", d:"Tick off steps as you go — regenerate anytime your goals change." },
+          ].map((x) => (
+            <div key={x.n} style={{ display:"flex", gap:10 }}>
+              <div style={{ width:22, height:22, borderRadius:"50%", background:C.accentSoft, color:C.accentText, border:`1px solid ${C.accent}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, flexShrink:0 }}>{x.n}</div>
+              <div>
+                <div style={{ fontSize:"0.8rem", fontWeight:600, color:C.text, marginBottom:2 }}>{x.t}</div>
+                <div style={{ fontSize:"0.74rem", color:C.textSub, lineHeight:1.5 }}>{x.d}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div style={{ position:"relative" }}>
         <div style={{ position:"absolute", left:23, top:28, bottom:28, width:1.5, background:C.cardBorder }} />

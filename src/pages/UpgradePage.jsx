@@ -1,25 +1,27 @@
 import { useState, useEffect, useRef } from "react";
+import { Compass, Target, Rocket } from "lucide-react";
 
+// Theme-aware palette (maps to CSS vars in index.css for light + dark).
 const T = {
-  bg:          "#13121A",
-  sidebar:     "#0D0C12",
-  card:        "#1A1823",
-  cardHover:   "#211E2C",
-  cardBorder:  "#322E40",
-  active:      "#221E33",
-  activeBorder:"#443A6B",
+  bg:          "var(--c-bg)",
+  sidebar:     "var(--c-sidebar)",
+  card:        "var(--c-card)",
+  cardHover:   "var(--c-cardHover)",
+  cardBorder:  "var(--c-cardBorder)",
+  active:      "var(--c-active)",
+  activeBorder:"var(--c-activeBorder)",
   accent:      "#7567C9",
-  accentSoft:  "#7567C922",
-  accentText:  "#8E80DB",
-  text:        "#ECEAF3",
-  textSub:     "#978FAB",
-  textMuted:   "#5F576F",
+  accentSoft:  "var(--c-accentSoft)",
+  accentText:  "var(--c-accentText)",
+  text:        "var(--c-text)",
+  textSub:     "var(--c-textSub)",
+  textMuted:   "var(--c-textMuted)",
   green:       "#3DBE82",
 };
 
 const STUDENT_PLANS = [
   {
-    key: "free", name: "Explorer", emoji: "🔍",
+    key: "free", name: "Explorer", Icon: Compass,
     monthly: 0, yearly: 0, featured: false,
     tagline: "Start with clarity", cta: "Start Free", ctaStyle: "outline",
     features: [
@@ -30,7 +32,7 @@ const STUDENT_PLANS = [
     ],
   },
   {
-    key: "clarity", name: "Clarity", emoji: "🎯",
+    key: "clarity", name: "Clarity", Icon: Target,
     monthly: 299, yearly: 239, featured: true,
     tagline: "For placement season", cta: "Get Clarity", ctaStyle: "accent",
     features: [
@@ -43,7 +45,7 @@ const STUDENT_PLANS = [
     ],
   },
   {
-    key: "pro", name: "Pro", emoji: "🚀",
+    key: "pro", name: "Pro", Icon: Rocket,
     monthly: 699, yearly: 559, featured: false,
     tagline: "Serious placement prep", cta: "Go Pro", ctaStyle: "green",
     features: [
@@ -263,7 +265,9 @@ export default function UpgradePage({ onBack }) {
                       <div style={{ position: "absolute", inset: 0, borderRadius: 20, background: "radial-gradient(ellipse at 50% -10%, rgba(117,103,201,0.08) 0%, transparent 65%)", pointerEvents: "none" }} />
                     )}
 
-                    <div style={{ fontSize: 22, marginBottom: 10 }}>{plan.emoji}</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", background: plan.featured ? "#7567C9" : T.accentSoft, border: plan.featured ? "none" : `1px solid ${T.cardBorder}`, boxShadow: plan.featured ? "0 4px 14px rgba(117,103,201,0.35)" : "none" }}>
+                      {plan.Icon && <plan.Icon size={20} color={plan.featured ? "#fff" : T.accentText} strokeWidth={2.2} />}
+                    </div>
                     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 3 }}>{plan.name}</div>
                     <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 20, lineHeight: 1.5 }}>{plan.tagline}</div>
 
