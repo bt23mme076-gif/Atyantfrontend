@@ -746,6 +746,8 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                   </svg>
                 </button>
                 <button onClick={() => handleSend()}
+                  // Keep the keyboard open: don't let the button steal focus from the input on tap.
+                  onMouseDown={e => e.preventDefault()}
                   style={{ background: query.trim().length > 0 ? C.accent : "transparent", border: "none", color: query.trim().length > 0 ? "#fff" : C.textMuted, borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
                   <Send size={16} />
                 </button>
