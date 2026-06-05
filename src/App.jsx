@@ -834,7 +834,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ background:C.bg, minHeight:"100vh", display:"flex", fontFamily:"'Satoshi',-apple-system,sans-serif", color:C.text }}>
+    <div style={{ background:C.bg, minHeight:"100dvh", display:"flex", fontFamily:"'Satoshi',-apple-system,sans-serif", color:C.text }}>
 
       {/* ── Mobile overlay behind the drawer ── */}
       {isMobile && sidebarOpen && (
@@ -845,7 +845,7 @@ export default function App() {
       )}
 
       {/* ── Sidebar ── */}
-      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100vh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
+      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
         <div style={{ height:57, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.25rem", flexShrink:0 }}>
           <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1 }}>
             <span style={{ fontWeight:700, color:C.accent }}>Aty</span><span style={{ color:C.text }}>ant</span>
@@ -971,7 +971,7 @@ export default function App() {
       </div>
 
       {/* ── Main ── */}
-      <div style={{ flex:1, overflow:"hidden", height:"100vh", display:"flex", flexDirection:"column" }}>
+      <div style={{ flex:1, overflow:"hidden", height:"100dvh", display:"flex", flexDirection:"column" }}>
         <div style={{ height:57, display:"flex", justifyContent:"space-between", alignItems:"center", padding:isMobile ? "0 16px" : "0 24px", background:C.bg, flexShrink:0 }}>
           {isMobile ? (
             <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"

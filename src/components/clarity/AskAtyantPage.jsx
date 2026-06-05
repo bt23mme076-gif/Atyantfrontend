@@ -363,7 +363,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const wordCount = query.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 57px)", background: C.bg, fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 57px)", minHeight: 0, background: C.bg, fontFamily: "'Inter', sans-serif" }}>
       {/* CSS Animations */}
       <style>{`
         @keyframes fadeIn {
