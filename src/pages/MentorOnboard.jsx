@@ -138,7 +138,16 @@ export default function MentorOnboard({ onDone }) {
           )}
           <div style={{ marginTop: 24, display: "flex", gap: 10, justifyContent: "center" }}>
             {!result.listed && <button onClick={() => setResult(null)} style={{ ...btn(false) }}>Edit profile</button>}
-            <button onClick={() => onDone?.()} style={{ ...btn(true) }}>Go to dashboard</button>
+            <button
+              onClick={() => {
+                // Ask the profile page to pop the new answer card open on arrival.
+                try { sessionStorage.setItem("atyant_open_answercard", "1"); } catch { /* ignore */ }
+                onDone?.();
+              }}
+              style={{ ...btn(true) }}
+            >
+              {result.listed ? "See your answer card" : "Go to dashboard"}
+            </button>
           </div>
         </div>
       </Wrap>

@@ -83,6 +83,14 @@ async function uploadFile(path, field, file) {
 // Mentor onboarding
 export const mentorAPI = {
   onboard: (payload) => api.post('/api/mentor/onboard', payload),
+  // The mentor's own answer cards (what students see on the Clarity page).
+  answerCards: ()           => api.get('/api/mentor/answer-cards'),
+  // AI-draft a full card from one paragraph (returns a draft, does not save).
+  generateAnswerCard: (story) => api.post('/api/mentor/answer-cards/generate', { story }),
+  // Write a brand-new answer card from scratch — the server embeds it.
+  createAnswerCard: (content) => api.post('/api/mentor/answer-cards', content),
+  // Edit one card's content — the server re-embeds it for matching.
+  updateAnswerCard: (id, content) => api.put(`/api/mentor/answer-cards/${id}`, content),
 };
 
 // Clarity (AI mentor matching)
