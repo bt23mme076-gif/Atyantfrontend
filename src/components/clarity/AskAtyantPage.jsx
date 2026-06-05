@@ -150,6 +150,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const [communityCount, setCommunityCount] = useState(0);
   const [problemStatement, setProblemStatement] = useState("");
   const chatEndRef = useRef(null);
+  const scrollRef = useRef(null);   // the scrollable messages container
   const chatInputRef = useRef(null);
   const heroInputRef = useRef(null);
   const sessionIdRef = useRef(getStoredSessionId());
@@ -279,10 +280,19 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     return () => { cancelled = true; };
   }, []);
 
+  // Pin the conversation to the latest message. Scroll the messages container
+  // directly (not scrollIntoView, which can scroll the wrong ancestor on mobile)
+  // and run it after paint + a tick so it lands even as the keyboard resizes.
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    if (!isTyping) chatInputRef.current?.focus();
-  }, [messages, isTyping]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const toBottom = () => { el.scrollTop = el.scrollHeight; };
+    requestAnimationFrame(toBottom);
+    const t = setTimeout(toBottom, 120);
+    // Avoid force-focusing on mobile — it re-triggers the keyboard and fights the scroll.
+    if (!isTyping && !isMobile) chatInputRef.current?.focus();
+    return () => clearTimeout(t);
+  }, [messages, isTyping, isMobile]);
 
   useEffect(() => {
     const wordCount = query.trim().split(/\s+/).filter(Boolean).length;
@@ -290,6 +300,19 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
       setShowContext(false);
     }
   }, [query]);
+
+  // Keep the latest message in view when the keyboard opens/closes (the visual
+  // viewport resizes) so the conversation never gets stuck scrolled up.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
 
   // Real chat � calls the 2-phase Atyant engine (context intake ? execution).
   const sendToEngine = async (text) => {
@@ -569,7 +592,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
           {/* Messages Area */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem 0" }}>
+          <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "1.5rem 0" }}>
             <div style={{ maxWidth: 680, margin: "0 auto", paddingLeft: "1rem", paddingRight: "1rem", boxSizing: "border-box" }}>
               {messages.map((m, i) => {
                 const isUser = m.sender === "user";
