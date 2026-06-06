@@ -1,12 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Star, Users, Clock, Phone, Video, CalendarRange, ArrowLeft,
-  Check, Shield, Award, Sparkles, Gift, Lock, RefreshCw, X, Loader2
-} from "lucide-react";
+import { Star, Users, Clock, Video } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import Avatar from "../Avatar";
-import { payForSession } from "../../lib/checkout";
 
 // Design tokens
 const T = {
@@ -22,116 +16,13 @@ const T = {
   green: "#3DBE82",
 };
 
-const AVATAR = {
-  AK: { bg: "rgba(117,103,201,0.28)", text: "var(--c-accentText)" },
-  PS: { bg: "rgba(59,130,246,0.22)",  text: "#7EB8F7" },
-  RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
-};
-
-// `serviceId` maps each tier to the platform service catalog (backend
-// config/serviceCatalog.js). The server fixes the price from this id — the client
-// price below is only for display and must match the catalog.
-const SESSIONS = [
-  {
-    id: 1,
-    serviceId: "quick-chat",
-    title: "1:1 Chat",
-    subtitle: "Quick & Focused",
-    price: 149,
-    originalPrice: 249,
-    duration: "20 mins",
-    icon: Phone,
-    color: "blue",
-  },
-  {
-    id: 2,
-    serviceId: "video-call",
-    title: "1:1 Video Call",
-    subtitle: "Deep Dive Review",
-    price: 399,
-    originalPrice: 599,
-    duration: "30 mins",
-    icon: Video,
-    color: "gold",
-    popular: true,
-  },
-  {
-    id: 3,
-    serviceId: "roadmap",
-    title: "Career Roadmap",
-    subtitle: "Full Strategy Session",
-    price: 499,
-    originalPrice: 799,
-    duration: "30 mins",
-    icon: CalendarRange,
-    color: "green",
-  },
-];
-
-const TIME_SLOTS = ["10:00 AM", "11:30 AM", "2:00 PM", "4:30 PM", "7:00 PM", "8:30 PM"];
+// Cheapest session price (the platform "1:1 Chat" tier) — shown on the CTA so the
+// student sees a price before tapping. The real, mentor-specific prices load from
+// the service catalog on the full Book a Session page.
+const STARTING_PRICE = 149;
 
 export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor }) {
   if (!mentor) return null;
-
-  // Cheapest session — surfaced on the CTA so the price is visible before clicking.
-  const startingPrice = Math.min(...SESSIONS.map((s) => s.price));
-
-  // Booking UI State
-  const [showBooking, setShowBooking] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(SESSIONS[1]);
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [name, setName] = useState(user?.username || user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [brief, setBrief] = useState("");
-  const [isBooking, setIsBooking] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // Coupon state
-  const [couponCode, setCouponCode] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [couponDiscount, setCouponDiscount] = useState(0);
-
-  const applyCoupon = () => {
-    const code = couponCode.toUpperCase().trim();
-    if (code === "FIRST50") {
-      setCouponApplied(true);
-      setCouponDiscount(50);
-    } else if (code === "CAREER20") {
-      setCouponApplied(true);
-      setCouponDiscount(Math.round(selectedSession.price * 0.2));
-    } else {
-      alert("Invalid coupon code. Try FIRST50 or CAREER20!");
-    }
-  };
-
-  const removeCoupon = () => {
-    setCouponCode("");
-    setCouponApplied(false);
-    setCouponDiscount(0);
-  };
-
-  const handleBookingSubmit = async () => {
-    const mentorId = mentor._id || mentor.id;
-    if (!mentorId) { alert("This mentor can't be booked yet (missing id)."); return; }
-    if (!date || !time) { alert("Pick a date and time first."); return; }
-
-    setIsBooking(true);
-    // Real, inline checkout — money goes to the company Razorpay account; the server
-    // fixes the price from serviceId and records the mentor's payout share on success.
-    await payForSession({
-      mentorId,
-      serviceId: selectedSession.serviceId,
-      date,
-      time,
-      topic: selectedSession.title,
-      durationMin: parseInt(selectedSession.duration, 10) || 30,
-      prefill: { name, email, contact: "" },
-      onSuccess: () => { setIsBooking(false); setShowSuccess(true); },
-      onError: (msg) => { setIsBooking(false); alert(msg); },
-      onClose: () => setIsBooking(false),
-    });
-  };
 
   return (
     <div
@@ -263,11 +154,12 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
         <div className="max-w-3xl mx-auto">
           <button
             onClick={() => {
-              // Open the inline booking sheet — booking stays right here in Clarity (no page jump).
-              setShowBooking(true);
               if (onSelect) onSelect();
+              // Go straight to the full Book a Session page (bigger, readable layout)
+              // instead of a cramped in-place sheet.
+              if (onTalkToMentor) onTalkToMentor(mentor);
             }}
-            className="w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition hover:opacity-90"
+            className="w-full py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
               background: "linear-gradient(135deg, #7567C9, #5a52a8)",
               color: "#fff",
@@ -278,270 +170,11 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
               cursor: "pointer",
             }}
           >
-            <Video size={15} />
-            Book 1:1 session — starting ₹{startingPrice}
+            <Video size={16} />
+            Book 1:1 session — starting ₹{STARTING_PRICE}
           </button>
         </div>
       </div>
-
-      {/* ── Slide-up Booking Sheet ── */}
-      <AnimatePresence>
-        {showBooking && (
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 220 }}
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: T.bg,
-              zIndex: 30,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* Success state overlay */}
-            {showSuccess && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "var(--c-card)",
-                  zIndex: 40,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "24px",
-                  textAlign: "center"
-                }}
-              >
-                <div className="w-16 h-16 rounded-full bg-[#3DBE82]/10 border border-[#3DBE82]/30 flex items-center justify-center mb-4">
-                  <Check size={32} className="text-[#3DBE82]" />
-                </div>
-                <h3 className="text-xl font-bold text-[var(--c-text)] mb-2">Booking Confirmed! 🎉</h3>
-                <p className="text-xs text-[var(--c-textSub)] leading-relaxed max-w-xs mb-6">
-                  Your session with {mentor.name.split(" ")[0]} has been booked. A calendar invite and Google Meet link have been sent to <strong>{email}</strong>.
-                </p>
-                <button
-                  onClick={() => {
-                    setShowBooking(false);
-                    setShowSuccess(false);
-                  }}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-[var(--c-cardBorder)] hover:bg-[var(--c-cardBorder)] transition border border-transparent"
-                >
-                  Back to Profile
-                </button>
-              </motion.div>
-            )}
-
-            {/* Booking Sheet Header */}
-            <div className="flex items-center justify-between p-4 border-b border-[var(--c-cardBorder)] bg-[var(--c-card)]">
-              <button
-                onClick={() => setShowBooking(false)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-[var(--c-textSub)] hover:text-[var(--c-text)] transition"
-              >
-                <ArrowLeft size={14} /> Back
-              </button>
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--c-textMuted)]">
-                Book a Session
-              </span>
-              <div className="w-8" />
-            </div>
-
-            {/* Scrollable Form */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              {/* 1. Format */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
-                  1. Call Format
-                </label>
-                <div className="space-y-1.5">
-                  {SESSIONS.map(s => {
-                    const isSelected = selectedSession.id === s.id;
-                    const Icon = s.icon;
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          setSelectedSession(s);
-                          removeCoupon();
-                        }}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? "border-[#7567C9] bg-[#7567C9]/5"
-                            : "border-[var(--c-cardBorder)] bg-[var(--c-card)] hover:border-[#7567C9]/30"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className={`p-1.5 rounded-lg ${isSelected ? "bg-[#7567C9] text-white" : "bg-[#7567C9]/10 text-[#7567C9]"}`}>
-                            <Icon size={14} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-[var(--c-text)]">{s.title}</p>
-                            <p className="text-[10px] text-[var(--c-textSub)]">{s.duration} · {s.subtitle}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-bold text-[var(--c-accentText)]">₹{s.price}</p>
-                          <p className="text-[9px] text-[var(--c-textMuted)] line-through">₹{s.originalPrice}</p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* 2. Schedule */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
-                    2. Date
-                  </label>
-                  <input
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
-                    value={date}
-                    onChange={e => setDate(e.target.value)}
-                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
-                    3. Time Slot
-                  </label>
-                  <select
-                    value={time}
-                    onChange={e => setTime(e.target.value)}
-                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
-                  >
-                    <option value="">Select time...</option>
-                    {TIME_SLOTS.map(t => (
-                      <option key={t} value={t}>{t} IST</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* 3. Personal Details */}
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
-                  4. Your Details
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Your Email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9]"
-                  />
-                </div>
-                <textarea
-                  placeholder="What do you want to cover? (optional)"
-                  value={brief}
-                  onChange={e => setBrief(e.target.value)}
-                  rows={2}
-                  className="w-full bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl p-2.5 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9] resize-none"
-                />
-              </div>
-
-              {/* 4. Coupons */}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--c-textMuted)]">
-                  5. Coupon Code
-                </label>
-                {!couponApplied ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. FIRST50"
-                      value={couponCode}
-                      onChange={e => setCouponCode(e.target.value)}
-                      className="flex-1 bg-[var(--c-card)] border border-[var(--c-cardBorder)] rounded-xl px-3 py-2 text-xs text-[var(--c-text)] outline-none focus:border-[#7567C9] uppercase"
-                    />
-                    <button
-                      onClick={applyCoupon}
-                      className="px-4 py-2 bg-[var(--c-cardBorder)] hover:bg-[var(--c-cardBorder)] text-xs font-bold text-[var(--c-text)] rounded-xl transition"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-2 bg-[#3DBE82]/10 border border-[#3DBE82]/30 rounded-xl">
-                    <span className="text-xs text-[#3DBE82] font-semibold">✓ Coupon Applied (Saved ₹{couponDiscount})</span>
-                    <button onClick={removeCoupon} className="text-[var(--c-textMuted)] hover:text-[#f87171] p-1">
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Summary */}
-              <div className="p-3.5 rounded-xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] space-y-2">
-                <div className="flex justify-between text-[11px] text-[var(--c-textSub)]">
-                  <span>Session Fee</span>
-                  <span>₹{selectedSession.price}</span>
-                </div>
-                <div className="flex justify-between text-[11px] text-[var(--c-textSub)]">
-                  <span>Platform Fee</span>
-                  <span>₹25</span>
-                </div>
-                {couponApplied && (
-                  <div className="flex justify-between text-[11px] text-[#3DBE82]">
-                    <span>Discount</span>
-                    <span>−₹{couponDiscount}</span>
-                  </div>
-                )}
-                <div className="border-t border-[var(--c-cardBorder)] pt-2 flex justify-between items-center">
-                  <span className="text-xs font-bold text-[var(--c-text)]">Total Due</span>
-                  <span className="text-base font-black text-[var(--c-accentText)]">
-                    ₹{selectedSession.price + 25 - couponDiscount}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Pay Button */}
-            <div className="p-4 border-t border-[var(--c-cardBorder)] bg-[var(--c-card)]">
-              <button
-                disabled={isBooking || !date || !time || !name || !email}
-                onClick={handleBookingSubmit}
-                className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
-                style={{
-                  background: "linear-gradient(135deg, #7567C9, #5a52a8)",
-                  color: "#fff",
-                  border: "none",
-                  boxShadow: `0 4px 15px ${T.accent}30`
-                }}
-              >
-                {isBooking ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    <Lock size={13} /> Pay Securely ₹{selectedSession.price + 25 - couponDiscount}
-                  </>
-                )}
-              </button>
-              <div className="flex items-center justify-center gap-1.5 mt-2 text-[10px] text-[var(--c-textMuted)]">
-                <Shield size={10} /> Secure SSL · Razorpay Gateway
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

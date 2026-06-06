@@ -1608,6 +1608,152 @@ function NoMentorState({ onFindMentor }) {
     </div>
   );
 }
+// ─── Right-side payment panel (matches the Book the Session design) ─────────────
+function PaymentPanel({
+  selectedSession, mentorId, date, setDate, time, setTime, today, refreshSlots,
+  name, setName, email, setEmail, phone, setPhone, brief, setBrief,
+  couponCode, setCouponCode, couponApplied, couponDiscount, couponMeta,
+  applyCoupon, removeCoupon, isFormValid, isBooking, handleBooking,
+}) {
+  const packagePrice = selectedSession.originalPrice;
+  const sessionDiscount = selectedSession.originalPrice - selectedSession.price;
+  const totalDiscount = sessionDiscount + couponDiscount;
+  const discountPct = packagePrice > 0 ? Math.round((totalDiscount / packagePrice) * 100) : 0;
+  const total = selectedSession.price + PLATFORM_FEE - couponDiscount;
+  const totalSaved = totalDiscount;
+
+  const handleConfirm = () => {
+    if (!isFormValid) {
+      alert("Add your name, email, preferred date and a time slot to continue.");
+      return;
+    }
+    handleBooking();
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Price Breakdown */}
+      <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+        <h2 className="text-base font-black text-[var(--c-text)]">Price Breakdown</h2>
+
+        {totalSaved > 0 && (
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 dark:border-emerald-800 dark:bg-emerald-950/20">
+            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Your total savings</span>
+            <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">₹{totalSaved}</span>
+          </div>
+        )}
+
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--c-textSub)]">Selected Package Price</span>
+            <span className="font-bold text-[var(--c-text)]">₹{packagePrice}</span>
+          </div>
+          {totalDiscount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-emerald-600 dark:text-emerald-400">Discount</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">−₹{totalDiscount} ({discountPct}%)</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--c-textSub)]">Platform fee</span>
+            <span className="font-bold text-[var(--c-text)]">₹{PLATFORM_FEE}</span>
+          </div>
+          {couponApplied && couponMeta && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <FiGift size={12} /> {couponCode.toUpperCase()}
+              </span>
+              <button onClick={removeCoupon} className="text-[var(--c-textMuted)] hover:text-red-500"><FiX size={13} /></button>
+            </div>
+          )}
+          <div className="flex items-end justify-between border-t pt-3 border-[var(--c-cardBorder)]">
+            <span className="text-base font-black text-[var(--c-text)]">Total amount &amp; taxes</span>
+            <span className="text-2xl font-black text-[var(--c-accentText)]">₹{total}</span>
+          </div>
+        </div>
+
+        {/* Coupon */}
+        {!couponApplied && (
+          <div className="mt-4 flex gap-2">
+            <div className="relative flex-1">
+              <FiGift size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--c-textMuted)]" />
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                placeholder="COUPON CODE"
+                className="w-full rounded-xl border bg-[var(--c-bg)] py-3 pl-9 pr-4 font-mono text-sm font-bold uppercase tracking-wide outline-none transition focus:border-[#7567C9] border-[var(--c-cardBorder)] text-[var(--c-text)]"
+              />
+            </div>
+            <button
+              onClick={applyCoupon}
+              disabled={!couponCode.trim()}
+              className="rounded-xl bg-[#7567C9] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#5a52a8] disabled:opacity-40"
+            >
+              Apply
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Describe your query */}
+      <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+        <label className="mb-2 block text-sm font-bold text-[var(--c-text)]">Describe your query</label>
+        <textarea
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          maxLength={600}
+          rows={3}
+          placeholder="What do you want to get out of this session? The more context, the more useful the call."
+          className="w-full resize-none rounded-2xl border bg-[var(--c-bg)] p-4 text-sm leading-6 outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] text-[var(--c-text)]"
+        />
+      </div>
+
+      {/* Your details (name / email / phone) */}
+      <UserDetailsForm
+        name={name} setName={setName}
+        email={email} setEmail={setEmail}
+        phone={phone} setPhone={setPhone}
+      />
+
+      {/* Preferred date + time slot */}
+      <SchedulePicker
+        mentorId={mentorId}
+        date={date}
+        setDate={setDate}
+        time={time}
+        setTime={setTime}
+        today={today}
+        refreshKey={refreshSlots}
+      />
+
+      {/* Confirm Payment */}
+      <button
+        type="button"
+        onClick={handleConfirm}
+        disabled={isBooking}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] py-4 text-base font-black text-white shadow-xl shadow-[#7567C9]/30 transition-all hover:shadow-2xl hover:shadow-[#7567C9]/40 disabled:opacity-70"
+      >
+        {isBooking ? (
+          <>
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <FiLock size={16} />
+            Confirm Payment · ₹{total}
+          </>
+        )}
+      </button>
+      <div className="flex items-center justify-center gap-2 text-xs text-[var(--c-textMuted)]">
+        <FiLock size={11} /> 256-bit SSL · Razorpay secured
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired }) {
   // 1. Define today's date string first (Local Timezone safe)
@@ -1864,33 +2010,39 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     <div className="min-h-screen bg-[var(--c-bg)] text-[var(--c-text)]">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:px-8">
 
-        {/* Header — kept minimal: this page is a checkout, not a landing page. */}
-        <header className="mb-8 flex flex-col gap-5 border-b pb-6 border-[var(--c-cardBorder)] sm:flex-row sm:items-center sm:justify-between">
+        {/* Early Bird offer banner */}
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-[#7567C9]/25 bg-gradient-to-r from-[#7567C9]/10 via-[#7567C9]/5 to-transparent px-4 py-3 sm:px-5">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7567C9] to-[#5a52a8] shadow-lg shadow-[#7567C9]/25">
+            <HiSparkles className="text-white" size={16} />
+          </div>
+          <p className="flex-1 text-sm font-semibold text-[var(--c-text)]">
+            Early Bird Offer —{" "}
+            <span className="text-[#7567C9]">Save up to 50% on your first session!</span>
+          </p>
+          <span className="rounded-full border border-[#7567C9]/30 bg-[var(--c-active)] px-3 py-1 text-xs font-bold text-[var(--c-accentText)]">
+            Limited slots
+          </span>
+        </div>
+
+        {/* Header */}
+        <header className="mb-8 flex items-start gap-3 border-b pb-6 border-[var(--c-cardBorder)]">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            aria-label="Go back"
+            className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9]"
+          >
+            <FiArrowLeft size={17} />
+          </button>
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-[var(--c-text)] sm:text-4xl md:text-5xl">
-              Book a Session
+            <h1 className="text-3xl font-black tracking-tight text-[var(--c-text)] sm:text-4xl">
+              Book the Session
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-7 text-[var(--c-textSub)] sm:text-base">
-              Pick a time and confirm — that's it.
+            <p className="mt-1.5 max-w-xl text-sm leading-7 text-[var(--c-textSub)] sm:text-base">
+              Get personalised guidance from your matched senior.
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({ title: "Book a mentor session", url: window.location.href });
-                }
-              }}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9]"
-            >
-              <FiShare2 size={17} />
-            </button>
-          </div>
         </header>
-
-        <ProgressStepper percent={completionPercentage} />
 
         {/* ── No mentor selected ─────────────────────────────── */}
         {!activeMentor ? (
@@ -1939,43 +2091,23 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                 </div>
               </div>
 
-              {/* Schedule picker component handles layout safely */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                <SchedulePicker
-                  mentorId={mentor?._id || mentor?.id || null}
-                  date={date}
-                  setDate={(d) => { setDate(d); setShowPayment(false); }}
-                  time={time}
-                  setTime={(t) => { setTime(t); setShowPayment(false); }}
-                  today={todayStr}
-                  refreshKey={refreshSlots}   // ← add this
-                />
-
-                <div className="space-y-6">
-                  <UserDetailsForm
-                    name={name}
-                    setName={setName}
-                    email={email}
-                    setEmail={setEmail}
-                    phone={phone}
-                    setPhone={setPhone}
-                  />
-                </div>
-              </div>
-
-              {/* Removed from the checkout flow to reduce clutter (moved to info pages):
-                  Session Brief, Testimonials ("What students say"),
-                  Agenda ("What happens after booking"), and FAQ. */}
             </section>
 
-            {/* Sidebar Section */}
+            {/* ── Right: schedule, details, query & payment ── */}
             <aside className="xl:sticky xl:top-8 xl:self-start">
-              <BookingSidebar
+              <PaymentPanel
                 selectedSession={selectedSession}
+                mentorId={mentor?._id || mentor?.id || null}
                 date={date}
+                setDate={(d) => setDate(d)}
                 time={time}
-                name={name}
-                selectedGoals={selectedGoals}
+                setTime={(t) => setTime(t)}
+                today={todayStr}
+                refreshSlots={refreshSlots}
+                name={name} setName={setName}
+                email={email} setEmail={setEmail}
+                phone={phone} setPhone={setPhone}
+                brief={brief} setBrief={setBrief}
                 couponCode={couponCode}
                 setCouponCode={setCouponCode}
                 couponApplied={couponApplied}
@@ -1984,12 +2116,8 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                 applyCoupon={applyCoupon}
                 removeCoupon={removeCoupon}
                 isFormValid={isFormValid}
-                showPayment={showPayment}
                 isBooking={isBooking}
-                handleContinue={handleContinue}
                 handleBooking={handleBooking}
-                setShowPayment={setShowPayment}
-                onReset={handleReset}
               />
             </aside>
           </main>

@@ -1,10 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { Send, CheckCircle, Loader2, Sparkles, Video } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
 import { clarityAPI } from "../../api";
+
+// Cheapest tier price, shown on the answer-card CTA. Real per-mentor prices load
+// from the service catalog on the full Book a Session page.
+const STARTING_PRICE = 149;
 
 export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor }) {
   const isMobile = useIsMobile();
@@ -133,7 +137,11 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     <div>
       {answerCards.map((card, i) => (
         <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid var(--c-sidebar)" : "none" }}>
-          <InstantAnswerCard card={card} onTalk={() => setSelectedMentor(resolveMentor(card.mentor))} />
+          <InstantAnswerCard
+            card={card}
+            onProfile={() => setSelectedMentor(resolveMentor(card.mentor))}
+            onBook={() => onTalkToMentor?.(resolveMentor(card.mentor))}
+          />
         </div>
       ))}
     </div>
@@ -228,7 +236,11 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                         </button>
                       )}
                       {/* Answer card */}
-                      <InstantAnswerCard card={card} onTalk={() => setSelectedMentor(mentor)} />
+                      <InstantAnswerCard
+                        card={card}
+                        onProfile={() => setSelectedMentor(mentor)}
+                        onBook={() => onTalkToMentor?.(mentor)}
+                      />
                     </div>
                   );
                 })
@@ -311,8 +323,9 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   </span>
                 </button>
 
-                {/* Senior detail fills the rest — scrollable */}
-                <div className="flex-1 overflow-y-auto hide-scrollbar">
+                {/* Senior detail fills the rest — it manages its own header/scroll/footer.
+                    Use min-h-0 (not an extra overflow wrapper) so its top isn't clipped. */}
+                <div className="flex-1 min-h-0">
                   <SeniorDetail
                     mentor={selectedMentor}
                     user={user}
@@ -411,7 +424,7 @@ function AnswerSection({ label, children }) {
 }
 
 // ── Instant verified answer, built from a real mentor's experience ──
-function InstantAnswerCard({ card, onTalk }) {
+function InstantAnswerCard({ card, onBook, onProfile }) {
   const c = card?.content || {};
   const mentor = card?.mentor || {};
   const mentorName = mentor.username || mentor.name || "Atyant Mentor";
@@ -495,14 +508,24 @@ function InstantAnswerCard({ card, onTalk }) {
         <AnswerSection label="Timeline">{c.timeline}</AnswerSection>
         <AnswerSection label="If I did it today">{c.differentApproach}</AnswerSection>
 
-        {/* Bridge to this senior */}
-        {onTalk && (
+        {/* Primary step: go straight to the full Book a Session page for this senior */}
+        {onBook && (
           <button
-            onClick={onTalk}
-            className="mt-2 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "var(--c-text)", fontFamily: "Inter, sans-serif" }}
+            onClick={onBook}
+            className="mt-2 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-base font-semibold"
+            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#fff", fontFamily: "Inter, sans-serif", boxShadow: "0 4px 20px rgba(117,103,201,0.4)" }}
           >
-            Talk to {mentorName} <ArrowRight size={14} />
+            <Video size={16} /> Book 1:1 session — starting ₹{STARTING_PRICE}
+          </button>
+        )}
+        {/* Secondary: read this senior's full profile first */}
+        {onProfile && (
+          <button
+            onClick={onProfile}
+            className="mt-2 ml-0 sm:ml-3 text-sm font-semibold"
+            style={{ background: "transparent", border: "none", color: "var(--c-accentText)", fontFamily: "Inter, sans-serif", cursor: "pointer", padding: "6px 0" }}
+          >
+            View {mentorName}'s profile
           </button>
         )}
       </div>

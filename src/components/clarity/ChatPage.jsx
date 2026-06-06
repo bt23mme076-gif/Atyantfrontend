@@ -104,6 +104,7 @@ const ChatPage = ({ mentor = null, onBack }) => {
   const [openMenuMsgId, setOpenMenuMsgId] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const messagesAreaRef = useRef(null);
   const activeToastsRef = useRef(new Map());
   const readMessagesRef = useRef(new Set());
 
@@ -310,7 +311,17 @@ const ChatPage = ({ mentor = null, onBack }) => {
     setOpenMenuMsgId(null);
   };
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Pin to the latest message by scrolling the messages container directly.
+  // scrollIntoView can scroll the wrong ancestor on mobile (jumping the whole
+  // page to the top after sending); setting scrollTop on the container avoids that.
+  useEffect(() => {
+    const el = messagesAreaRef.current;
+    if (!el) return;
+    const toBottom = () => { el.scrollTop = el.scrollHeight; };
+    requestAnimationFrame(toBottom);
+    const t = setTimeout(toBottom, 120);
+    return () => clearTimeout(t);
+  }, [messages]);
 
   if (loading) return <div className="chat-page"><Spinner /></div>;
 
@@ -377,7 +388,7 @@ const ChatPage = ({ mentor = null, onBack }) => {
               </div>
             </div>
 
-            <div className="messages-area" onScroll={(e) => { if (e.target.scrollTop === 0) loadMoreMessages(); }}>
+            <div className="messages-area" ref={messagesAreaRef} onScroll={(e) => { if (e.target.scrollTop === 0) loadMoreMessages(); }}>
               {loadingMoreMessages && <div className="loading-more" style={{ textAlign: 'center', fontSize: 12, color: '#667781' }}>Loading more…</div>}
               {messages.length > 0 ? Object.entries(groupMessagesByDate(messages)).map(([label, msgs]) => (
                 <React.Fragment key={label}>
