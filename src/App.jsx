@@ -926,7 +926,7 @@ function ProfilePage() {
 }
 
 // ─── Auth Modal ───────────────────────────────────────────────────────────────
-function AuthModal({ onClose }) {
+function AuthModal({ onClose, onAuthed }) {
   const { login, signup } = useAuth();
   const [mode,     setMode]     = useState("login");
   const [email,    setEmail]    = useState("");
@@ -954,6 +954,7 @@ function AuthModal({ onClose }) {
         sessionStorage.removeItem("referredBy");
       }
       onClose();
+      onAuthed?.();   // land on home after a successful login/signup
     } catch (e) {
       setError(e.message || "Something went wrong");
     } finally {
@@ -1330,7 +1331,7 @@ export default function App() {
         <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>{pages[activePage]}</div>
       </div>
 
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("ask")} />}
 
       <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
     </div>
