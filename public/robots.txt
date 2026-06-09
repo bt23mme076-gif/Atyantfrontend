@@ -1,0 +1,32 @@
+# Atyant — https://atyant.in
+# Indexable: homepage, blog, mentor, answers, colleges, paths, guides
+# Blocked: app shell, auth, booking, dashboard, internal APIs
+
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+Disallow: /chat
+Disallow: /login
+Disallow: /signup
+Disallow: /book/
+Disallow: /profile/edit
+Disallow: /settings
+# Do NOT block /product-assets/ — Googlebot needs the JS/CSS to render the SPA.
+
+User-agent: *
+Crawl-delay: 1
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+Disallow: /chat
+Disallow: /login
+Disallow: /signup
+Disallow: /book/
+Disallow: /profile/edit
+Disallow: /settings
+
+Sitemap: https://atyant.in/sitemap.xml
+Sitemap: https://atyant.in/blog/sitemap.xml

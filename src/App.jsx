@@ -16,6 +16,8 @@ import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtya
 import ChatPage       from "./components/clarity/ChatPage";
 import MentorOnboard  from "./pages/MentorOnboard";
 import Avatar         from "./components/Avatar";
+import SEOHead, { VIEW_SEO } from "./components/SEOHead";
+import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth }    from "./context/AuthContext";
 import { ThemeToggle } from "./context/ThemeContext";
 import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI, servicesAPI, mentorAPI } from "./api";
@@ -1172,8 +1174,13 @@ export default function App() {
     );
   };
 
+  const seo = VIEW_SEO[activePage] || VIEW_SEO.ask;
+
   return (
+    <>
     <div style={{ background:C.bg, minHeight:"100dvh", display:"flex", fontFamily:"'Satoshi',-apple-system,sans-serif", color:C.text }}>
+
+      <SEOHead {...seo} />
 
       {/* ── Mobile overlay behind the drawer ── */}
       {isMobile && sidebarOpen && (
@@ -1335,5 +1342,10 @@ export default function App() {
 
       <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
     </div>
+
+    {/* Crawlable homepage SEO content — renders below the app shell (body-flow)
+        so the chat stays the hero. Homepage view only. */}
+    {activePage === "ask" && <HomeSEOContent />}
+    </>
   );
 }

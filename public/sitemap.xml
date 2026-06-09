@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Static sitemap for routes this frontend repo actually owns.
+  Mentor / AnswerCard / college / path URLs do NOT exist yet (no routing).
+  When they ship, generate them dynamically from the backend (see SEO spec).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://atyant.in/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

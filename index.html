@@ -4,10 +4,113 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
-    <title>atyant-landing</title>
+
+    <!-- ── Primary SEO (homepage default; per-view overrides via SEOHead) ── -->
+    <title>Atyant — Career Clarity from Verified Seniors</title>
+    <meta name="description" content="Stuck on internships, placements or a career switch? Get verified answers from seniors who walked your exact college, branch and path. Real journeys, not advice." />
+    <link rel="canonical" href="https://atyant.in/" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="geo.region" content="IN" />
+    <meta name="geo.placename" content="India" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- ── Open Graph ── -->
+    <meta property="og:title" content="Atyant — Career Clarity from Verified Seniors" />
+    <meta property="og:description" content="Type your confusion. Get a verified answer from a senior who went from your exact college and branch to the company you want." />
+    <meta property="og:image" content="https://atyant.in/og-default.jpg" />
+    <meta property="og:url" content="https://atyant.in/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Atyant" />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- ── Twitter ── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Atyant — Career Clarity from Verified Seniors" />
+    <meta name="twitter:description" content="Verified career paths from seniors at your exact college and branch. Internships, placements, MS, career switch." />
+    <meta name="twitter:image" content="https://atyant.in/og-default.jpg" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet" />
+
+    <!-- ── JSON-LD: Organization + WebApplication ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Atyant",
+      "alternateName": "अत्यंत",
+      "url": "https://atyant.in",
+      "logo": "https://atyant.in/og-default.jpg",
+      "description": "AI-powered career clarity engine for Indian college students. Verified answers and 1:1 sessions from seniors who walked the same college-to-company path.",
+      "areaServed": "IN",
+      "knowsLanguage": ["en", "hi"]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Atyant",
+      "url": "https://atyant.in",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web browser",
+      "browserRequirements": "Requires JavaScript. Works on any modern browser.",
+      "description": "Students type their career confusion and get verified AnswerCards from seniors with the same college, branch and target company, plus optional paid 1:1 sessions.",
+      "inLanguage": "en-IN",
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "INR",
+        "lowPrice": "0",
+        "highPrice": "599",
+        "offerCount": "500"
+      },
+      "publisher": { "@type": "Organization", "name": "Atyant", "url": "https://atyant.in" }
+    }
+    </script>
+    <!-- ── JSON-LD: Sitelinks SearchBox ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Atyant",
+      "url": "https://atyant.in",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": { "@type": "EntryPoint", "urlTemplate": "https://atyant.in/?q={search_term_string}" },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <!-- ── JSON-LD: Homepage FAQ (targets People Also Ask) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Atyant?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Atyant is a career clarity engine for Indian college students. You type your confusion about internships, placements, higher studies or a career switch, and get a verified answer from a senior who went from your exact college and branch to the path you want." }
+        },
+        {
+          "@type": "Question",
+          "name": "How is Atyant different from a mentor marketplace?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Atyant is not a marketplace and not a chatbot. Every answer is a verified AnswerCard from a senior with the same college, branch and destination company. AI matches your exact question to the senior who actually walked that path." }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does a 1:1 session cost on Atyant?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Reading verified AnswerCards is free. Optional 1:1 sessions with a matched senior are priced between Rs 149 and Rs 599." }
+        },
+        {
+          "@type": "Question",
+          "name": "Which colleges and branches does Atyant cover?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Atyant covers NITs, IITs, IIITs, BITS and Tier-2/3 engineering colleges across India, with seniors from CSE, ECE, Mechanical, Metallurgy, Civil and more who switched into software, data, product and core roles." }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
