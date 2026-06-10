@@ -12,6 +12,7 @@ import BookingPage   from "./pages/user";
 import UpgradePage   from "./pages/UpgradePage";
 import ShareProfile  from "./components/ShareProfile";
 import ClarityView    from "./components/clarity/ClarityView";
+import Footer         from "./components/Footer";
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 import ChatPage       from "./components/clarity/ChatPage";
 import MentorOnboard  from "./pages/MentorOnboard";
@@ -1345,7 +1346,12 @@ export default function App() {
 
     {/* Crawlable homepage SEO content — renders below the app shell (body-flow)
         so the chat stays the hero. Homepage view only. */}
-    {activePage === "ask" && <HomeSEOContent />}
+    {activePage === "ask" && (
+      <>
+        <HomeSEOContent />
+        <Footer/>
+      </>
+    )}
     </>
   );
 }
