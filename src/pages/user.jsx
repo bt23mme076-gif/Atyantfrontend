@@ -66,7 +66,7 @@ const SESSIONS = [
     title: "Text Q&A",
     subtitle: "Quick doubt, one specific question",
     price: 49,
-    originalPrice: 49,
+    originalPrice: 99,
     duration: "48hr async",
     icon: FiMessageCircle,
     badge: "Quick doubt",
@@ -82,7 +82,7 @@ const SESSIONS = [
     title: "Audio Call",
     subtitle: "Resume talk, strategy, no video needed",
     price: 99,
-    originalPrice: 99,
+    originalPrice: 199,
     duration: "25 min",
     icon: FiPhone,
     badge: "Voice call",
@@ -98,7 +98,7 @@ const SESSIONS = [
     title: "Video Call",
     subtitle: "Mock interview, screen share, deep dive",
     price: 299,
-    originalPrice: 299,
+    originalPrice: 499,
     duration: "45 min",
     icon: FiVideo,
     badge: "Most booked",
@@ -114,7 +114,7 @@ const SESSIONS = [
     title: "Resume Review",
     subtitle: "Written feedback on PDF, no call needed",
     price: 199,
-    originalPrice: 199,
+    originalPrice: 299,
     duration: "48hr async",
     icon: FiBookOpen,
     badge: "PDF feedback",
@@ -554,11 +554,13 @@ function SessionCard({ session, selected, onSelect }) {
       )}
 
       {/* Discount ribbon */}
-      <div className="absolute right-4 top-4">
-        <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
-          {discount}% OFF
+      {discount > 0 && (
+        <div className="absolute right-4 top-4">
+          <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
+            {discount}% OFF
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Icon + badge */}
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -600,7 +602,7 @@ function SessionCard({ session, selected, onSelect }) {
             <span className="text-2xl font-black text-[var(--c-accentText)]">
               ₹{session.price}
             </span>
-            <span className="text-sm text-[var(--c-textMuted)] line-through">
+            <span className="text-lg text-[var(--c-textMuted)] line-through">
               ₹{session.originalPrice}
             </span>
           </div>
@@ -636,8 +638,8 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
     setTime('');
 
     const url = mentorId && mentorId !== 'null'
-      ? `/api/mentors/${mentorId}/slots?date=${date}`
-      : `/api/slots?date=${date}`;
+      ? `/api/mentor/${mentorId}/slots?date=${date}`
+      : `/api/mentor/slots?date=${date}`;
 
     api.get(url)
       .then(res => { if (!cancelled) setSlots(res.slots); })
@@ -1207,7 +1209,7 @@ function BookingSidebar({
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Session fee</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--c-textMuted)] line-through">
+                <span className="text-sm text-[var(--c-textMuted)] line-through">
                   ₹{selectedSession.originalPrice}
                 </span>
                 <span className="font-bold text-[var(--c-text)]">
@@ -1810,7 +1812,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   // Platform service catalog → the mentor's bookable services (prices are fixed by Atyant)
   const [serviceCatalog, setServiceCatalog] = useState([]);
   useEffect(() => {
-    servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
+    servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => { });
   }, []);
 
   const SERVICE_ICONS = { "text-qa": FiMessageCircle, "audio-call": FiPhone, "video-call": FiVideo, "resume-review": FiBookOpen };
@@ -1821,7 +1823,15 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     if (!list.length) return SESSIONS;                     // ultimate fallback before catalog loads
     return list.map((s, i) => ({
       id: s.id, serviceId: s.id, title: s.label, subtitle: s.description,
-      price: s.price, originalPrice: s.price, duration: s.duration || `${s.durationMin} mins`, durationMin: s.durationMin,
+      price: s.price,
+      originalPrice: (s.originalPrice && s.originalPrice > s.price) ? s.originalPrice : (
+        s.id === "text-qa" || s.price === 49 ? 99 :
+        s.id === "audio-call" || s.price === 99 ? 199 :
+        s.id === "resume-review" || s.price === 199 ? 299 :
+        s.id === "video-call" || s.price === 299 ? 499 :
+        Math.round(s.price * 1.5)
+      ),
+      duration: s.duration || `${s.durationMin} mins`, durationMin: s.durationMin,
       icon: SERVICE_ICONS[s.id] || FiVideo,
       badge: s.id === "video-call" ? "Most booked" : "",
       color: s.id === "video-call" ? "gold" : s.id === "resume-review" ? "green" : "blue",
@@ -1857,7 +1867,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   const [bookingId, setBookingId] = useState('');
   const [refreshSlots, setRefreshSlots] = useState(0);
   const [pendingPay, setPendingPay] = useState(false);
-  
+
   const isFormValid = useMemo(
     () => !!(date && time && name.trim() && email.trim()),
     [date, time, name, email]
