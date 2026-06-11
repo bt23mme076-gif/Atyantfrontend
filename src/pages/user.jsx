@@ -414,17 +414,17 @@ function MentorCard({ mentor }) {
           {/* Avatar */}
           <div className="relative flex-shrink-0">
             <div className="relative h-24 w-24 overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-[#7567C9] to-[#a07035] ring-4 ring-[#7567C9]/20 shadow-xl shadow-[#7567C9]/20">
-              <img
-                src="/mentor-photo.png"
-                alt={mentor.name}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">
-                {mentor.name ? mentor.name.split(" ").map(n => n[0]).join("") : "KT"}
+              <div className="absolute inset-0 flex items-center justify-center text-2xl font-black text-white select-none">
+                {mentor.name ? mentor.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "ME"}
               </div>
+              {mentor.photo && (
+                <img
+                  src={mentor.photo}
+                  alt={mentor.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  onError={(e) => { e.target.style.display = "none"; }}
+                />
+              )}
             </div>
             <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-emerald-400 dark:border-[var(--c-card)]">
               <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
@@ -624,150 +624,295 @@ function SessionCard({ session, selected, onSelect }) {
   );
 }
 
-function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refreshKey }) {
-  const [slots, setSlots] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showAll, setShowAll] = useState(false);
-  // Fetch slots whenever date or mentorId changes
-  useEffect(() => {
-    if (!date) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setTime('');
+const CAL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const CAL_DAYS   = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
+function fmtSlot(s) {
+  const [h, m] = s.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${hr}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+function fmtDateLabel(ds) {
+  if (!ds) return '';
+  return new Date(ds + "T12:00:00").toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refreshKey }) {
+  const todayObj   = useMemo(() => new Date(), []);
+  const todayStr   = useMemo(() => `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`, [todayObj]);
+
+  const [calYear,  setCalYear]  = useState(todayObj.getFullYear());
+  const [calMonth, setCalMonth] = useState(todayObj.getMonth());
+  const [avail,    setAvail]    = useState(null);   // weekly schedule from API
+  const [slots,    setSlots]    = useState(null);   // null=loading, []=[none]
+  const [slotErr,  setSlotErr]  = useState(false);
+
+  // Fetch the mentor's weekly availability template once (to highlight calendar days)
+  useEffect(() => {
+    if (!mentorId || mentorId === 'null') { setAvail({ weekly: [] }); return; }
+    api.get(`/api/mentor/${mentorId}/availability`)
+      .then(r => setAvail(r.availability || { weekly: [] }))
+      .catch(() => setAvail({ weekly: [] }));
+  }, [mentorId]);
+
+  // Fetch actual slots whenever the selected date changes
+  useEffect(() => {
+    if (!date) { setSlots(null); setSlotErr(false); return; }
+    setSlots(null); setSlotErr(false); setTime('');
     const url = mentorId && mentorId !== 'null'
       ? `/api/mentor/${mentorId}/slots?date=${date}`
-      : `/api/mentor/slots?date=${date}`;
-
+      : null;
+    if (!url) { setSlots([]); return; }
     api.get(url)
-      .then(res => { if (!cancelled) setSlots(res.slots); })
-      .catch(() => { if (!cancelled) setError('Could not load slots. Please try again.'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-
-    return () => { cancelled = true; };
+      .then(r => setSlots(r.slots || []))
+      .catch(() => { setSlots([]); setSlotErr(true); });
   }, [date, mentorId, refreshKey]);
 
-  const visibleSlots = showAll ? slots : slots.slice(0, 4);
+  const maxWeeks  = avail?.maxWeeksAhead ?? 4;
+  const cutoffObj = useMemo(() => { const d = new Date(todayObj); d.setDate(d.getDate() + maxWeeks * 7); return d; }, [todayObj, maxWeeks]);
+
+  const isAvailDay = useCallback((ds) => {
+    if (!avail?.weekly?.length) return false;
+    const dow   = new Date(ds + "T12:00:00").getDay();
+    const entry = avail.weekly.find(w => w.day === dow);
+    if (!entry?.slots?.length) return false;
+    const d = new Date(ds + "T00:00:00");
+    return d >= new Date(todayStr + "T00:00:00") && d <= cutoffObj;
+  }, [avail, todayStr, cutoffObj]);
+
+  // Calendar grid
+  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const toDs  = (d) => `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const canPrev = calYear > todayObj.getFullYear() || calMonth > todayObj.getMonth();
+  const prevMo  = () => { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); };
+  const nextMo  = () => { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); };
+
+  // Group slots by period
+  const slotGroups = useMemo(() => {
+    if (!slots?.length) return [];
+    const groups = [
+      { label: "Morning",   icon: "🌅", range: "Before 12 PM", items: slots.filter(s => parseInt(s) < 12) },
+      { label: "Afternoon", icon: "☀️", range: "12 PM – 5 PM",  items: slots.filter(s => { const h=parseInt(s); return h>=12&&h<17; }) },
+      { label: "Evening",   icon: "🌆", range: "After 5 PM",    items: slots.filter(s => parseInt(s) >= 17) },
+    ].filter(g => g.items.length > 0);
+    return groups;
+  }, [slots]);
+
+  // Count available days in current month view (for the legend hint)
+  const availDaysThisMonth = useMemo(() => {
+    let count = 0;
+    for (let d = 1; d <= daysInMonth; d++) { if (isAvailDay(toDs(d))) count++; }
+    return count;
+  }, [daysInMonth, isAvailDay, calYear, calMonth]);
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
-      <h2 className="text-xl font-black text-[var(--c-text)]">Schedule</h2>
-      <p className="mt-1 text-sm text-[var(--c-textSub)]">Pick your preferred date and time slot.</p>
-
-      {/* Date */}
-      <div className="mt-6">
-        <label className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--c-text)]">
-          <FiCalendar size={14} className="text-[#7567C9]" />
-          Preferred Date
-        </label>
-        <input
-          type="date"
-          min={today}
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-2xl border bg-[var(--c-bg)] p-4 text-sm outline-none transition focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] text-[var(--c-text)]"
-        />
-      </div>
-
-      {/* Slots */}
-      {date && (
-        <div className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold text-[var(--c-text)]">
-              <FiClock size={14} className="text-[#7567C9]" />
-              Time Slots
-            </div>
-            {!loading && slots.length > 4 && (
-              <button
-                onClick={() => setShowAll(!showAll)}
-                className="text-xs font-bold text-[#7567C9] hover:underline"
-              >
-                {showAll ? 'Show less' : `Show all ${slots.length}`}
-              </button>
-            )}
-          </div>
-
-          {/* Loading state */}
-          {loading && (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-16 animate-pulse rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-active)]"
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Error state */}
-          {!loading && error && (
-            <div className="flex items-center gap-2 rounded-2xl border border-red-800 bg-red-950/20 p-4 text-sm text-red-400">
-              <FiAlertCircle size={14} className="flex-shrink-0" />
-              {error}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {!loading && !error && slots.length === 0 && (
-            <div className="rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-active)] p-6 text-center text-sm text-[var(--c-textSub)]">
-              No slots available for this date. Try another day.
-            </div>
-          )}
-
-          {/* Slot grid */}
-          {!loading && !error && slots.length > 0 && (
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {visibleSlots.map((slot) => {
-                const isSelected = time === slot.time;
-                const booked = !slot.available;
-                return (
-                  <button
-                    key={slot.time}
-                    type="button"
-                    disabled={booked}
-                    onClick={() => !booked && setTime(slot.time)}
-                    className={`relative flex flex-col items-center rounded-2xl border py-3.5 text-sm font-bold transition-all ${booked
-                      ? 'cursor-not-allowed border-[var(--c-cardBorder)] text-[var(--c-textSub)] opacity-50'
-                      : isSelected
-                        ? 'border-[#7567C9] bg-gradient-to-b from-[#7567C9] to-[#5a52a8] text-white shadow-lg shadow-[#7567C9]/30'
-                        : 'border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)] hover:border-[#7567C9]/60'
-                      }`}
-                  >
-                    {booked ? (
-                      <>
-                        <span>{slot.time}</span>
-                        <span className="mt-0.5 text-[10px] font-semibold text-red-400">Booked</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>{slot.time}</span>
-                        <span className={`mt-0.5 text-[10px] font-semibold ${isSelected ? 'text-white/70' : 'text-gray-400'}`}>
-                          {slot.period}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Confirmation pill */}
-      {date && time && (
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-800 bg-emerald-950/20 p-4">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-900/40">
-            <FiCheckCircle className="text-emerald-400" size={16} />
+    <div className="rounded-[1.5rem] border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] overflow-hidden">
+      {/* Header */}
+      <div style={{ background: "linear-gradient(135deg, rgba(117,103,201,0.14) 0%, rgba(117,103,201,0.04) 100%)", borderBottom: "1px solid var(--c-cardBorder)", padding: "18px 22px" }}>
+        <div className="flex items-center gap-3">
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: "linear-gradient(135deg,#7567C9,#5a52a8)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(117,103,201,0.35)" }}>
+            <FiCalendar size={17} color="#fff" />
           </div>
           <div>
-            <p className="text-sm font-bold text-emerald-300">Slot confirmed!</p>
-            <p className="text-xs text-emerald-500">{formatDate(date)} at {time} IST</p>
+            <h2 className="text-[1rem] font-black text-[var(--c-text)] leading-tight">Pick a date & time</h2>
+            <p className="text-xs text-[var(--c-textMuted)] mt-0.5">
+              {avail === null ? "Loading availability…" : availDaysThisMonth === 0 ? "No slots this month — try next month" : `${availDaysThisMonth} available day${availDaysThisMonth !== 1 ? 's' : ''} this month`}
+            </p>
           </div>
         </div>
-      )}
+      </div>
+
+      <div style={{ padding: "18px 20px" }}>
+        {/* ── Calendar ── */}
+        <div style={{ background: "var(--c-active)", borderRadius: 16, padding: "14px 16px", marginBottom: 18 }}>
+          {/* Month nav */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <button onClick={prevMo} disabled={!canPrev}
+              style={{ width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid var(--c-cardBorder)", background: canPrev ? "var(--c-card)" : "transparent", color: canPrev ? "var(--c-textSub)" : "var(--c-textMuted)", cursor: canPrev ? "pointer" : "default", transition: "all .15s" }}>
+              <FiArrowLeft size={13} />
+            </button>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontWeight: 800, fontSize: ".9rem", color: "var(--c-text)" }}>{CAL_MONTHS[calMonth]}</div>
+              <div style={{ fontSize: ".65rem", color: "var(--c-textMuted)", marginTop: 1 }}>{calYear}</div>
+            </div>
+            <button onClick={nextMo}
+              style={{ width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", color: "var(--c-textSub)", cursor: "pointer", transition: "all .15s" }}>
+              <FiArrowLeft size={13} style={{ transform: "rotate(180deg)" }} />
+            </button>
+          </div>
+
+          {/* Day headers */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
+            {CAL_DAYS.map(d => (
+              <div key={d} style={{ textAlign: "center", fontSize: ".6rem", fontWeight: 700, color: "var(--c-textMuted)", padding: "3px 0", letterSpacing: ".06em" }}>{d}</div>
+            ))}
+          </div>
+
+          {/* Calendar cells */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+            {cells.map((d, i) => {
+              if (!d) return <div key={i} />;
+              const ds       = toDs(d);
+              const avlDay   = isAvailDay(ds);
+              const isPast   = ds < todayStr;
+              const isSel    = ds === date;
+              const isToday  = ds === todayStr;
+              return (
+                <button key={i} type="button"
+                  disabled={!avlDay || isPast}
+                  onClick={() => setDate(ds)}
+                  style={{
+                    width: "100%", aspectRatio: "1", borderRadius: 9, border: "none",
+                    background: isSel
+                      ? "linear-gradient(135deg,#7567C9,#5a52a8)"
+                      : isToday && avlDay
+                        ? "rgba(117,103,201,0.12)"
+                        : avlDay
+                          ? "var(--c-card)"
+                          : "transparent",
+                    color: isSel ? "#fff" : avlDay && !isPast ? "var(--c-text)" : "var(--c-textMuted)",
+                    fontSize: ".8rem", fontWeight: isSel || isToday ? 800 : 400,
+                    cursor: avlDay && !isPast ? "pointer" : "default",
+                    opacity: isPast ? 0.3 : 1,
+                    boxShadow: isSel ? "0 3px 12px rgba(117,103,201,0.4)" : avlDay && !isPast ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                    transition: "all .12s ease",
+                    position: "relative",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {d}
+                  {/* Green dot for available days */}
+                  {avlDay && !isPast && !isSel && (
+                    <span style={{ position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)", width: 4, height: 4, borderRadius: "50%", background: "#3DBE82", display: "block" }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--c-cardBorder)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3DBE82", display: "inline-block" }} />
+              <span style={{ fontSize: ".62rem", color: "var(--c-textMuted)" }}>Available</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 16, height: 16, borderRadius: 4, background: "linear-gradient(135deg,#7567C9,#5a52a8)", display: "inline-block" }} />
+              <span style={{ fontSize: ".62rem", color: "var(--c-textMuted)" }}>Selected</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 16, height: 16, borderRadius: 4, background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", display: "inline-block", opacity: 0.4 }} />
+              <span style={{ fontSize: ".62rem", color: "var(--c-textMuted)" }}>Unavailable</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Time Slots ── */}
+        {date && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <FiClock size={13} color="#7567C9" />
+              <span style={{ fontWeight: 700, fontSize: ".84rem", color: "var(--c-text)" }}>
+                {fmtDateLabel(date)}
+              </span>
+            </div>
+
+            {/* Loading skeleton */}
+            {slots === null && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                {[...Array(6)].map((_,i) => (
+                  <div key={i} style={{ height: 52, borderRadius: 12, background: "var(--c-active)", animation: "pulse 1.4s ease-in-out infinite" }} />
+                ))}
+              </div>
+            )}
+
+            {/* Error */}
+            {slots !== null && slotErr && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 12, padding: "12px 14px", color: "#F87171", fontSize: ".8rem" }}>
+                <FiAlertCircle size={14} style={{ flexShrink: 0 }} />
+                Could not load slots — please try again.
+              </div>
+            )}
+
+            {/* No slots */}
+            {slots !== null && !slotErr && slots.length === 0 && (
+              <div style={{ textAlign: "center", padding: "20px 16px", background: "var(--c-active)", borderRadius: 14 }}>
+                <div style={{ fontSize: "1.6rem", marginBottom: 6 }}>😔</div>
+                <div style={{ fontWeight: 700, fontSize: ".85rem", color: "var(--c-text)", marginBottom: 4 }}>No slots on this day</div>
+                <div style={{ fontSize: ".75rem", color: "var(--c-textMuted)" }}>Try another highlighted date on the calendar</div>
+              </div>
+            )}
+
+            {/* Grouped slot sections */}
+            {slots !== null && !slotErr && slotGroups.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {slotGroups.map(group => (
+                  <div key={group.label}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+                      <span style={{ fontSize: ".85rem" }}>{group.icon}</span>
+                      <span style={{ fontWeight: 700, fontSize: ".75rem", color: "var(--c-textSub)" }}>{group.label}</span>
+                      <span style={{ fontSize: ".68rem", color: "var(--c-textMuted)" }}>· {group.range}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                      {group.items.map(slot => {
+                        const sel = time === slot;
+                        return (
+                          <button key={slot} type="button" onClick={() => setTime(sel ? '' : slot)}
+                            style={{
+                              background: sel ? "linear-gradient(135deg,#7567C9,#5a52a8)" : "var(--c-active)",
+                              border: `1.5px solid ${sel ? "#7567C9" : "var(--c-cardBorder)"}`,
+                              borderRadius: 12, padding: "11px 6px",
+                              color: sel ? "#fff" : "var(--c-text)",
+                              fontWeight: sel ? 800 : 500, fontSize: ".82rem",
+                              cursor: "pointer", fontFamily: "inherit",
+                              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                              boxShadow: sel ? "0 4px 14px rgba(117,103,201,0.35)" : "none",
+                              transform: sel ? "translateY(-1px)" : "none",
+                              transition: "all .15s ease",
+                            }}>
+                            <FiClock size={11} style={{ opacity: sel ? 1 : 0.5 }} />
+                            <span>{fmtSlot(slot)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── No date selected hint ── */}
+        {!date && avail !== null && (
+          <div style={{ textAlign: "center", padding: "16px 0 4px" }}>
+            <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>👆</div>
+            <div style={{ fontWeight: 600, fontSize: ".82rem", color: "var(--c-textSub)" }}>Tap a highlighted date to see slots</div>
+          </div>
+        )}
+
+        {/* ── Confirmation banner ── */}
+        {date && time && (
+          <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12, background: "rgba(61,190,130,0.08)", border: "1.5px solid rgba(61,190,130,0.3)", borderRadius: 14, padding: "13px 16px" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(61,190,130,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <FiCheckCircle size={17} color="#3DBE82" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: ".88rem", color: "#3DBE82" }}>Slot locked in!</div>
+              <div style={{ fontSize: ".73rem", color: "rgba(61,190,130,0.7)", marginTop: 2 }}>{fmtDateLabel(date)} · {fmtSlot(time)} IST</div>
+            </div>
+            <button type="button" onClick={() => { setDate(''); setTime(''); }}
+              style={{ marginLeft: "auto", background: "none", border: "none", color: "rgba(61,190,130,0.6)", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex" }}>
+              <FiX size={14} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1140,6 +1285,7 @@ function BookingSidebar({
   setShowPayment,
   onReset,
 }) {
+  if (!selectedSession) return null;
   const sessionDiscount = selectedSession.originalPrice - selectedSession.price;
   const subtotal = selectedSession.price + PLATFORM_FEE;
   const total = subtotal - couponDiscount;
@@ -1636,6 +1782,7 @@ function PaymentPanel({
   couponCode, setCouponCode, couponApplied, couponDiscount, couponMeta,
   applyCoupon, removeCoupon, isFormValid, isBooking, handleBooking,
 }) {
+  if (!selectedSession) return null;
   const packagePrice = selectedSession.originalPrice;
   const sessionDiscount = selectedSession.originalPrice - selectedSession.price;
   const totalDiscount = sessionDiscount + couponDiscount;
@@ -1791,6 +1938,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     return {
       _id: mentor?._id || mentor?.id,
       name: mentor.name,
+      photo: mentor.profilePicture || mentor.photo || mentor.avatar || null,
       title: mentor.role || mentor.title || "Senior Mentor",
       subtitle: mentor.branch || "Placement Mentor",
       location: mentor.location || "Bengaluru, India",
@@ -1816,24 +1964,21 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   }, []);
 
   const SERVICE_ICONS = { "text-qa": FiMessageCircle, "audio-call": FiPhone, "video-call": FiVideo, "resume-review": FiBookOpen };
+  // Original (crossed-out) price map — shown as strikethrough to show discount
+  const ORIGINAL_PRICE = { "text-qa": 99, "audio-call": 199, "video-call": 499, "resume-review": 299 };
+
   const sessionOptions = useMemo(() => {
     const offered = mentor?.servicesOffered || [];
+    // Only show services the mentor explicitly opted into — never fall back to all
     const picked = serviceCatalog.filter(s => offered.includes(s.id));
-    const list = picked.length ? picked : serviceCatalog; // fallback to full catalog if mentor hasn't chosen yet
-    if (!list.length) return SESSIONS;                     // ultimate fallback before catalog loads
-    return list.map((s, i) => ({
+    if (!picked.length) return []; // mentor hasn't configured services yet
+    return picked.map(s => ({
       id: s.id, serviceId: s.id, title: s.label, subtitle: s.description,
       price: s.price,
-      originalPrice: (s.originalPrice && s.originalPrice > s.price) ? s.originalPrice : (
-        s.id === "text-qa" || s.price === 49 ? 99 :
-        s.id === "audio-call" || s.price === 99 ? 199 :
-        s.id === "resume-review" || s.price === 199 ? 299 :
-        s.id === "video-call" || s.price === 299 ? 499 :
-        Math.round(s.price * 1.5)
-      ),
-      duration: s.duration || `${s.durationMin} mins`, durationMin: s.durationMin,
+      originalPrice: ORIGINAL_PRICE[s.id] ?? Math.round(s.price * 1.67),
+      duration: s.duration || `${s.durationMin} min`, durationMin: s.durationMin,
       icon: SERVICE_ICONS[s.id] || FiVideo,
-      badge: s.id === "video-call" ? "Most booked" : "",
+      badge: s.id === "video-call" ? "Most booked" : s.id === "resume-review" ? "PDF feedback" : "",
       color: s.id === "video-call" ? "gold" : s.id === "resume-review" ? "green" : "blue",
       bestFor: s.description, outcomes: [s.description],
       popular: s.id === "video-call",
@@ -1841,15 +1986,17 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     }));
   }, [serviceCatalog, mentor]);
 
-  // 2. Initialize states with the reliable local string source
-  const [selectedSession, setSelectedSession] = useState(SESSIONS[2]);
-  // Keep the selected session valid against the mentor's offered services
+  // 2. Initialize states
+  const [selectedSession, setSelectedSession] = useState(null);
+  // Keep selected session in sync with mentor's offered services
   useEffect(() => {
-    if (sessionOptions.length && !sessionOptions.find(s => s.id === selectedSession?.id)) {
-      setSelectedSession(sessionOptions.find(s => s.popular) || sessionOptions[0]);
-    }
+    if (!sessionOptions.length) { setSelectedSession(null); return; }
+    setSelectedSession(prev => {
+      if (prev && sessionOptions.find(s => s.id === prev.id)) return prev; // keep current if still valid
+      return sessionOptions.find(s => s.popular) || sessionOptions[0];
+    });
   }, [sessionOptions]);
-  const [date, setDate] = useState(todayStr); // Defaults to today's date string automatically
+  const [date, setDate] = useState(""); // start empty — let user pick from calendar
   const [time, setTime] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -2107,16 +2254,28 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                   </span>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-3">
-                  {sessionOptions.map((s) => (
-                    <SessionCard
-                      key={s.id}
-                      session={s}
-                      selected={selectedSession}
-                      onSelect={handleSessionSelect}
-                    />
-                  ))}
-                </div>
+                {sessionOptions.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "32px 20px", background: "var(--c-active)", borderRadius: 16 }}>
+                    <div style={{ fontSize: "2rem", marginBottom: 10 }}>🔧</div>
+                    <div style={{ fontWeight: 700, fontSize: ".95rem", color: "var(--c-text)", marginBottom: 6 }}>
+                      {serviceCatalog.length === 0 ? "Loading services…" : "Mentor hasn't set up sessions yet"}
+                    </div>
+                    <div style={{ fontSize: ".8rem", color: "var(--c-textMuted)" }}>
+                      {serviceCatalog.length === 0 ? "Please wait a moment." : "Check back soon — they're still configuring their profile."}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-5 md:grid-cols-3">
+                    {sessionOptions.map((s) => (
+                      <SessionCard
+                        key={s.id}
+                        session={s}
+                        selected={selectedSession}
+                        onSelect={handleSessionSelect}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Trust line */}
                 <div style={{ marginTop: 16, textAlign: "center", fontSize: 12, color: "#5F576F" }}>
@@ -2128,6 +2287,13 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
 
             {/* ── Right: schedule, details, query & payment ── */}
             <aside className="xl:sticky xl:top-8 xl:self-start">
+              {!selectedSession ? (
+                <div style={{ textAlign: "center", padding: "40px 24px", background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", borderRadius: 20 }}>
+                  <div style={{ fontSize: "2rem", marginBottom: 10 }}>👈</div>
+                  <div style={{ fontWeight: 700, color: "var(--c-text)", marginBottom: 6 }}>Select a session type first</div>
+                  <div style={{ fontSize: ".8rem", color: "var(--c-textMuted)" }}>Choose one of the formats on the left to continue.</div>
+                </div>
+              ) : (
               <PaymentPanel
                 selectedSession={selectedSession}
                 mentorId={mentor?._id || mentor?.id || null}
@@ -2152,6 +2318,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                 isBooking={isBooking}
                 handleBooking={handleBooking}
               />
+              )}
             </aside>
           </main>
         )}
@@ -2161,7 +2328,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
         isOpen={showSuccess}
         onClose={() => setShowSuccess(false)}
         bookingDetails={{
-          sessionType: selectedSession.title,
+          sessionType: selectedSession?.title || '',
           date: formatDate(date),
           time: time ? `${time} IST` : '',
           bookingId,
