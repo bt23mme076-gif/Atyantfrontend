@@ -4,6 +4,7 @@ import {
   TrendingUp, Bookmark,
   Plus, Clock, Lock, ChevronRight, Search,
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
+  Copy, ExternalLink, Hash, Check,
 } from "lucide-react";
 
 import useIsMobile  from "./hooks/useIsMobile";
@@ -51,6 +52,92 @@ function Spin({ size = 18 }) {
 }
 
 // ─── My Sessions ─────────────────────────────────────────────────────────────
+const SERVICE_META = {
+  "text-qa":       { label: "Text Q&A",      icon: "💬" },
+  "audio-call":    { label: "Audio Call",    icon: "🎧" },
+  "video-call":    { label: "Video Call",    icon: "🎥" },
+  "resume-review": { label: "Resume Review", icon: "📄" },
+};
+
+// One labelled field inside a session's detail grid.
+function Detail({ icon, label, value, valueColor, span }) {
+  return (
+    <div style={{ gridColumn: span ? "1 / -1" : "auto" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:"0.66rem", fontWeight:600, letterSpacing:"0.04em", color:C.textMuted, textTransform:"uppercase" }}>
+        {icon} {label}
+      </div>
+      <div style={{ marginTop:3, fontSize:"0.85rem", fontWeight:500, color:valueColor || C.text }}>{value}</div>
+    </div>
+  );
+}
+
+function SessionDetailCard({ s, isUpcoming }) {
+  const [copied, setCopied] = useState(false);
+  const date    = new Date(s.scheduledAt);
+  const dateStr = date.toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
+  const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+  const svc     = SERVICE_META[s.serviceId] || { label: s.topic || "Session", icon: "✨" };
+  const bookingId = (s._id || "").slice(-8).toUpperCase();
+  const hasMeet   = !!s.meetingLink;
+
+  const copyId = () => {
+    navigator.clipboard?.writeText(bookingId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div style={{ background:C.card, border:`1px solid ${isUpcoming ? C.accent+"44" : C.cardBorder}`, borderRadius:18, overflow:"hidden" }}>
+      {isUpcoming && <div style={{ height:4, background:"linear-gradient(90deg,#7567C9,#9F7AEA,#3DBE82)" }} />}
+      <div style={{ padding:"1.3rem 1.4rem" }}>
+        {/* header */}
+        <div style={{ display:"flex", alignItems:"center", gap:13 }}>
+          <Avatar src={s.mentorProfilePicture} name={s.mentorName || "Your Mentor"} size={46} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:600, color:C.text, fontSize:"0.95rem" }}>{s.mentorName || "Your Mentor"}</div>
+            <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:2 }}>{svc.icon} {svc.label}</div>
+          </div>
+          <span style={{ fontSize:"0.7rem", fontWeight:600, padding:"4px 11px", borderRadius:999, background:isUpcoming ? C.accentSoft : C.active, color:isUpcoming ? C.accentText : C.textMuted, border:`1px solid ${isUpcoming ? C.accent+"40" : C.cardBorder}`, whiteSpace:"nowrap" }}>
+            {isUpcoming ? "Upcoming" : (s.status === "completed" ? "Completed" : "Past")}
+          </span>
+        </div>
+
+        {/* detail grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.9rem 1rem", marginTop:"1.1rem", padding:"1rem 1.1rem", background:C.bg, borderRadius:12, border:`1px solid ${C.cardBorder}` }}>
+          <Detail icon={<CalendarDays size={13} />} label="Date"     value={dateStr} />
+          <Detail icon={<Clock size={13} />}        label="Time"     value={timeStr} />
+          <Detail icon={<Video size={13} />}        label="Duration" value={`${s.durationMin || 30} min`} />
+          <Detail icon={<Hash size={13} />} label="Booking ID" value={
+            <span onClick={copyId} style={{ display:"inline-flex", alignItems:"center", gap:6, cursor:"pointer", fontFamily:"monospace" }}>
+              {bookingId}
+              {copied ? <Check size={12} style={{ color:C.green }} /> : <Copy size={11} style={{ opacity:0.55 }} />}
+            </span>
+          } />
+          {s.topic && <Detail span icon={<MessageSquare size={13} />} label="Topic" value={s.topic} />}
+          {s.amount > 0 && <Detail icon={<span style={{ fontSize:12, fontWeight:700 }}>₹</span>} label="Amount Paid" value={`₹${s.amount}`} valueColor={C.green} />}
+        </div>
+
+        {/* meet CTA */}
+        {isUpcoming && (hasMeet ? (
+          <a href={s.meetingLink} target="_blank" rel="noreferrer"
+             style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9" }}>
+            <Video size={17} /> Join Google Meet <ExternalLink size={13} style={{ opacity:0.85 }} />
+          </a>
+        ) : (
+          <div style={{ marginTop:"1.1rem", padding:"0.75rem 0.9rem", borderRadius:10, background:C.active, border:`1px dashed ${C.cardBorder}`, color:C.textSub, fontSize:"0.78rem", textAlign:"center" }}>
+            🔗 The Google Meet link will be emailed to you before the session.
+          </div>
+        ))}
+
+        {/* raw link (selectable) */}
+        {hasMeet && (
+          <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{s.meetingLink}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MySessionsPage() {
   const [upcoming, setUpcoming] = useState([]);
   const [past,     setPast]     = useState([]);
@@ -63,42 +150,24 @@ function MySessionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString("en-IN",{ day:"numeric", month:"short", year:"numeric" });
-  const fmtTime = (iso) => new Date(iso).toLocaleTimeString("en-IN",{ hour:"2-digit", minute:"2-digit" });
-
-  const SessionCard = ({ s, isUpcoming }) => (
-    <div style={{ background:C.card, border:`1px solid ${isUpcoming ? C.accent+"55" : C.cardBorder}`, borderRadius:14, padding:"1.1rem 1.4rem", display:"flex", alignItems:"center", gap:14 }}>
-      <Avatar src={s.mentorProfilePicture} name={s.mentorName || "Your Mentor"} size={44} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
-      <div style={{ flex:1 }}>
-        <div style={{ fontWeight:500, color:C.text, fontSize:"0.88rem" }}>{s.mentorName || "Your Mentor"}</div>
-        <div style={{ fontSize:"0.8rem", color:C.textSub, marginTop:2 }}>{s.topic || "Career Guidance"}</div>
-        <div style={{ fontSize:"0.72rem", color:C.textMuted, marginTop:3, display:"flex", alignItems:"center", gap:4 }}>
-          <Clock size={10} /> {fmtDate(s.scheduledAt)} · {fmtTime(s.scheduledAt)}
-        </div>
-      </div>
-      <span style={{ fontSize:"0.72rem", padding:"4px 11px", borderRadius:999, background:isUpcoming ? C.accentSoft : C.active, color:isUpcoming ? C.accentText : C.textMuted, border:`1px solid ${isUpcoming ? C.accent+"40" : C.cardBorder}` }}>
-        {isUpcoming ? "Upcoming" : "Completed"}
-      </span>
-    </div>
-  );
-
   if (loading) return <div style={{ padding:"3rem", textAlign:"center", color:C.textMuted }}><Spin /></div>;
 
   return (
-    <div style={{ padding:"2rem" }}>
-      <h2 style={{ fontSize:"1.35rem", fontWeight:500, color:C.text, marginBottom:"2rem" }}>My Sessions</h2>
+    <div style={{ padding:"2rem", maxWidth:680, margin:"0 auto" }}>
+      <h2 style={{ fontSize:"1.5rem", fontWeight:700, color:C.text, marginBottom:"0.4rem" }}>My Sessions</h2>
+      <p style={{ fontSize:"0.85rem", color:C.textMuted, marginBottom:"2rem" }}>Your booked mentorship sessions and Meet links.</p>
 
-      <div style={{ marginBottom:"2rem" }}>
-        <div style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.85rem" }}>UPCOMING</div>
+      <div style={{ marginBottom:"2.2rem" }}>
+        <div style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.9rem" }}>UPCOMING</div>
         {upcoming.length===0
           ? <p style={{ fontSize:"0.85rem", color:C.textMuted }}>No upcoming sessions. Book one from the calendar!</p>
-          : <div style={{ display:"grid", gap:10 }}>{upcoming.map((s,i) => <SessionCard key={i} s={s} isUpcoming={true}  />)}</div>}
+          : <div style={{ display:"grid", gap:14 }}>{upcoming.map((s,i) => <SessionDetailCard key={s._id||i} s={s} isUpcoming={true}  />)}</div>}
       </div>
       <div>
-        <div style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.85rem" }}>PAST SESSIONS</div>
+        <div style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.9rem" }}>PAST SESSIONS</div>
         {past.length===0
           ? <p style={{ fontSize:"0.85rem", color:C.textMuted }}>No past sessions yet.</p>
-          : <div style={{ display:"grid", gap:10 }}>{past.map((s,i) => <SessionCard key={i} s={s} isUpcoming={false} />)}</div>}
+          : <div style={{ display:"grid", gap:14 }}>{past.map((s,i) => <SessionDetailCard key={s._id||i} s={s} isUpcoming={false} />)}</div>}
       </div>
     </div>
   );
