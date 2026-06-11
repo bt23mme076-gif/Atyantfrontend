@@ -4,21 +4,27 @@ import { Send, CheckCircle, Loader2, Sparkles, Video } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
-import { clarityAPI } from "../../api";
+import { clarityAPI, profileAPI } from "../../api";
+
+// Fire-and-forget — never throws, never blocks UI
+const trackView = (mentor) => {
+  const id = mentor?._id || mentor?.id;
+  if (id) profileAPI.trackView(id).catch(() => { });
+};
 
 // Cheapest tier price, shown on the answer-card CTA. Real per-mentor prices load
 // from the service catalog on the full Book a Session page.
-const STARTING_PRICE = 149;
+const STARTING_PRICE = 49;
 
 export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor }) {
   const isMobile = useIsMobile();
-  const [mentors,        setMentors]        = useState([]);
-  const [answerCards,    setAnswerCards]    = useState([]);   // scrollable feed
+  const [mentors, setMentors] = useState([]);
+  const [answerCards, setAnswerCards] = useState([]);   // scrollable feed
   const [selectedMentor, setSelectedMentor] = useState(null);
-  const [inputValue,     setInputValue]     = useState("");
-  const [fetchLoading,   setFetchLoading]   = useState(false);
-  const [fetchError,     setFetchError]     = useState("");
-  const [activeQuery,    setActiveQuery]    = useState(initialQuery);
+  const [inputValue, setInputValue] = useState("");
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+  const [activeQuery, setActiveQuery] = useState(initialQuery);
 
   // Fetch on mount / when query changes
   useEffect(() => {
@@ -35,16 +41,16 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     setFetchLoading(true);
     setFetchError("");
     try {
-      const edu  = user?.education?.[0] || {};
+      const edu = user?.education?.[0] || {};
       // Send only what we actually know. No fake defaults — an unknown college must
       // stay empty so the engine matches on the query, not on a wrong college.
       const data = await clarityAPI.match({
         query,
         college: initialContext?.college || edu.institutionName || edu.institution || "",
-        branch:  initialContext?.branch  || edu.field           || "",
-        year:    initialContext?.year    || edu.year            || "",
-        goal:    initialContext?.goal    || user?.interests?.[0]|| "",
-        cgpa:    initialContext?.cgpa    || edu.cgpa            || "",
+        branch: initialContext?.branch || edu.field || "",
+        year: initialContext?.year || edu.year || "",
+        goal: initialContext?.goal || user?.interests?.[0] || "",
+        cgpa: initialContext?.cgpa || edu.cgpa || "",
       });
       setMentors(data.mentors || []);
       // Answer-card feed (fallback to the single best card for older responses)
@@ -98,9 +104,9 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   const goalText = initialContext?.goal || user?.interests?.[0] || null;
   const contextLine = [
     initialContext?.college || edu.institutionName || edu.institution || null,
-    initialContext?.branch  || edu.field || null,
-    initialContext?.year    || edu.year  || null,
-    initialContext?.cgpa    ? `CGPA ${initialContext.cgpa}` : (edu.cgpa ? `CGPA ${edu.cgpa}` : null),
+    initialContext?.branch || edu.field || null,
+    initialContext?.year || edu.year || null,
+    initialContext?.cgpa ? `CGPA ${initialContext.cgpa}` : (edu.cgpa ? `CGPA ${edu.cgpa}` : null),
     goalText ? `Goal: ${goalText}` : null,
   ]
     .filter(Boolean)
@@ -139,7 +145,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid var(--c-sidebar)" : "none" }}>
           <InstantAnswerCard
             card={card}
-            onProfile={() => setSelectedMentor(resolveMentor(card.mentor))}
+            onProfile={() => { const m = resolveMentor(card.mentor); trackView(m); setSelectedMentor(m); }}
             onBook={() => onTalkToMentor?.(resolveMentor(card.mentor))}
           />
         </div>
@@ -186,64 +192,64 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 [...answerCards]
                   .sort((a, b) => (resolveMentor(b.mentor)?.matchPct || 0) - (resolveMentor(a.mentor)?.matchPct || 0))
                   .map((card, i) => {
-                  const mentor = resolveMentor(card.mentor);
-                  const isTop = i === 0;
-                  const rankLabel = i === 0 ? "★ Best Match" : i === 1 ? "2nd Best" : i === 2 ? "3rd Best" : null;
-                  return (
-                    <div
-                      key={card.id || i}
-                      style={{
-                        margin: "0 4px 16px",
-                        border: `1px solid ${isTop ? "rgba(117,103,201,0.45)" : "var(--c-cardBorder)"}`,
-                        borderRadius: 16,
-                        overflow: "hidden",
-                        background: "var(--c-card)",
-                        boxShadow: isTop ? "0 6px 24px rgba(117,103,201,0.18)" : "0 1px 5px rgba(0,0,0,0.04)",
-                      }}
-                    >
-                      {/* Mentor profile pill — tappable to open detail */}
-                      {mentor && (
-                        <button
-                          onClick={() => setSelectedMentor(mentor)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                          style={{ background: isTop ? "rgba(117,103,201,0.06)" : "var(--c-sidebar)", borderBottom: "1px solid var(--c-sidebarBorder)" }}
-                        >
-                          {mentor.profilePicture ? (
-                            <img src={mentor.profilePicture} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                          ) : (
-                            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "1.5px solid rgba(117,103,201,0.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--c-accentText)", flexShrink: 0 }}>
-                              {mentor.initials}
+                    const mentor = resolveMentor(card.mentor);
+                    const isTop = i === 0;
+                    const rankLabel = i === 0 ? "★ Best Match" : i === 1 ? "2nd Best" : i === 2 ? "3rd Best" : null;
+                    return (
+                      <div
+                        key={card.id || i}
+                        style={{
+                          margin: "0 4px 16px",
+                          border: `1px solid ${isTop ? "rgba(117,103,201,0.45)" : "var(--c-cardBorder)"}`,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                          background: "var(--c-card)",
+                          boxShadow: isTop ? "0 6px 24px rgba(117,103,201,0.18)" : "0 1px 5px rgba(0,0,0,0.04)",
+                        }}
+                      >
+                        {/* Mentor profile pill — tappable to open detail */}
+                        {mentor && (
+                          <button
+                            onClick={() => { trackView(mentor); setSelectedMentor(mentor); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                            style={{ background: isTop ? "rgba(117,103,201,0.06)" : "var(--c-sidebar)", borderBottom: "1px solid var(--c-sidebarBorder)" }}
+                          >
+                            {mentor.profilePicture ? (
+                              <img src={mentor.profilePicture} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "1.5px solid rgba(117,103,201,0.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--c-accentText)", flexShrink: 0 }}>
+                                {mentor.initials}
+                              </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>{mentor.name}</span>
+                                {rankLabel && (
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: isTop ? "#fff" : "var(--c-accentText)", background: isTop ? "#7567C9" : "var(--c-accentSoft)", borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{rankLabel}</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
+                                {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
+                              </div>
                             </div>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>{mentor.name}</span>
-                              {rankLabel && (
-                                <span style={{ fontSize: 10, fontWeight: 700, color: isTop ? "#fff" : "var(--c-accentText)", background: isTop ? "#7567C9" : "var(--c-accentSoft)", borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{rankLabel}</span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
-                              {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
-                            </div>
-                          </div>
-                          {mentor.matchPct > 0 && (
-                            <div style={{ textAlign: "center", flexShrink: 0 }}>
-                              <div style={{ fontSize: 15, fontWeight: 800, color: "#7567C9", fontFamily: "Fraunces, serif", lineHeight: 1 }}>{mentor.matchPct}%</div>
-                              <div style={{ fontSize: 9, color: "var(--c-textMuted)", letterSpacing: "0.06em", marginTop: 2 }}>MATCH</div>
-                            </div>
-                          )}
-                          <span style={{ fontSize: 12, color: "var(--c-activeBorder)", marginLeft: 6 }}>→</span>
-                        </button>
-                      )}
-                      {/* Answer card */}
-                      <InstantAnswerCard
-                        card={card}
-                        onProfile={() => setSelectedMentor(mentor)}
-                        onBook={() => onTalkToMentor?.(mentor)}
-                      />
-                    </div>
-                  );
-                })
+                            {mentor.matchPct > 0 && (
+                              <div style={{ textAlign: "center", flexShrink: 0 }}>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: "#7567C9", fontFamily: "Fraunces, serif", lineHeight: 1 }}>{mentor.matchPct}%</div>
+                                <div style={{ fontSize: 9, color: "var(--c-textMuted)", letterSpacing: "0.06em", marginTop: 2 }}>MATCH</div>
+                              </div>
+                            )}
+                            <span style={{ fontSize: 12, color: "var(--c-activeBorder)", marginLeft: 6 }}>→</span>
+                          </button>
+                        )}
+                        {/* Answer card */}
+                        <InstantAnswerCard
+                          card={card}
+                          onProfile={() => { trackView(mentor); setSelectedMentor(mentor); }}
+                          onBook={() => onTalkToMentor?.(mentor)}
+                        />
+                      </div>
+                    );
+                  })
               ) : mentors.length > 0 ? (
                 <SeniorsPanel
                   mentors={mentors}
@@ -386,7 +392,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
           <SeniorsPanel
             mentors={mentors}
             selectedId={selectedMentor?.id}
-            onSelect={(mentor) => setSelectedMentor(mentor)}
+            onSelect={(mentor) => { trackView(mentor); setSelectedMentor(mentor); }}
           />
         ) : (
           <div

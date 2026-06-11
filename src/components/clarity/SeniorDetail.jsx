@@ -19,7 +19,7 @@ const T = {
 // Cheapest session price (the platform "1:1 Chat" tier) — shown on the CTA so the
 // student sees a price before tapping. The real, mentor-specific prices load from
 // the service catalog on the full Book a Session page.
-const STARTING_PRICE = 149;
+const STARTING_PRICE = 49;
 
 export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor }) {
   if (!mentor) return null;
@@ -65,88 +65,88 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
 
       {/* ── Body ── */}
       <div className="flex-1 overflow-y-auto">
-      <div className="p-4 flex flex-col gap-3.5 max-w-3xl mx-auto">
-        {/* Journey */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-            style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-            Their Journey
-          </p>
-          <p className="text-sm leading-[1.85]"
-            style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}
-            dangerouslySetInnerHTML={{ __html: mentor.story }}
-          />
-        </div>
-
-        {/* Outcome box */}
-        <div
-          className="rounded-xl p-3 flex items-start gap-3"
-          style={{ background: `${T.green}10`, border: `1px solid ${T.green}30` }}
-        >
-          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-            style={{ background: `${T.green}25` }}>
-            <span style={{ color: T.green, fontSize: "10px", lineHeight: 1 }}>✓</span>
-          </div>
+        <div className="p-4 flex flex-col gap-3.5 max-w-3xl mx-auto">
+          {/* Journey */}
           <div>
-            <p className="text-xs font-semibold mb-1" style={{ color: T.green, fontFamily: "Inter, sans-serif" }}>
-              Outcome
+            <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
+              style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
+              Their Journey
             </p>
-            <p className="text-sm leading-relaxed" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
-              {mentor.outcome}
-            </p>
+            <p className="text-sm leading-[1.85]"
+              style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}
+              dangerouslySetInnerHTML={{ __html: mentor.story }}
+            />
           </div>
-        </div>
 
-        {/* Similarity tags */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-            style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-            Why You Match
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {mentor.tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-2.5 py-1 rounded-full text-xs font-medium"
-                style={{
-                  background: T.accentSoft,
-                  border: `1px solid ${T.accent}55`,
-                  color: T.accentText,
-                  fontFamily: "Inter, sans-serif",
-                  boxShadow: `0 0 8px ${T.accent}14`,
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 rounded-xl overflow-hidden"
-          style={{ border: `1px solid ${T.cardBorder}` }}>
-          {[
-            { icon: <Users size={13} />, label: "Students", value: mentor.studentsHelped },
-            { icon: <Star size={13} />,  label: "Rating",   value: mentor.rating },
-            { icon: <Clock size={13} />, label: "Timeline", value: mentor.timeline },
-          ].map((s, i) => (
-            <div key={s.label} className="p-2 text-center"
-              style={{
-                background: T.bg,
-                borderRight: i < 2 ? `1px solid ${T.cardBorder}` : "none",
-              }}>
-              <div className="flex justify-center mb-1" style={{ color: T.textMuted }}>{s.icon}</div>
-              <p className="text-sm font-bold" style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
-                {s.value}
+          {/* Outcome box */}
+          <div
+            className="rounded-xl p-3 flex items-start gap-3"
+            style={{ background: `${T.green}10`, border: `1px solid ${T.green}30` }}
+          >
+            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+              style={{ background: `${T.green}25` }}>
+              <span style={{ color: T.green, fontSize: "10px", lineHeight: 1 }}>✓</span>
+            </div>
+            <div>
+              <p className="text-xs font-semibold mb-1" style={{ color: T.green, fontFamily: "Inter, sans-serif" }}>
+                Outcome
               </p>
-              <p className="text-xs mt-0.5" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-                {s.label}
+              <p className="text-sm leading-relaxed" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
+                {mentor.outcome}
               </p>
             </div>
-          ))}
-        </div>
+          </div>
 
-      </div>
+          {/* Similarity tags */}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
+              style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
+              Why You Match
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {mentor.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    background: T.accentSoft,
+                    border: `1px solid ${T.accent}55`,
+                    color: T.accentText,
+                    fontFamily: "Inter, sans-serif",
+                    boxShadow: `0 0 8px ${T.accent}14`,
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 rounded-xl overflow-hidden"
+            style={{ border: `1px solid ${T.cardBorder}` }}>
+            {[
+              { icon: <Users size={13} />, label: "Students", value: mentor.studentsHelped },
+              { icon: <Star size={13} />, label: "Rating", value: mentor.rating },
+              { icon: <Clock size={13} />, label: "Timeline", value: mentor.timeline },
+            ].map((s, i) => (
+              <div key={s.label} className="p-2 text-center"
+                style={{
+                  background: T.bg,
+                  borderRight: i < 2 ? `1px solid ${T.cardBorder}` : "none",
+                }}>
+                <div className="flex justify-center mb-1" style={{ color: T.textMuted }}>{s.icon}</div>
+                <p className="text-sm font-bold" style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
+                  {s.value}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+
+        </div>
       </div>
 
       {/* ── Fixed Footer CTA ── */}

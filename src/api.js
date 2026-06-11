@@ -58,6 +58,8 @@ export const authAPI = {
 export const profileAPI = {
   get:    ()      => api.get('/api/profile/me'),
   update: (data)  => api.put('/api/profile/me', data),
+  // Fire-and-forget: count a profile view from answer cards / match results
+  trackView: (mentorId) => api.post(`/api/profile/${mentorId}/view`, {}),
   // Upload a profile picture (multipart) — returns { profilePicture }.
   uploadPicture: async (file) => uploadFile('/api/profile/upload-picture', 'profilePicture', file),
   // Parse a LinkedIn/résumé PDF → { success, data:{ name, bio, topCompanies, expertise, education, ... } }

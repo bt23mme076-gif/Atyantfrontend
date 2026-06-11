@@ -4,7 +4,7 @@ import {
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
-  CalendarClock, Clock,
+  CalendarClock, Clock, IndianRupee, Rocket, Star,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -16,27 +16,27 @@ import AnswerCardManager from "../components/AnswerCardManager";
 // Chip color palette — cycles so each tag has a distinct hue
 const CHIP_PALETTE = [
   { bg: "rgba(117,103,201,0.13)", border: "rgba(117,103,201,0.38)", text: "#9B8FD4" },
-  { bg: "rgba(61,190,130,0.12)",  border: "rgba(61,190,130,0.38)",  text: "#3DBE82" },
-  { bg: "rgba(249,115,22,0.11)",  border: "rgba(249,115,22,0.35)",  text: "#FB923C" },
-  { bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.38)",  text: "#60A5FA" },
-  { bg: "rgba(236,72,153,0.1)",   border: "rgba(236,72,153,0.35)",  text: "#F472B6" },
+  { bg: "rgba(61,190,130,0.12)", border: "rgba(61,190,130,0.38)", text: "#3DBE82" },
+  { bg: "rgba(249,115,22,0.11)", border: "rgba(249,115,22,0.35)", text: "#FB923C" },
+  { bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.38)", text: "#60A5FA" },
+  { bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.35)", text: "#F472B6" },
 ];
 
 // Theme palette — every value maps to a CSS variable (light + dark in index.css).
 const C = {
-  bg:           "var(--c-bg)",
-  card:         "var(--c-card)",
-  cardHover:    "var(--c-cardHover)",
-  cardBorder:   "var(--c-cardBorder)",
-  active:       "var(--c-active)",
+  bg: "var(--c-bg)",
+  card: "var(--c-card)",
+  cardHover: "var(--c-cardHover)",
+  cardBorder: "var(--c-cardBorder)",
+  active: "var(--c-active)",
   activeBorder: "var(--c-activeBorder)",
-  accent:       "#7567C9",
-  accentSoft:   "var(--c-accentSoft)",
-  accentText:   "var(--c-accentText)",
-  text:         "var(--c-text)",
-  textSub:      "var(--c-textSub)",
-  textMuted:    "var(--c-textMuted)",
-  green:        "#3DBE82",
+  accent: "#7567C9",
+  accentSoft: "var(--c-accentSoft)",
+  accentText: "var(--c-accentText)",
+  text: "var(--c-text)",
+  textSub: "var(--c-textSub)",
+  textMuted: "var(--c-textMuted)",
+  green: "#3DBE82",
 };
 
 function Spin({ size = 18 }) {
@@ -93,6 +93,11 @@ const PageStyles = () => (
     .pf-skel { background:linear-gradient(90deg, var(--c-active) 25%, var(--c-cardHover) 50%, var(--c-active) 75%);
       background-size:400px 100%; animation:pfShimmer 1.3s infinite linear; border-radius:8px; }
 
+    .pf-svc-row { transition: all .15s ease; cursor:pointer; }
+    .pf-svc-row:hover { border-color:#7567C9 !important; transform:translateY(-1px); box-shadow:0 4px 14px rgba(117,103,201,0.18); }
+    .pf-svc-row.on { border-color:#7567C9 !important; background:rgba(117,103,201,0.09) !important; }
+    .pf-mono-inner { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+    @media (max-width:880px) { .pf-mono-inner { grid-template-columns:1fr; } }
     .pf-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
     .pf-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
     .pf-hero-actions { display:flex; gap:9px; flex-wrap:wrap; }
@@ -114,8 +119,8 @@ function Ring({ pct, size = 76, stroke = 7 }) {
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} role="img" aria-label={`Profile ${pct}% complete`}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.active} strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.active} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct / 100)}
           style={{ transition: "stroke-dashoffset .8s ease, stroke .3s ease" }} />
       </svg>
@@ -178,9 +183,9 @@ function FieldRow({ label, value, onChange, editing, placeholder, type = "text",
       <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 6, textTransform: "uppercase" }}>{label}</label>
       {editing
         ? <>
-            <input className="pf-input" type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} aria-label={label} />
-            {error && <div style={{ fontSize: ".7rem", color: "#F87171", marginTop: 4 }}>{error}</div>}
-          </>
+          <input className="pf-input" type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} aria-label={label} />
+          {error && <div style={{ fontSize: ".7rem", color: "#F87171", marginTop: 4 }}>{error}</div>}
+        </>
         : value
           ? <div className="pf-val">{value}</div>
           : <div style={{ fontSize: ".84rem", color: C.textMuted, padding: "2px 0", fontStyle: "italic" }}>Not set</div>}
@@ -195,9 +200,9 @@ function SelectRow({ label, value, onChange, editing, options }) {
       <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 6, textTransform: "uppercase" }}>{label}</label>
       {editing
         ? <select className="pf-select" value={value || ""} onChange={e => onChange(e.target.value)} aria-label={label}>
-            <option value="">— Select —</option>
-            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <option value="">— Select —</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
         : current
           ? <div className="pf-val">{current}</div>
           : <div style={{ fontSize: ".84rem", color: C.textMuted, padding: "2px 0", fontStyle: "italic" }}>Not set</div>}
@@ -267,15 +272,15 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
 }
 
 /* ─── Weekly Availability Editor ───────────────────────────────────────────── */
-const DAY_NAMES  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const TIME_SLOTS = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
 const fmtSlot = (s) => { const [h] = s.split(':').map(Number); const p = h >= 12 ? 'PM' : 'AM'; const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${h12} ${p}`; };
 
 function AvailabilityEditor({ userId }) {
-  const [weekly, setWeekly]     = useState(null); // null = loading
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [editing, setEditing]   = useState(false);
+  const [weekly, setWeekly] = useState(null); // null = loading
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     availabilityAPI.getSchedule(userId)
@@ -286,7 +291,7 @@ function AvailabilityEditor({ userId }) {
   const toggleDay = (day) => {
     setWeekly(prev => {
       if (prev.some(d => d.day === day)) return prev.filter(d => d.day !== day);
-      return [...prev, { day, slots: ["09:00","10:00","14:00","15:00"] }];
+      return [...prev, { day, slots: ["09:00", "10:00", "14:00", "15:00"] }];
     });
   };
 
@@ -313,7 +318,7 @@ function AvailabilityEditor({ userId }) {
 
   if (weekly === null) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {[0,1,2].map(i => <div key={i} className="pf-skel" style={{ height: 44, borderRadius: 10 }} />)}
+      {[0, 1, 2].map(i => <div key={i} className="pf-skel" style={{ height: 44, borderRadius: 10 }} />)}
     </div>
   );
 
@@ -321,7 +326,7 @@ function AvailabilityEditor({ userId }) {
     <div>
       {/* Day toggles */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-        {[1,2,3,4,5,6,0].map(day => {
+        {[1, 2, 3, 4, 5, 6, 0].map(day => {
           const active = weekly.some(d => d.day === day);
           return (
             <button key={day} type="button" onClick={() => { if (!editing) return; toggleDay(day); }}
@@ -359,7 +364,7 @@ function AvailabilityEditor({ userId }) {
             <div key={day} style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 12px" }}>
               <div style={{ fontSize: ".68rem", fontWeight: 700, color: C.textMuted, marginBottom: 5 }}>{DAY_NAMES[day].toUpperCase()}</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {slots.slice(0,5).map(s => (
+                {slots.slice(0, 5).map(s => (
                   <span key={s} style={{ background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 6, padding: "3px 8px", fontSize: ".7rem", fontWeight: 600, color: C.accentText }}>{fmtSlot(s)}</span>
                 ))}
                 {slots.length > 5 && <span style={{ fontSize: ".7rem", color: C.textMuted, alignSelf: "center" }}>+{slots.length - 5}</span>}
@@ -379,19 +384,19 @@ function AvailabilityEditor({ userId }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {!editing
           ? <button type="button" onClick={() => setEditing(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}55`, borderRadius: 10, padding: "8px 16px", color: C.accentText, fontSize: ".8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              <Pencil size={12} /> Edit schedule
-            </button>
+            style={{ display: "flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}55`, borderRadius: 10, padding: "8px 16px", color: C.accentText, fontSize: ".8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <Pencil size={12} /> Edit schedule
+          </button>
           : <>
-              <button type="button" onClick={() => setEditing(false)}
-                style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
-                Cancel
-              </button>
-              <button type="button" onClick={handleSave} disabled={saving}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: C.green, border: "none", borderRadius: 10, padding: "8px 18px", color: "#fff", fontSize: ".8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                {saving ? <><Spin size={13} /> Saving…</> : <><Check size={12} /> Save schedule</>}
-              </button>
-            </>}
+            <button type="button" onClick={() => setEditing(false)}
+              style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleSave} disabled={saving}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: C.green, border: "none", borderRadius: 10, padding: "8px 18px", color: "#fff", fontSize: ".8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              {saving ? <><Spin size={13} /> Saving…</> : <><Check size={12} /> Save schedule</>}
+            </button>
+          </>}
         {saved && <span style={{ fontSize: ".78rem", color: C.green, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}><Check size={12} /> Saved</span>}
         {weekly.length > 0 && !editing && <span style={{ fontSize: ".72rem", color: C.textMuted }}>{totalSlots} slots / week</span>}
       </div>
@@ -403,8 +408,8 @@ function AvailabilityEditor({ userId }) {
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const isMobileView = useIsMobile();
-  const [editing, setEditing]   = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
@@ -431,7 +436,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) { alert("Please choose an image file."); return; }
-    if (file.size > 5 * 1024 * 1024)     { alert("Image too large (max 5MB)."); return; }
+    if (file.size > 5 * 1024 * 1024) { alert("Image too large (max 5MB)."); return; }
     setUploading(true);
     try {
       const res = await profileAPI.uploadPicture(file);
@@ -446,9 +451,11 @@ export default function ProfilePage() {
 
   const isMentor = user?.role === "mentor";
   const [serviceCatalog, setServiceCatalog] = useState(null); // null = loading
-  const [form, setForm] = useState({ name:"", college:"", branch:"", year:"", cgpa:"", bio:"", goals:[], skills:[],
-    expertise:[], topCompanies:[], specialTags:[], city:"", linkedinProfile:"", price:"", yearsOfExperience:"",
-    primaryDomain:"", companyDomain:"", servicesOffered:[] });
+  const [form, setForm] = useState({
+    name: "", college: "", branch: "", year: "", cgpa: "", bio: "", goals: [], skills: [],
+    expertise: [], topCompanies: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
+    primaryDomain: "", companyDomain: "", servicesOffered: []
+  });
 
   // Load the platform service catalog once (mentors pick from it)
   useEffect(() => {
@@ -459,20 +466,20 @@ export default function ProfilePage() {
     if (!user) return;
     const edu = user.education?.[0] || {};
     setForm({
-      name:    user.username || "",
+      name: user.username || "",
       college: edu.institutionName || edu.institution || "",
-      branch:  edu.field  || "",
-      year:    edu.year   || "",
-      cgpa:    edu.cgpa   ? String(edu.cgpa) : "",
-      bio:     user.bio   || "",
-      goals:   user.interests || [],
-      skills:  user.skills    || [],
-      expertise:    user.expertise    || [],
+      branch: edu.field || "",
+      year: edu.year || "",
+      cgpa: edu.cgpa ? String(edu.cgpa) : "",
+      bio: user.bio || "",
+      goals: user.interests || [],
+      skills: user.skills || [],
+      expertise: user.expertise || [],
       topCompanies: user.topCompanies || [],
-      specialTags:  user.specialTags  || [],
-      city:         user.city || "",
+      specialTags: user.specialTags || [],
+      city: user.city || "",
       linkedinProfile: user.linkedinProfile || "",
-      price:        user.price ? String(user.price) : "",
+      price: user.price ? String(user.price) : "",
       yearsOfExperience: user.yearsOfExperience ? String(user.yearsOfExperience) : "",
       primaryDomain: user.primaryDomain || "",
       companyDomain: user.companyDomain || "",
@@ -489,12 +496,14 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const base = { username:form.name, bio:form.bio, college:form.college, branch:form.branch, year:form.year, cgpa:form.cgpa };
+      const base = { username: form.name, bio: form.bio, college: form.college, branch: form.branch, year: form.year, cgpa: form.cgpa };
       const payload = isMentor
-        ? { ...base, expertise:form.expertise, topCompanies:form.topCompanies, specialTags:form.specialTags,
-            city:form.city, linkedinProfile:form.linkedinProfile, price:Number(form.price)||0, yearsOfExperience:Number(form.yearsOfExperience)||0,
-            primaryDomain:form.primaryDomain, companyDomain:form.companyDomain, servicesOffered:form.servicesOffered }
-        : { ...base, goals:form.goals, skills:form.skills };
+        ? {
+          ...base, expertise: form.expertise, topCompanies: form.topCompanies, specialTags: form.specialTags,
+          city: form.city, linkedinProfile: form.linkedinProfile, price: Number(form.price) || 0, yearsOfExperience: Number(form.yearsOfExperience) || 0,
+          primaryDomain: form.primaryDomain, companyDomain: form.companyDomain, servicesOffered: form.servicesOffered
+        }
+        : { ...base, goals: form.goals, skills: form.skills };
       const res = await profileAPI.update(payload);
       setUser(res.user || res);
       setEditing(false);
@@ -507,28 +516,28 @@ export default function ProfilePage() {
   // ── Completion checklist (weights sum to 100 per role) ──
   const has = (v) => Array.isArray(v) ? v.length > 0 : !!(typeof v === "string" ? v.trim() : v);
   const completionItems = useMemo(() => isMentor ? [
-    { key:"photo",     label:"Photo",            pts:8,  done: has(user?.profilePicture) },
-    { key:"bio",       label:"Bio",              pts:10, done: has(form.bio) },
-    { key:"college",   label:"College",          pts:10, done: has(form.college) },
-    { key:"branch",    label:"Branch",           pts:8,  done: has(form.branch) },
-    { key:"year",      label:"Passout year",     pts:6,  done: has(form.year) },
-    { key:"city",      label:"City",             pts:6,  done: has(form.city) },
-    { key:"linkedin",  label:"LinkedIn",         pts:8,  done: has(form.linkedinProfile) },
-    { key:"exp",       label:"Experience",       pts:8,  done: Number(form.yearsOfExperience) > 0 },
-    { key:"domain",    label:"Mentoring domain", pts:6,  done: has(form.primaryDomain) },
-    { key:"expertise", label:"Expertise",        pts:10, done: has(form.expertise) },
-    { key:"companies", label:"Companies",        pts:8,  done: has(form.topCompanies) },
-    { key:"tags",      label:"Achievements",     pts:6,  done: has(form.specialTags) },
-    { key:"services",  label:"Services",         pts:6,  done: has(form.servicesOffered) },
+    { key: "photo", label: "Photo", pts: 8, done: has(user?.profilePicture) },
+    { key: "bio", label: "Bio", pts: 10, done: has(form.bio) },
+    { key: "college", label: "College", pts: 10, done: has(form.college) },
+    { key: "branch", label: "Branch", pts: 8, done: has(form.branch) },
+    { key: "year", label: "Passout year", pts: 6, done: has(form.year) },
+    { key: "city", label: "City", pts: 6, done: has(form.city) },
+    { key: "linkedin", label: "LinkedIn", pts: 8, done: has(form.linkedinProfile) },
+    { key: "exp", label: "Experience", pts: 8, done: Number(form.yearsOfExperience) > 0 },
+    { key: "domain", label: "Mentoring domain", pts: 6, done: has(form.primaryDomain) },
+    { key: "expertise", label: "Expertise", pts: 10, done: has(form.expertise) },
+    { key: "companies", label: "Companies", pts: 8, done: has(form.topCompanies) },
+    { key: "tags", label: "Achievements", pts: 6, done: has(form.specialTags) },
+    { key: "services", label: "Services", pts: 6, done: has(form.servicesOffered) },
   ] : [
-    { key:"photo",   label:"Photo",        pts:12, done: has(user?.profilePicture) },
-    { key:"bio",     label:"Bio",          pts:13, done: has(form.bio) },
-    { key:"college", label:"College",      pts:13, done: has(form.college) },
-    { key:"branch",  label:"Branch",       pts:11, done: has(form.branch) },
-    { key:"year",    label:"Current year", pts:8,  done: has(form.year) },
-    { key:"cgpa",    label:"CGPA",         pts:8,  done: has(form.cgpa) },
-    { key:"goals",   label:"Goals",        pts:18, done: has(form.goals) },
-    { key:"skills",  label:"Skills",       pts:17, done: has(form.skills) },
+    { key: "photo", label: "Photo", pts: 12, done: has(user?.profilePicture) },
+    { key: "bio", label: "Bio", pts: 13, done: has(form.bio) },
+    { key: "college", label: "College", pts: 13, done: has(form.college) },
+    { key: "branch", label: "Branch", pts: 11, done: has(form.branch) },
+    { key: "year", label: "Current year", pts: 8, done: has(form.year) },
+    { key: "cgpa", label: "CGPA", pts: 8, done: has(form.cgpa) },
+    { key: "goals", label: "Goals", pts: 18, done: has(form.goals) },
+    { key: "skills", label: "Skills", pts: 17, done: has(form.skills) },
   ], [isMentor, form, user?.profilePicture]);
 
   const pct = Math.round(completionItems.reduce((s, it) => s + (it.done ? it.pts : 0), 0));
@@ -542,7 +551,7 @@ export default function ProfilePage() {
         <PageStyles />
         <div className="pf-skel" style={{ height: 190, borderRadius: 18, marginBottom: 18 }} />
         <div className="pf-stats" style={{ marginBottom: 18 }}>
-          {[0,1,2,3].map(i => <div key={i} className="pf-skel" style={{ height: 110, borderRadius: 16 }} />)}
+          {[0, 1, 2, 3].map(i => <div key={i} className="pf-skel" style={{ height: 110, borderRadius: 16 }} />)}
         </div>
         <div className="pf-grid">
           <div className="pf-skel" style={{ height: 260, borderRadius: 16 }} />
@@ -680,15 +689,15 @@ export default function ProfilePage() {
       {/* ════════ STATS ════════ */}
       <div className="pf-stats" style={{ marginBottom: 18 }}>
         {isMentor ? <>
-          <StatCard Icon={Eye}               label="Profile Views"      value={user?.profileViews ?? 0}                 delay={1} />
-          <StatCard Icon={MessageSquareText} label="Questions Answered" value={user?.totalAnswered ?? 0}                delay={2} />
-          <StatCard Icon={Activity}          label="Response Rate"      value={`${user?.responseRate ?? 0}%`}           delay={3} />
-          <StatCard Icon={Users}             label="Students Helped"    value={user?.successfulMatches ?? 0}            delay={4} />
+          <StatCard Icon={Eye} label="Profile Views" value={user?.profileViews ?? 0} delay={1} />
+          <StatCard Icon={MessageSquareText} label="Questions Answered" value={user?.totalAnswered ?? 0} delay={2} />
+          <StatCard Icon={Activity} label="Response Rate" value={`${user?.responseRate ?? 0}%`} delay={3} />
+          <StatCard Icon={Users} label="Students Helped" value={user?.successfulMatches ?? 0} delay={4} />
         </> : <>
-          <StatCard Icon={TrendingUp} label="Profile Strength" value={`${pct}%`}                 delay={1} />
-          <StatCard Icon={Target}     label="Goals Set"        value={form.goals.length}          delay={2} />
-          <StatCard Icon={Zap}        label="Skills Added"     value={form.skills.length}         delay={3} />
-          <StatCard Icon={Sparkles}   label="Credits"          value={user?.credits ?? 0}         delay={4} />
+          <StatCard Icon={TrendingUp} label="Profile Strength" value={`${pct}%`} delay={1} />
+          <StatCard Icon={Target} label="Goals Set" value={form.goals.length} delay={2} />
+          <StatCard Icon={Zap} label="Skills Added" value={form.skills.length} delay={3} />
+          <StatCard Icon={Sparkles} label="Credits" value={user?.credits ?? 0} delay={4} />
         </>}
       </div>
 
@@ -715,13 +724,142 @@ export default function ProfilePage() {
             {completionItems.map(it => (
               it.done
                 ? <span key={it.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(61,190,130,0.1)", border: `1px solid ${C.green}44`, borderRadius: 999, padding: "4px 12px", color: C.green, fontSize: ".72rem", fontWeight: 600 }}>
-                    <Check size={11} /> {it.label}
-                  </span>
+                  <Check size={11} /> {it.label}
+                </span>
                 : <button key={it.key} className="pf-chipbtn" onClick={startEdit} title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
-                    <Plus size={11} /> {it.label} <span style={{ color: C.accentText, fontWeight: 700 }}>+{it.pts}%</span>
-                  </button>
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Plus size={11} /> {it.label} <span style={{ color: C.accentText, fontWeight: 700 }}>+{it.pts}%</span>
+                </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ════════ MENTOR MONETIZATION BLOCK (full-width, above everything) ════════ */}
+      {isMentor && (
+        <div className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
+          {/* Top earnings banner */}
+          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, #5A4CB0 0%, #7567C9 50%, #8E80DB 100%)", padding: "18px 22px", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% -10%, rgba(255,255,255,0.18), transparent 60%)" }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <IndianRupee size={20} style={{ color: "#fff" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: "1rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.01em" }}>
+                    Earn ₹49 – ₹299 per session
+                  </div>
+                  <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,0.75)", marginTop: 2 }}>
+                    {form.servicesOffered.length === 0
+                      ? "Select your services & set availability — students can't book you yet"
+                      : form.servicesOffered.length === 1
+                        ? "1 service active · add your available hours to go live"
+                        : `${form.servicesOffered.length} services active · ${(user?.availability?.weekly?.length || 0) === 0 ? "set your availability to go live" : "you're bookable by students"}`}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                {form.servicesOffered.length > 0 && (user?.availability?.weekly?.length || 0) > 0 ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.22)", border: "1px solid rgba(61,190,130,0.5)", borderRadius: 999, padding: "6px 14px", color: "#6EEFC0", fontSize: ".76rem", fontWeight: 700 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#6EEFC0", display: "inline-block" }} /> Live & Bookable
+                  </span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 999, padding: "6px 14px", color: "rgba(255,255,255,0.85)", fontSize: ".76rem", fontWeight: 700 }}>
+                    <Rocket size={12} /> Setup required
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* Quick earnings math */}
+            <div style={{ position: "relative", display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
+              {[
+                { label: "Text Q&A", price: "₹49", icon: "💬" },
+                { label: "Audio Call", price: "₹99", icon: "🎙️" },
+                { label: "Video Call", price: "₹299", icon: "📹" },
+              ].map(s => (
+                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "5px 12px" }}>
+                  <span style={{ fontSize: ".82rem" }}>{s.icon}</span>
+                  <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,0.85)", fontWeight: 600 }}>{s.label} · {s.price}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Services + Availability side by side */}
+          <div className="pf-mono-inner" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)" }}>
+
+            {/* Left: Services */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, rgba(117,103,201,0.22), rgba(117,103,201,0.08))", border: "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <CalendarCheck size={14} style={{ color: C.accentText }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Services you offer</div>
+                    <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>Prices fixed by Atyant</div>
+                  </div>
+                </div>
+                {!editing && (
+                  <button className="pf-editbtn pf-icon-btn" onClick={startEdit} aria-label="Edit services"
+                    style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 7px", color: C.textMuted, cursor: "pointer", display: "flex", flexShrink: 0 }}>
+                    <Pencil size={13} />
+                  </button>
+                )}
+              </div>
+              {serviceCatalog === null ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[0, 1, 2].map(i => <div key={i} className="pf-skel" style={{ height: 52, borderRadius: 10 }} />)}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {serviceCatalog.map(s => {
+                    const on = form.servicesOffered.includes(s.id);
+                    return (
+                      <div key={s.id} className={`pf-svc-row${on ? " on" : ""}`}
+                        onClick={() => editing && setForm(f => ({ ...f, servicesOffered: on ? f.servicesOffered.filter(x => x !== s.id) : [...f.servicesOffered, s.id] }))}
+                        style={{ display: "flex", alignItems: "center", gap: 12, background: on ? "rgba(117,103,201,0.08)" : C.active, border: `1.5px solid ${on ? C.accent + "66" : C.cardBorder}`, borderRadius: 12, padding: "11px 14px", cursor: editing ? "pointer" : "default" }}>
+                        {editing && (
+                          <span style={{ width: 18, height: 18, borderRadius: 6, border: `1.5px solid ${on ? C.accent : C.textMuted}`, background: on ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", transition: "all .15s" }}>
+                            {on ? <Check size={11} /> : null}
+                          </span>
+                        )}
+                        {!editing && (
+                          <div style={{ width: 30, height: 30, borderRadius: 8, background: on ? C.accentSoft : C.card, border: `1px solid ${on ? C.accent + "44" : C.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <CalendarCheck size={13} style={{ color: on ? C.accentText : C.textMuted }} />
+                          </div>
+                        )}
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: "block", color: on ? C.text : C.textSub, fontSize: ".86rem", fontWeight: on ? 700 : 500 }}>{s.label}</span>
+                          <span style={{ display: "block", color: C.textMuted, fontSize: ".7rem", marginTop: 1 }}>{s.description} · {s.durationMin} min</span>
+                        </span>
+                        <span style={{ background: on ? C.accentSoft : C.active, border: `1px solid ${on ? C.accent + "44" : C.cardBorder}`, borderRadius: 999, padding: "4px 11px", color: on ? C.accentText : C.textMuted, fontWeight: 700, fontSize: ".84rem", flexShrink: 0 }}>₹{s.price}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {form.servicesOffered.length === 0 && !editing && (
+                <button onClick={startEdit} style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.accentSoft, border: `1.5px dashed ${C.accent}55`, borderRadius: 11, padding: "10px 0", color: C.accentText, fontSize: ".8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Plus size={13} /> Select services to get booked
+                </button>
+              )}
+            </div>
+
+            {/* Right: Availability */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <CalendarClock size={14} style={{ color: C.green }} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Your availability</div>
+                  <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>When students can book you</div>
+                </div>
+              </div>
+              <AvailabilityEditor userId={user._id} />
+            </div>
           </div>
         </div>
       )}
@@ -735,7 +873,7 @@ export default function ProfilePage() {
             <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 6 }}>BIO</label>
             {editing
               ? <textarea className="pf-textarea" rows={3} value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-                  placeholder={isMentor ? "One sharp line on what you cracked and how you help" : "Tell mentors a little about you"} aria-label="Bio" />
+                placeholder={isMentor ? "One sharp line on what you cracked and how you help" : "Tell mentors a little about you"} aria-label="Bio" />
               : <div style={{ fontSize: ".88rem", color: form.bio ? C.textSub : C.textMuted, lineHeight: 1.65 }}>{form.bio || "No bio yet — a 2-line story makes your profile far more memorable."}</div>}
           </div>
         </Section>
@@ -786,18 +924,18 @@ export default function ProfilePage() {
                   <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>MENTORING DOMAIN</div>
                   {form.primaryDomain
                     ? <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(117,103,201,0.12)", border: "1px solid rgba(117,103,201,0.35)", borderRadius: 10, padding: "8px 13px" }}>
-                        <Target size={13} style={{ color: C.accentText, flexShrink: 0 }} />
-                        <span style={{ fontSize: ".86rem", fontWeight: 600, color: C.accentText }}>{domainLabel}</span>
-                      </div>
+                      <Target size={13} style={{ color: C.accentText, flexShrink: 0 }} />
+                      <span style={{ fontSize: ".86rem", fontWeight: 600, color: C.accentText }}>{domainLabel}</span>
+                    </div>
                     : <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set</div>}
                 </div>
                 <div>
                   <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>COMPANY DOMAIN</div>
                   {form.companyDomain
                     ? <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 10, padding: "8px 13px" }}>
-                        <Briefcase size={13} style={{ color: "#60A5FA", flexShrink: 0 }} />
-                        <span style={{ fontSize: ".86rem", fontWeight: 600, color: "#60A5FA" }}>{form.companyDomain}</span>
-                      </div>
+                      <Briefcase size={13} style={{ color: "#60A5FA", flexShrink: 0 }} />
+                      <span style={{ fontSize: ".86rem", fontWeight: 600, color: "#60A5FA" }}>{form.companyDomain}</span>
+                    </div>
                     : <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set</div>}
                 </div>
               </div>
@@ -807,63 +945,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </>}
-          </Section>
-
-          {/* Services & Availability */}
-          <Section Icon={CalendarCheck} title="Services & Availability" subtitle="Prices are set by Atyant — you choose what you offer" onEdit={startEdit} editing={editing} delay={4}>
-            {serviceCatalog === null ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[0, 1, 2].map(i => <div key={i} className="pf-skel" style={{ height: 52 }} />)}
-              </div>
-            ) : editing ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {serviceCatalog.map(s => {
-                  const on = form.servicesOffered.includes(s.id);
-                  return (
-                    <button key={s.id} type="button"
-                      onClick={() => setForm(f => ({ ...f, servicesOffered: on ? f.servicesOffered.filter(x => x !== s.id) : [...f.servicesOffered, s.id] }))}
-                      style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: on ? C.accentSoft : C.active, border: `1px solid ${on ? C.accent + "66" : C.cardBorder}`, borderRadius: 12, padding: "11px 14px", cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
-                      <span style={{ width: 18, height: 18, borderRadius: 6, border: `1.5px solid ${on ? C.accent : C.textMuted}`, background: on ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", transition: "all .15s" }}>{on ? <Check size={11} /> : null}</span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: "block", color: C.text, fontSize: ".86rem", fontWeight: 500 }}>{s.label}</span>
-                        <span style={{ display: "block", color: C.textMuted, fontSize: ".72rem", marginTop: 1 }}>{s.description} · {s.duration || `${s.durationMin} min`}</span>
-                      </span>
-                      <span style={{ color: on ? C.accentText : C.textSub, fontWeight: 700, fontSize: ".9rem", flexShrink: 0 }}>₹{s.price}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : form.servicesOffered.length === 0 ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.active, borderRadius: 12, border: `1px dashed ${C.cardBorder}`, padding: "14px 16px" }}>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <CalendarCheck size={16} style={{ color: C.accentText }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: ".84rem", fontWeight: 600, color: C.text, marginBottom: 2 }}>No services selected</div>
-                  <div style={{ fontSize: ".75rem", color: C.textMuted, lineHeight: 1.5 }}>Choose what you offer so students can book sessions with you.</div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {serviceCatalog.filter(s => form.servicesOffered.includes(s.id)).map(s => (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(117,103,201,0.06)", border: `1px solid rgba(117,103,201,0.2)`, borderRadius: 12, padding: "11px 14px" }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <CalendarCheck size={13} style={{ color: C.accentText }} />
-                    </div>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", color: C.text, fontSize: ".86rem", fontWeight: 600 }}>{s.label}</span>
-                      <span style={{ display: "block", color: C.textMuted, fontSize: ".72rem", marginTop: 2 }}>{s.duration ? `${s.duration} session` : `${s.durationMin} min session`}</span>
-                    </span>
-                    <span style={{ background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "4px 11px", color: C.accentText, fontWeight: 700, fontSize: ".84rem" }}>₹{s.price}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-
-          {/* Weekly Availability — mentor sets their recurring schedule */}
-          <Section Icon={CalendarClock} title="Booking Availability" subtitle="Set when students can book sessions" delay={4}>
-            <AvailabilityEditor userId={user._id} />
           </Section>
 
           {/* Social Links */}
@@ -877,25 +958,25 @@ export default function ProfilePage() {
                 <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>LINKEDIN</div>
                 {form.linkedinProfile
                   ? <a href={form.linkedinProfile.startsWith("http") ? form.linkedinProfile : `https://${form.linkedinProfile}`} target="_blank" rel="noreferrer"
-                      style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(10,102,194,0.08)", border: "1px solid rgba(10,102,194,0.25)", borderRadius: 10, padding: "10px 13px", textDecoration: "none" }}>
-                      <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(10,102,194,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <Link2 size={13} style={{ color: "#0A66C2" }} />
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: ".82rem", fontWeight: 600, color: "#0A66C2" }}>Open LinkedIn Profile</div>
-                        <div style={{ fontSize: ".7rem", color: C.textMuted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{form.linkedinProfile}</div>
-                      </div>
-                      <TrendingUp size={13} style={{ color: "#0A66C2", flexShrink: 0 }} />
-                    </a>
+                    style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(10,102,194,0.08)", border: "1px solid rgba(10,102,194,0.25)", borderRadius: 10, padding: "10px 13px", textDecoration: "none" }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(10,102,194,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Link2 size={13} style={{ color: "#0A66C2" }} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: ".82rem", fontWeight: 600, color: "#0A66C2" }}>Open LinkedIn Profile</div>
+                      <div style={{ fontSize: ".7rem", color: C.textMuted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{form.linkedinProfile}</div>
+                    </div>
+                    <TrendingUp size={13} style={{ color: "#0A66C2", flexShrink: 0 }} />
+                  </a>
                   : <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set</div>}
               </div>
               <div>
                 <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>CITY</div>
                 {form.city
                   ? <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(61,190,130,0.1)", border: "1px solid rgba(61,190,130,0.3)", borderRadius: 10, padding: "8px 13px" }}>
-                      <MapPin size={13} style={{ color: C.green, flexShrink: 0 }} />
-                      <span style={{ fontSize: ".86rem", fontWeight: 600, color: C.green }}>{form.city}</span>
-                    </div>
+                    <MapPin size={13} style={{ color: C.green, flexShrink: 0 }} />
+                    <span style={{ fontSize: ".86rem", fontWeight: 600, color: C.green }}>{form.city}</span>
+                  </div>
                   : <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set</div>}
               </div>
             </>}

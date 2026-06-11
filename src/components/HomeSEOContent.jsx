@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: "How much does it cost?",
-    a: "Reading verified answers is free. Optional 1:1 sessions with a matched senior are priced between Rs 149 and Rs 599.",
+    a: "Reading verified answers is free. Optional 1:1 sessions with a matched senior are priced between Rs 49 and Rs 599.",
   },
   {
     q: "Which colleges and branches does Atyant cover?",
@@ -43,7 +43,7 @@ const STEPS = [
   {
     n: "3",
     t: "Read the path, then talk to the senior",
-    d: "Read the verified answer for free. If you want more, book a 1:1 session with the exact senior who did it — from Rs 149.",
+    d: "Read the verified answer for free. If you want more, book a 1:1 session with the exact senior who did it — from Rs 49.",
   },
 ];
 
