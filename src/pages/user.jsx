@@ -459,12 +459,12 @@ function MentorCard({ mentor }) {
                 </div>
                 <div className="flex gap-2">
                   {[
-                    { icon: FiLinkedin, href: mentor.socials?.linkedin || "#" },
-                    { icon: FiTwitter, href: mentor.socials?.twitter || "#" },
-                    { icon: FiMail, href: `mailto:${mentor.socials?.email || ""}` },
-                  ].map(({ icon: Icon, href }) => (
+                    { icon: FiLinkedin, label: "linkedin", href: mentor.socials?.linkedin || "#" },
+                    { icon: FiTwitter,  label: "twitter",  href: mentor.socials?.twitter  || "#" },
+                    { icon: FiMail,     label: "email",    href: `mailto:${mentor.socials?.email || ""}` },
+                  ].map(({ icon: Icon, label, href }) => (
                     <a
-                      key={href}
+                      key={label}
                       href={href}
                       className="flex h-7 w-7 items-center justify-center rounded-lg border text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9] border-[var(--c-cardBorder)] text-[var(--c-textMuted)]"
                     >
@@ -532,7 +532,7 @@ function MentorCard({ mentor }) {
 
 function SessionCard({ session, selected, onSelect }) {
   const Icon = session.icon;
-  const isSelected = selected.id === session.id;
+  const isSelected = selected?.id === session.id;
   const discount = Math.round(((session.originalPrice - session.price) / session.originalPrice) * 100);
 
   return (
@@ -646,6 +646,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
   const [calMonth, setCalMonth] = useState(todayObj.getMonth());
   const [avail,    setAvail]    = useState(null);   // weekly schedule from API
   const [slots,    setSlots]    = useState(null);   // null=loading, []=[none]
+  const [bookedSlots, setBookedSlots] = useState([]);
   const [slotErr,  setSlotErr]  = useState(false);
 
   // Fetch the mentor's weekly availability template once (to highlight calendar days)
@@ -658,15 +659,22 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
 
   // Fetch actual slots whenever the selected date changes
   useEffect(() => {
-    if (!date) { setSlots(null); setSlotErr(false); return; }
-    setSlots(null); setSlotErr(false); setTime('');
+    if (!date) { setSlots(null); setBookedSlots([]); setSlotErr(false); return; }
+    setSlots(null); setBookedSlots([]); setSlotErr(false); setTime('');
     const url = mentorId && mentorId !== 'null'
       ? `/api/mentor/${mentorId}/slots?date=${date}`
       : null;
-    if (!url) { setSlots([]); return; }
+    if (!url) { setSlots([]); setBookedSlots([]); return; }
     api.get(url)
-      .then(r => setSlots(r.slots || []))
-      .catch(() => { setSlots([]); setSlotErr(true); });
+      .then(r => {
+        setSlots(r.slots || []);
+        setBookedSlots(r.bookedSlots || []);
+      })
+      .catch(() => {
+        setSlots([]);
+        setBookedSlots([]);
+        setSlotErr(true);
+      });
   }, [date, mentorId, refreshKey]);
 
   const maxWeeks  = avail?.maxWeeksAhead ?? 4;
@@ -861,22 +869,33 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
                       {group.items.map(slot => {
                         const sel = time === slot;
+                        const isBooked = bookedSlots.includes(slot);
                         return (
-                          <button key={slot} type="button" onClick={() => setTime(sel ? '' : slot)}
+                          <button key={slot} type="button"
+                            disabled={isBooked}
+                            onClick={() => !isBooked && setTime(sel ? '' : slot)}
                             style={{
-                              background: sel ? "linear-gradient(135deg,#7567C9,#5a52a8)" : "var(--c-active)",
-                              border: `1.5px solid ${sel ? "#7567C9" : "var(--c-cardBorder)"}`,
-                              borderRadius: 12, padding: "11px 6px",
-                              color: sel ? "#fff" : "var(--c-text)",
+                              background: isBooked
+                                ? "rgba(239, 68, 68, 0.07)"
+                                : sel
+                                  ? "linear-gradient(135deg,#7567C9,#5a52a8)"
+                                  : "var(--c-active)",
+                              border: `1.5px solid ${isBooked ? "rgba(239, 68, 68, 0.25)" : sel ? "#7567C9" : "var(--c-cardBorder)"}`,
+                              borderRadius: 12, padding: "9px 6px 7px",
+                              color: isBooked ? "#EF4444" : sel ? "#fff" : "var(--c-text)",
                               fontWeight: sel ? 800 : 500, fontSize: ".82rem",
-                              cursor: "pointer", fontFamily: "inherit",
-                              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                              boxShadow: sel ? "0 4px 14px rgba(117,103,201,0.35)" : "none",
-                              transform: sel ? "translateY(-1px)" : "none",
+                              cursor: isBooked ? "not-allowed" : "pointer", fontFamily: "inherit",
+                              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                              boxShadow: sel && !isBooked ? "0 4px 14px rgba(117,103,201,0.35)" : "none",
+                              transform: sel && !isBooked ? "translateY(-1px)" : "none",
                               transition: "all .15s ease",
+                              opacity: isBooked ? 0.8 : 1,
                             }}>
                             <FiClock size={11} style={{ opacity: sel ? 1 : 0.5 }} />
                             <span>{fmtSlot(slot)}</span>
+                            {isBooked && (
+                              <span style={{ fontSize: "9px", fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.05em" }}>Booked</span>
+                            )}
                           </button>
                         );
                       })}
@@ -1957,18 +1976,41 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     };
   }, [mentor]);
 
-  // Platform service catalog → the mentor's bookable services (prices are fixed by Atyant)
+  // Platform service catalog + full mentor profile (for servicesOffered)
   const [serviceCatalog, setServiceCatalog] = useState([]);
+  const [mentorProfile, setMentorProfile] = useState(null); // full profile fetched by ID
+
   useEffect(() => {
     servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => { });
   }, []);
+
+  // Fetch full mentor profile to get servicesOffered (the prop may come from
+  // a lightweight match object that doesn't include servicesOffered)
+  useEffect(() => {
+    const id = mentor?._id || mentor?.id;
+    if (!id) return;
+    api.get(`/api/profile/by-id/${id}`)
+      .then(d => setMentorProfile(d))
+      .catch(() => {
+        // Fallback: try username-based endpoint
+        const username = mentor?.username;
+        if (username) {
+          api.get(`/api/profile/${username}`)
+            .then(d => setMentorProfile(d))
+            .catch(() => setMentorProfile(mentor)); // last resort: use prop as-is
+        } else {
+          setMentorProfile(mentor);
+        }
+      });
+  }, [mentor?._id, mentor?.id]);
 
   const SERVICE_ICONS = { "text-qa": FiMessageCircle, "audio-call": FiPhone, "video-call": FiVideo, "resume-review": FiBookOpen };
   // Original (crossed-out) price map — shown as strikethrough to show discount
   const ORIGINAL_PRICE = { "text-qa": 99, "audio-call": 199, "video-call": 499, "resume-review": 299 };
 
   const sessionOptions = useMemo(() => {
-    const offered = mentor?.servicesOffered || [];
+    // Use fetched full profile's servicesOffered, fall back to prop
+    const offered = mentorProfile?.servicesOffered || mentor?.servicesOffered || [];
     // Only show services the mentor explicitly opted into — never fall back to all
     const picked = serviceCatalog.filter(s => offered.includes(s.id));
     if (!picked.length) return []; // mentor hasn't configured services yet
@@ -1984,7 +2026,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       popular: s.id === "video-call",
       tag: s.id === "video-call" ? "⭐ RECOMMENDED" : null,
     }));
-  }, [serviceCatalog, mentor]);
+  }, [serviceCatalog, mentor, mentorProfile]);
 
   // 2. Initialize states
   const [selectedSession, setSelectedSession] = useState(null);
@@ -2118,9 +2160,10 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       const topic = (selectedGoals && selectedGoals.length ? selectedGoals.join(', ') : selectedSession.title);
       const durationMin = selectedSession.durationMin || 30;
 
-      // 1) Create order — serviceId drives the platform-fixed price server-side
+      // 1) Create order — serviceId drives price; couponCode validated & applied server-side
       const order = await paymentAPI.createOrder({
         mentorId, date, time, topic, durationMin, serviceId: selectedSession.serviceId,
+        couponCode: couponApplied ? couponCode.toUpperCase() : undefined,
       });
 
       // Free mentor → already confirmed server-side

@@ -119,16 +119,24 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
   const [calMonth, setCalMonth]   = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState(null);
   const [slots, setSlots]         = useState(null); // null=loading, []=[none], [...]
+  const [bookedSlots, setBookedSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const maxWeeks = availability?.maxWeeksAhead ?? 3;
 
   useEffect(() => {
-    if (!selectedDate) { setSlots(null); setSelectedSlot(null); return; }
+    if (!selectedDate) { setSlots(null); setBookedSlots([]); setSelectedSlot(null); return; }
     setSlots(null);
+    setBookedSlots([]);
     setSelectedSlot(null);
     availabilityAPI.getSlots(mentorId, selectedDate)
-      .then(d => setSlots(d.slots || []))
-      .catch(() => setSlots([]));
+      .then(d => {
+        setSlots(d.slots || []);
+        setBookedSlots(d.bookedSlots || []);
+      })
+      .catch(() => {
+        setSlots([]);
+        setBookedSlots([]);
+      });
   }, [mentorId, selectedDate]);
 
   const cutoffDate = new Date(today);
@@ -239,12 +247,31 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
             <div style={{ textAlign: "center", padding: "14px 0", fontSize: ".8rem", color: C.textMuted }}>No available slots on this date — try another day.</div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-              {slots.map(slot => (
-                <button key={slot} className={`bk-slot${selectedSlot === slot ? " selected" : ""}`} onClick={() => setSelectedSlot(slot)}
-                  style={{ background: C.active, border: `1.5px solid ${selectedSlot === slot ? C.accent : C.cardBorder}`, borderRadius: 9, padding: "9px 6px", color: C.textSub, fontSize: ".8rem", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                  <Clock size={11} />{formatSlot(slot)}
-                </button>
-              ))}
+              {slots.map(slot => {
+                const sel = selectedSlot === slot;
+                const isBooked = bookedSlots.includes(slot);
+                return (
+                  <button key={slot} className={`bk-slot${sel ? " selected" : ""}`}
+                    disabled={isBooked}
+                    onClick={() => !isBooked && setSelectedSlot(slot)}
+                    style={{
+                      background: isBooked ? "rgba(239, 68, 68, 0.05)" : C.active,
+                      border: `1.5px solid ${isBooked ? "rgba(239, 68, 68, 0.2)" : sel ? C.accent : C.cardBorder}`,
+                      borderRadius: 9, padding: "8px 6px 6px",
+                      color: isBooked ? "#EF4444" : C.textSub,
+                      fontSize: ".8rem", fontFamily: "inherit",
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                      cursor: isBooked ? "not-allowed" : "pointer",
+                      opacity: isBooked ? 0.75 : 1
+                    }}>
+                    <Clock size={11} style={{ opacity: sel ? 1 : 0.5 }} />
+                    <span>{formatSlot(slot)}</span>
+                    {isBooked && (
+                      <span style={{ fontSize: "8px", fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.04em" }}>Booked</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
