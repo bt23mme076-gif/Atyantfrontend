@@ -447,7 +447,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
               </button>
               <button onClick={() => handleSend()}
                 style={{ background: query.trim().length > 0 ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
-                <Send size={15} color="#fff" />
+                <Send size={15} color={query.trim().length > 0 ? "#fff" : C.textSub} />
               </button>
             </div>
           </div>

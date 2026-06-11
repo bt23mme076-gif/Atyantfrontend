@@ -105,6 +105,9 @@ export const aiAPI = {
   atyantChat: (message, sessionId) => api.post('/api/ai/atyant-chat', { message, sessionId }),
   // Restore an existing conversation (messages + context) so chat survives refresh.
   getSession: (sessionId) => api.get(`/api/ai/atyant-chat/${sessionId}`),
+  // Thumbs up/down on a bot reply — value: 'up' | 'down' | null (null = un-vote).
+  chatFeedback: (sessionId, message, value) =>
+    api.post(`/api/ai/atyant-chat/${sessionId}/feedback`, { message, value }),
 };
 
 // Sessions
@@ -133,6 +136,16 @@ export const savedAnswerAPI = {
   list:   (search)  => api.get(`/api/saved-answers${search ? `?search=${encodeURIComponent(search)}` : ''}`),
   save:   (payload) => api.post('/api/saved-answers', payload),
   remove: (id)      => api.delete(`/api/saved-answers/${id}`),
+};
+
+// Mentor availability & booking
+export const availabilityAPI = {
+  // Mentor saves their weekly schedule
+  save: (data) => api.put('/api/mentor/availability', data),
+  // Public: get a mentor's weekly availability template (for calendar rendering)
+  getSchedule: (mentorId) => api.get(`/api/mentor/${mentorId}/availability`),
+  // Public: get available time slots for a mentor on a specific date (YYYY-MM-DD)
+  getSlots: (mentorId, date) => api.get(`/api/mentor/${mentorId}/slots?date=${date}`),
 };
 
 // Roadmap

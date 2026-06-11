@@ -25,7 +25,7 @@ const inp = { width: "100%", background: C.active, border: `1px solid ${C.cardBo
 const lbl = { fontSize: "0.74rem", fontWeight: 600, color: C.textSub, marginBottom: 5, display: "block", letterSpacing: "0.02em" };
 
 export default function MentorOnboard({ onDone }) {
-  const { user, signup, setUser } = useAuth();
+  const { user, signup, setUser, refreshUser } = useAuth();
   const [step, setStep] = useState(user ? 1 : 0); // 0 = signup, 1..3 = wizard
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -104,6 +104,7 @@ export default function MentorOnboard({ onDone }) {
     setErr(""); setBusy(true);
     try {
       const payload = {
+        username: f.name || undefined,
         college: f.college, branch: f.branch, year: f.year, cgpa: f.cgpa,
         topCompanies: f.topCompanies.split(",").map(s => s.trim()).filter(Boolean),
         expertise: f.expertise.split(",").map(s => s.trim()).filter(Boolean),
@@ -113,6 +114,8 @@ export default function MentorOnboard({ onDone }) {
         story: f.story,
       };
       const res = await mentorAPI.onboard(payload);
+      // Refresh AuthContext so ProfilePage sees the saved mentor data immediately.
+      try { await refreshUser(); } catch { /* non-fatal */ }
       setResult(res);
     } catch (e) { setErr(e.message || "Could not save. Try again."); }
     finally { setBusy(false); }
@@ -212,7 +215,7 @@ export default function MentorOnboard({ onDone }) {
           <Field label="City"><input style={inp} value={f.city} onChange={e => set("city", e.target.value)} placeholder="Bengaluru" /></Field>
         </div>
         <div style={{ marginTop: 14 }}>
-          <Field label="Companies / institutes (comma separated)"><input style={inp} value={f.topCompanies} onChange={e => set("topCompanies", e.target.value)} placeholder="IIM Ahmedabad, Amazon" /></Field>
+          <Field label="Companies / institutes (comma separated)"><input style={inp} value={f.topCompanies} onChange={e => set("topCompanies", e.target.value)} placeholder="Amazon, IIM Ahmedabad" /></Field>
         </div>
         <div style={{ marginTop: 14 }}>
           <Field label="Skills / expertise (comma separated)"><input style={inp} value={f.expertise} onChange={e => set("expertise", e.target.value)} placeholder="Python, DSA, Guesstimates" /></Field>

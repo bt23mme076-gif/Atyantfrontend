@@ -1,27 +1,27 @@
 import { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
-  TrendingUp, Bookmark, Pencil,
+  TrendingUp, Bookmark,
   Plus, Clock, Lock, ChevronRight, Search,
-  LogIn, LogOut, X, Loader2, Menu, Camera, Sparkles,
-  FileText, Plus as PlusIcon, Trash2, Check,
+  LogIn, LogOut, X, Loader2, Menu, Sparkles,
 } from "lucide-react";
 
 import useIsMobile  from "./hooks/useIsMobile";
 import BookingPage   from "./pages/user";
 import UpgradePage   from "./pages/UpgradePage";
-import ShareProfile  from "./components/ShareProfile";
 import ClarityView    from "./components/clarity/ClarityView";
 import Footer         from "./components/Footer";
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 import ChatPage       from "./components/clarity/ChatPage";
 import MentorOnboard  from "./pages/MentorOnboard";
+import ProfilePage    from "./pages/ProfilePage";
 import Avatar         from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth }    from "./context/AuthContext";
 import { ThemeToggle } from "./context/ThemeContext";
-import { profileAPI, sessionAPI, savedAnswerAPI, roadmapAPI, servicesAPI, mentorAPI } from "./api";
+import { sessionAPI, savedAnswerAPI, roadmapAPI, servicesAPI } from "./api";
+import BookingModal from "./components/BookingModal";
 
 // Theme palette. Each value maps to a CSS variable defined in index.css for both
 // light (:root) and dark (.dark) modes, so every inline style auto-switches when
@@ -295,639 +295,6 @@ function SavedAnswersPage() {
   );
 }
 
-// ─── Profile Page ─────────────────────────────────────────────────────────────
-const Field = ({ label, value, onChange, editing }) => (
-  <div style={{ marginBottom:"1rem" }}>
-    <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>{label}</label>
-    {editing
-      ? <input value={value} onChange={e => onChange(e.target.value)}
-          style={{ width:"100%", background:C.active, border:`1px solid ${C.accent}55`, borderRadius:8, padding:"9px 13px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }} />
-      : <div style={{ fontSize:"0.9rem", color:C.text, padding:"9px 0" }}>{value || "—"}</div>
-    }
-  </div>
-);
-
-// Dropdown field (matches Field styling). `options` = [{ value, label }].
-const SelectField = ({ label, value, onChange, editing, options }) => (
-  <div style={{ marginBottom:"1rem" }}>
-    <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>{label}</label>
-    {editing
-      ? <select value={value || ""} onChange={e => onChange(e.target.value)}
-          style={{ width:"100%", background:C.active, border:`1px solid ${C.accent}55`, borderRadius:8, padding:"9px 13px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}>
-          <option value="">— Select —</option>
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      : <div style={{ fontSize:"0.9rem", color:C.text, padding:"9px 0" }}>{options.find(o => o.value === value)?.label || "—"}</div>
-    }
-  </div>
-);
-
-// Reusable tag/chip section (display + add/remove while editing).
-// `highlightFirst` styles the first chip as the primary one (used for goals).
-const ChipSection = ({ title, items, editing, onChange, placeholder, emptyText, highlightFirst }) => {
-  const add = (val) => {
-    const v = val.trim();
-    if (v && !items.includes(v)) onChange([...items, v]);
-  };
-  const remove = (idx) => onChange(items.filter((_, i) => i !== idx));
-  return (
-    <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
-      <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1rem" }}>{title}</div>
-      {items.length===0 && !editing
-        ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>{emptyText}</p>
-        : <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom: editing ? 12 : 0 }}>
-            {items.map((s,i) => {
-              const primary = highlightFirst && i===0;
-              return (
-                <span key={i} style={{ background:primary ? C.accentSoft : C.active, border:`1px solid ${primary ? C.accent+"55" : C.cardBorder}`, borderRadius:999, padding:"5px 14px", fontSize:"0.8rem", color:primary ? C.accentText : C.textSub, display:"flex", alignItems:"center", gap:6 }}>
-                  {primary && "→ "}{s}
-                  {editing && (
-                    <button type="button" onClick={() => remove(i)}
-                      style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", padding:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <X size={11} />
-                    </button>
-                  )}
-                </span>
-              );
-            })}
-          </div>
-      }
-      {editing && (
-        <div style={{ display:"flex", gap:8, marginTop:8 }}>
-          <input
-            placeholder={placeholder}
-            onKeyDown={e => { if (e.key==='Enter') { e.preventDefault(); add(e.target.value); e.target.value=''; } }}
-            style={{ flex:1, background:C.active, border:`1px solid ${C.accent}33`, borderRadius:8, padding:"8px 12px", color:C.text, fontSize:"0.82rem", outline:"none", fontFamily:"inherit" }}
-          />
-          <button type="button"
-            onClick={e => { const input = e.currentTarget.previousSibling; add(input.value); input.value=''; }}
-            style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"8px 14px", cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit", display:"flex", alignItems:"center", fontWeight:500 }}>
-            Add
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── Answer Card Manager ──────────────────────────────────────────────────────
-// Modal where a mentor reviews and edits their own answer cards — the same cards
-// students see on the Clarity page. Saving re-embeds the card on the server.
-function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false, onConfirm, onClose, onSaved }) {
-  const [c, setC] = useState(() => {
-    const ac = card.answerContent || {};
-    return {
-      mainAnswer:        ac.mainAnswer || "",
-      situation:         ac.situation || "",
-      whatWorked:        ac.whatWorked || "",
-      timeline:          ac.timeline || "",
-      differentApproach: ac.differentApproach || "",
-      keyMistakes:       Array.isArray(ac.keyMistakes) ? ac.keyMistakes : [],
-      actionableSteps:   Array.isArray(ac.actionableSteps) ? ac.actionableSteps : [],
-    };
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState("");
-  const [story, setStory]       = useState(initialStory);  // free-text for AI draft (pre-filled)
-  const [generating, setGenerating] = useState(false);
-  const autoRan = useRef(false);
-
-  const set = (k, v) => setC(prev => ({ ...prev, [k]: v }));
-
-  // Core: one paragraph (or just the profile) → AI fills every section.
-  const runGenerate = async (src) => {
-    setGenerating(true); setError("");
-    try {
-      const res = await mentorAPI.generateAnswerCard((src || "").trim());
-      const ac = res.answerContent || {};
-      setC({
-        mainAnswer:        ac.mainAnswer || "",
-        situation:         ac.situation || "",
-        whatWorked:        ac.whatWorked || "",
-        timeline:          ac.timeline || "",
-        differentApproach: ac.differentApproach || "",
-        keyMistakes:       Array.isArray(ac.keyMistakes) ? ac.keyMistakes : [],
-        actionableSteps:   Array.isArray(ac.actionableSteps) ? ac.actionableSteps : [],
-      });
-    } catch (e) {
-      setError(e.message || "Couldn't auto-fill — just type the sections below.");
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  // Manual button — needs a bit of text to work from.
-  const generate = () => {
-    if (story.trim().length < 20) { setError("Write a few sentences about your journey first (min ~20 chars)."); return; }
-    runGenerate(story);
-  };
-
-  // 🔥 Auto-draft on open: a new card immediately gets filled from the mentor's
-  // profile/story — so they review, not write from scratch.
-  useEffect(() => {
-    if (isNew && !autoRan.current) {
-      autoRan.current = true;
-      runGenerate(initialStory || "");   // empty → backend falls back to profile
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNew]);
-
-  const save = async () => {
-    if (isNew && !c.mainAnswer.trim() && !c.situation.trim()) {
-      setError("Add at least a headline answer or the situation.");
-      return;
-    }
-    setSaving(true); setError("");
-    try {
-      if (isNew) {
-        const res = await mentorAPI.createAnswerCard(c);
-        onSaved(res.card);            // new card object from server
-      } else {
-        const res = await mentorAPI.updateAnswerCard(card.id, c);
-        onSaved({ ...card, answerContent: res.answerContent || c });
-      }
-    } catch (e) {
-      setError(e.message || "Save failed");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const ta = { width:"100%", background:C.active, border:`1px solid ${C.accent}44`, borderRadius:8, padding:"9px 12px", color:C.text, fontSize:"0.86rem", outline:"none", fontFamily:"inherit", resize:"vertical", boxSizing:"border-box", lineHeight:1.5 };
-  const lbl = { fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5, marginTop:"1rem" };
-
-  return (
-    <div>
-      {/* Honest-intent note — reminds mentors this is real, matched & tracked */}
-      <div style={{ display:"flex", alignItems:"flex-start", gap:9, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:10, padding:"11px 13px", marginBottom:"1.25rem" }}>
-        <span style={{ fontSize:"1rem", lineHeight:1, marginTop:1 }}>✍️</span>
-        <div style={{ fontSize:"0.8rem", color:C.textSub, lineHeight:1.6 }}>
-          This is <strong style={{ color:C.text }}>your real experience</strong> — juniors get matched to you based on it, and we track how your journey actually helps them. So keep it <strong style={{ color:C.text }}>honest and real</strong>. No need to sound perfect — the genuine struggles, mistakes and small wins are exactly what students connect with. 💛
-        </div>
-      </div>
-
-      {/* Heads-up banner — shown on the freshly AI-drafted card after onboarding */}
-      {reviewBanner && (
-        <div style={{ background:"rgba(61,190,130,0.1)", border:`1px solid ${C.green}55`, borderRadius:10, padding:"11px 13px", marginBottom:"1.25rem" }}>
-          <div style={{ display:"flex", alignItems:"flex-start", gap:9 }}>
-            <Sparkles size={15} style={{ color:C.green, flexShrink:0, marginTop:1 }} />
-            <div style={{ fontSize:"0.8rem", color:C.text, lineHeight:1.5 }}>
-              <strong>AI-drafted from your story — review before it goes live.</strong>
-              <span style={{ color:C.textMuted }}> Edit any section below, or keep it as-is.</span>
-            </div>
-          </div>
-          {onConfirm && (
-            <button type="button" onClick={onConfirm}
-              style={{ marginTop:9, marginLeft:24, display:"inline-flex", alignItems:"center", gap:6, background:C.green, border:`1px solid ${C.green}`, borderRadius:8, padding:"7px 14px", color:"#fff", fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-              <Check size={13} /> Looks good — keep it live
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ✨ AI draft — write one paragraph, get the whole card filled in */}
-      <div style={{ background:C.accentSoft, border:`1px solid ${C.accent}44`, borderRadius:12, padding:"1rem", marginBottom:"1.25rem" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:7 }}>
-          <Sparkles size={14} style={{ color:C.accent }} />
-          <span style={{ fontSize:"0.8rem", fontWeight:700, color:C.accentText }}>
-            {generating ? "Drafting your card…" : "Auto-filled from your story"}
-          </span>
-        </div>
-        <p style={{ fontSize:"0.76rem", color:C.textMuted, margin:"0 0 8px", lineHeight:1.5 }}>
-          {generating
-            ? "Building every section from your profile — one sec."
-            : "We've drafted the card below from your profile. Edit the story and regenerate, or just tweak the sections and publish."}
-        </p>
-        <textarea rows={3} value={story} onChange={e => setStory(e.target.value)} style={ta}
-          placeholder="e.g. I was a Chemical branch student with no CS background. I cold-mailed 40 startups, built 2 projects in DSA + ML, and converted an internship in 3 months. Biggest mistake was studying in patches…" />
-        <button type="button" onClick={generate} disabled={generating}
-          style={{ marginTop:8, display:"flex", alignItems:"center", gap:6, background:C.accent, border:`1px solid ${C.accent}`, borderRadius:8, padding:"8px 16px", color:"#fff", fontSize:"0.82rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", opacity: generating ? 0.7 : 1 }}>
-          {generating ? <><Spin size={13}/> Generating…</> : <><Sparkles size={13}/> Regenerate from story</>}
-        </button>
-      </div>
-
-      <label style={{ ...lbl, marginTop:0 }}>HEADLINE ANSWER</label>
-      <textarea rows={2} value={c.mainAnswer} onChange={e => set("mainAnswer", e.target.value)} style={ta} placeholder="The one-line answer students see first" />
-
-      <label style={lbl}>THE SITUATION</label>
-      <textarea rows={3} value={c.situation} onChange={e => set("situation", e.target.value)} style={ta} placeholder="What was your situation?" />
-
-      <label style={lbl}>WHAT WORKED</label>
-      <textarea rows={2} value={c.whatWorked} onChange={e => set("whatWorked", e.target.value)} style={ta} placeholder="What actually moved the needle" />
-
-      {/* Action plan — editable list of steps */}
-      <label style={lbl}>ACTION PLAN</label>
-      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-        {c.actionableSteps.map((s, i) => (
-          <div key={i} style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
-            <span style={{ flexShrink:0, width:22, height:22, marginTop:7, borderRadius:"50%", background:C.accentSoft, color:C.accentText, fontSize:"0.72rem", fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center" }}>{i+1}</span>
-            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:5 }}>
-              <input value={s.step || ""} onChange={e => { const next=[...c.actionableSteps]; next[i]={...next[i], step:e.target.value}; set("actionableSteps", next); }}
-                style={{ ...ta, padding:"6px 10px", fontSize:"0.8rem" }} placeholder={`Step ${i+1} title (optional)`} />
-              <textarea rows={2} value={s.description || ""} onChange={e => { const next=[...c.actionableSteps]; next[i]={...next[i], description:e.target.value}; set("actionableSteps", next); }}
-                style={{ ...ta, padding:"7px 10px", fontSize:"0.82rem" }} placeholder="What to do" />
-            </div>
-            <button type="button" onClick={() => set("actionableSteps", c.actionableSteps.filter((_,j)=>j!==i))}
-              style={{ flexShrink:0, marginTop:6, background:"transparent", border:"none", color:C.textMuted, cursor:"pointer" }} title="Remove step">
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={() => set("actionableSteps", [...c.actionableSteps, { step:"", description:"" }])}
-          style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:5, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 12px", color:C.textSub, fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}>
-          <PlusIcon size={13} /> Add step
-        </button>
-      </div>
-
-      {/* Mistakes to avoid — editable list */}
-      <label style={lbl}>MISTAKES TO AVOID</label>
-      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-        {c.keyMistakes.map((m, i) => (
-          <div key={i} style={{ display:"flex", gap:8, alignItems:"center" }}>
-            <span style={{ color:"#f87171", flexShrink:0 }}>✕</span>
-            <input value={m} onChange={e => { const next=[...c.keyMistakes]; next[i]=e.target.value; set("keyMistakes", next); }}
-              style={{ ...ta, padding:"6px 10px", fontSize:"0.82rem" }} placeholder="A mistake to avoid" />
-            <button type="button" onClick={() => set("keyMistakes", c.keyMistakes.filter((_,j)=>j!==i))}
-              style={{ flexShrink:0, background:"transparent", border:"none", color:C.textMuted, cursor:"pointer" }} title="Remove">
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={() => set("keyMistakes", [...c.keyMistakes, ""])}
-          style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:5, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 12px", color:C.textSub, fontSize:"0.78rem", cursor:"pointer", fontFamily:"inherit" }}>
-          <PlusIcon size={13} /> Add mistake
-        </button>
-      </div>
-
-      <label style={lbl}>TIMELINE</label>
-      <textarea rows={2} value={c.timeline} onChange={e => set("timeline", e.target.value)} style={ta} placeholder="How long it took" />
-
-      <label style={lbl}>IF I DID IT TODAY</label>
-      <textarea rows={2} value={c.differentApproach} onChange={e => set("differentApproach", e.target.value)} style={ta} placeholder="What you'd do differently now" />
-
-      {error && <p style={{ color:"#f87171", fontSize:"0.8rem", marginTop:12 }}>{error}</p>}
-
-      <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:"1.5rem" }}>
-        <button onClick={onClose} disabled={saving}
-          style={{ background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"9px 18px", color:C.textSub, fontSize:"0.84rem", cursor:"pointer", fontFamily:"inherit" }}>
-          Cancel
-        </button>
-        <button onClick={save} disabled={saving}
-          style={{ display:"flex", alignItems:"center", gap:6, background:C.accent, border:`1px solid ${C.accent}`, borderRadius:9, padding:"9px 18px", color:"#fff", fontSize:"0.84rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-          {saving ? <><Spin size={13}/> Saving…</> : (isNew ? "Create & publish" : "Save & re-publish")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AnswerCardManager({ onClose, initialStory = "", autoOpenCard = false }) {
-  const [cards, setCards]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState("");
-  const [activeId, setActiveId] = useState(null);
-  const [creating, setCreating] = useState(false);   // writing a brand-new card
-
-  useEffect(() => {
-    let cancelled = false;
-    mentorAPI.answerCards()
-      .then(d => {
-        if (cancelled) return;
-        const list = d.cards || [];
-        setCards(list);
-        // Arriving from onboarding → open the freshly-made card directly.
-        if (autoOpenCard && list.length > 0) setActiveId(list[0].id);
-        else if (autoOpenCard && list.length === 0) setCreating(true);
-      })
-      .catch(e => { if (!cancelled) setError(e.message || "Failed to load"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [autoOpenCard]);
-
-  const active = cards.find(c => c.id === activeId);
-
-  // Existing card edited → merge; new card created → prepend.
-  const onSaved = (savedCard) => {
-    setCards(prev => prev.some(c => c.id === savedCard.id)
-      ? prev.map(c => c.id === savedCard.id ? { ...c, ...savedCard } : c)
-      : [savedCard, ...prev]);
-    setActiveId(null);
-    setCreating(false);
-  };
-
-  return (
-    <div onClick={onClose}
-      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:200, display:"flex", alignItems:"flex-start", justifyContent:"center", padding:"3vh 1rem", overflowY:"auto" }}>
-      <div onClick={e => e.stopPropagation()}
-        style={{ width:"100%", maxWidth:600, background:C.bg, border:`1px solid ${C.cardBorder}`, borderRadius:16, padding:"1.5rem", boxShadow:"0 24px 60px rgba(0,0,0,0.4)" }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1.25rem" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-            <FileText size={18} style={{ color:C.accent }} />
-            <h3 style={{ margin:0, fontSize:"1.05rem", fontWeight:600, color:C.text }}>
-              {creating ? "Write your answer card" : active ? "Edit answer card" : "Your answer cards"}
-            </h3>
-          </div>
-          <button onClick={onClose} style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer" }}><X size={18} /></button>
-        </div>
-
-        {loading && <div style={{ display:"flex", alignItems:"center", gap:8, color:C.textSub, fontSize:"0.86rem", padding:"1rem 0" }}><Spin size={15}/> Loading…</div>}
-        {!loading && error && <p style={{ color:"#f87171", fontSize:"0.85rem" }}>{error}</p>}
-
-        {/* List / empty state — hidden while editing or creating */}
-        {!loading && !error && !active && !creating && (
-          cards.length === 0
-            ? <div style={{ padding:"0.5rem 0" }}>
-                <p style={{ color:C.textMuted, fontSize:"0.86rem", lineHeight:1.6, marginTop:0 }}>
-                  You don't have an answer card yet. Write one now — it's exactly what students see when they're matched to you.
-                </p>
-                <button onClick={() => setCreating(true)}
-                  style={{ display:"flex", alignItems:"center", gap:7, background:C.accent, border:`1px solid ${C.accent}`, borderRadius:9, padding:"10px 18px", color:"#fff", fontSize:"0.86rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", marginTop:"0.5rem" }}>
-                  <PlusIcon size={15} /> Write your answer card
-                </button>
-              </div>
-            : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                <p style={{ color:C.textMuted, fontSize:"0.8rem", margin:"0 0 0.25rem", lineHeight:1.6 }}>
-                  This is what students see when they're matched to you. Edit anything — saving re-publishes it instantly.
-                </p>
-                {cards.map(card => (
-                  <button key={card.id} onClick={() => setActiveId(card.id)}
-                    style={{ textAlign:"left", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:12, padding:"1rem", cursor:"pointer", fontFamily:"inherit" }}>
-                    <div style={{ fontSize:"0.82rem", fontWeight:600, color:C.text, marginBottom:4, lineHeight:1.4 }}>
-                      {card.answerContent?.mainAnswer || card.questionText || "Your journey"}
-                    </div>
-                    <div style={{ fontSize:"0.76rem", color:C.textMuted, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
-                      {card.answerContent?.situation || "Tap to add details"}
-                    </div>
-                    <div style={{ marginTop:8, display:"flex", alignItems:"center", gap:5, fontSize:"0.74rem", color:C.accentText, fontWeight:600 }}>
-                      <Pencil size={11} /> Edit
-                    </div>
-                  </button>
-                ))}
-                <button onClick={() => setCreating(true)}
-                  style={{ alignSelf:"flex-start", display:"flex", alignItems:"center", gap:6, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"8px 14px", color:C.textSub, fontSize:"0.8rem", cursor:"pointer", fontFamily:"inherit", marginTop:4 }}>
-                  <PlusIcon size={13} /> New answer card
-                </button>
-              </div>
-        )}
-
-        {!loading && active && !creating && (
-          <AnswerCardEditor card={active} reviewBanner={autoOpenCard} onConfirm={onClose} onClose={() => setActiveId(null)} onSaved={onSaved} />
-        )}
-
-        {!loading && creating && (
-          <AnswerCardEditor card={{ answerContent: {} }} isNew initialStory={initialStory} onClose={() => setCreating(false)} onSaved={onSaved} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ProfilePage() {
-  const { user, setUser } = useAuth();
-  const isMobileView = useIsMobile();
-  const [editing, setEditing] = useState(false);
-  const [saving,  setSaving]  = useState(false);
-  const [uploading, setUploading] = useState(false);
-  // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
-  const justOnboarded = (() => {
-    try { return sessionStorage.getItem("atyant_open_answercard") === "1"; } catch { return false; }
-  })();
-  const [showAnswerCards, setShowAnswerCards] = useState(justOnboarded);
-  const [autoOpenCard, setAutoOpenCard] = useState(justOnboarded);
-
-  // Capture referral when someone lands on a shared profile link
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("ref") === "share" && user?.username) {
-      sessionStorage.setItem("referredBy", user.username);
-    }
-  }, [user]);
-
-  // Consume the one-shot onboarding flag so it doesn't re-open on later visits.
-  useEffect(() => {
-    try { sessionStorage.removeItem("atyant_open_answercard"); } catch { /* ignore */ }
-  }, []);
-
-  const onPickImage = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("Please choose an image file."); return; }
-    if (file.size > 5 * 1024 * 1024)     { alert("Image too large (max 5MB)."); return; }
-    setUploading(true);
-    try {
-      const res = await profileAPI.uploadPicture(file);
-      setUser(prev => ({ ...(prev || {}), profilePicture: res.profilePicture }));
-    } catch (err) {
-      alert(err.message || "Upload failed");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-  const isMentor = user?.role === "mentor";
-  const [serviceCatalog, setServiceCatalog] = useState([]);
-  const [form,    setForm]    = useState({ name:"", college:"", branch:"", year:"", cgpa:"", bio:"", goals:[], skills:[],
-    expertise:[], topCompanies:[], specialTags:[], city:"", linkedinProfile:"", price:"", yearsOfExperience:"",
-    primaryDomain:"", companyDomain:"", servicesOffered:[] });
-
-  // Load the platform service catalog once (mentors pick from it)
-  useEffect(() => {
-    servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const edu = user.education?.[0] || {};
-    setForm({
-      name:    user.username || "",
-      college: edu.institutionName || edu.institution || "",
-      branch:  edu.field  || "",
-      year:    edu.year   || "",
-      cgpa:    edu.cgpa   ? String(edu.cgpa) : "",
-      bio:     user.bio   || "",
-      goals:   user.interests || [],
-      skills:  user.skills    || [],
-      // Mentor-specific
-      expertise:    user.expertise    || [],
-      topCompanies: user.topCompanies || [],
-      specialTags:  user.specialTags  || [],
-      city:         user.city || "",
-      linkedinProfile: user.linkedinProfile || "",
-      price:        user.price ? String(user.price) : "",
-      yearsOfExperience: user.yearsOfExperience ? String(user.yearsOfExperience) : "",
-      primaryDomain: user.primaryDomain || "",
-      companyDomain: user.companyDomain || "",
-      servicesOffered: user.servicesOffered || [],
-    });
-  }, [user]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const base = { username:form.name, bio:form.bio, college:form.college, branch:form.branch, year:form.year, cgpa:form.cgpa };
-      const payload = isMentor
-        ? { ...base, expertise:form.expertise, topCompanies:form.topCompanies, specialTags:form.specialTags,
-            city:form.city, linkedinProfile:form.linkedinProfile, price:Number(form.price)||0, yearsOfExperience:Number(form.yearsOfExperience)||0,
-            primaryDomain:form.primaryDomain, companyDomain:form.companyDomain, servicesOffered:form.servicesOffered }
-        : { ...base, goals:form.goals, skills:form.skills };
-      const res = await profileAPI.update(payload);
-      setUser(res.user || res);
-      setEditing(false);
-    } catch (e) { alert(e.message || "Save failed"); }
-    finally { setSaving(false); }
-  };
-
-  const edu      = user?.education?.[0] || {};
-  const initials = (user?.username || user?.name || "?").slice(0,2).toUpperCase();
-
-  return (
-    <div style={{ padding: isMobileView ? "1.25rem" : "2rem", maxWidth:640 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, flexWrap:"wrap", marginBottom:"2rem" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:14, minWidth:0, flex:"1 1 auto" }}>
-          <label style={{ position:"relative", cursor:"pointer", display:"inline-block", flexShrink:0 }} title="Change photo">
-            <Avatar src={user?.profilePicture} name={user?.username || user?.name || "You"} size={isMobileView ? 56 : 72} bg="7567c9" style={{ border:`2.5px solid ${C.accent}`, opacity: uploading ? 0.5 : 1 }} />
-            <input type="file" accept="image/*" onChange={onPickImage} style={{ display:"none" }} disabled={uploading} />
-            <span style={{ position:"absolute", bottom:0, right:0, width:24, height:24, borderRadius:"50%", background:C.accent, border:`2.5px solid ${C.bg}`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff" }}>
-              {uploading ? <Spin size={12} /> : <Camera size={12} />}
-            </span>
-          </label>
-          <div style={{ minWidth:0 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
-              <h2 style={{ fontSize: isMobileView ? "1.15rem" : "1.4rem", fontWeight:600, color:C.text, margin:0, wordBreak:"break-word" }}>{user?.username || user?.name || "—"}</h2>
-              {isMentor && (
-                <span style={{ background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:999, padding:"2px 10px", fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.06em" }}>MENTOR</span>
-              )}
-            </div>
-            <div style={{ fontSize:"0.82rem", color:C.textSub }}>{edu.institutionName||edu.institution||"—"} · {edu.field||"—"} · {edu.year||"—"}</div>
-            {isMentor && (
-              <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:3 }}>
-                {form.yearsOfExperience ? `${form.yearsOfExperience} yrs experience` : "Experience not set"}
-                {" · "}
-                {Number(form.price) > 0 ? `₹${form.price}/session` : "Free sessions"}
-                {typeof user?.profileViews === "number" ? ` · ${user.profileViews} profile views` : ""}
-              </div>
-            )}
-            <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:5 }}>
-              <span style={{ width:6, height:6, borderRadius:"50%", background:C.green, display:"inline-block" }} />
-              <span style={{ fontSize:"0.72rem", color:C.textMuted }}>Active now</span>
-            </div>
-          </div>
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-          {!editing && <ShareProfile />}
-          {isMentor && !editing && (
-            <button onClick={() => setShowAnswerCards(true)}
-              style={{ display:"flex", alignItems:"center", gap:6, background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"8px 16px", color:C.textSub, fontSize:"0.82rem", cursor:"pointer", fontFamily:"inherit", fontWeight:500 }}>
-              <FileText size={13}/> Answer Card
-            </button>
-          )}
-          <button onClick={() => editing ? handleSave() : setEditing(true)} disabled={saving}
-            style={{ display:"flex", alignItems:"center", gap:6, background:editing ? C.accent : C.card, border:`1px solid ${editing ? C.accent : C.cardBorder}`, borderRadius:9, padding:"8px 16px", color:editing ? "#fff" : C.textSub, fontSize:"0.82rem", cursor:"pointer", fontFamily:"inherit", fontWeight:500 }}>
-            {saving ? <><Spin size={13}/> Saving…</> : <><Pencil size={13}/>{editing ? "Save" : "Edit Profile"}</>}
-          </button>
-        </div>
-      </div>
-
-      {showAnswerCards && (
-        <AnswerCardManager
-          onClose={() => { setShowAnswerCards(false); setAutoOpenCard(false); }}
-          initialStory={form.bio || user?.bio || ""}
-          autoOpenCard={autoOpenCard}
-        />
-      )}
-
-      <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
-        <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"1.25rem" }}>PROFILE DETAILS</div>
-        <Field label="DISPLAY NAME" value={form.name}    onChange={v => setForm(f=>({...f,name:v}))} editing={editing} />
-        <Field label="COLLEGE"      value={form.college} onChange={v => setForm(f=>({...f,college:v}))} editing={editing} />
-        <Field label="BRANCH"       value={form.branch}  onChange={v => setForm(f=>({...f,branch:v}))} editing={editing} />
-        <Field label="YEAR"         value={form.year}    onChange={v => setForm(f=>({...f,year:v}))} editing={editing} />
-        <Field label="CGPA"         value={form.cgpa}    onChange={v => setForm(f=>({...f,cgpa:v}))} editing={editing} />
-        {isMentor && <>
-          <Field label="CITY"             value={form.city}              onChange={v => setForm(f=>({...f,city:v}))} editing={editing} />
-          <Field label="LINKEDIN"         value={form.linkedinProfile}   onChange={v => setForm(f=>({...f,linkedinProfile:v}))} editing={editing} />
-          <Field label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f=>({...f,yearsOfExperience:v}))} editing={editing} />
-          <SelectField label="MENTORING DOMAIN" value={form.primaryDomain} onChange={v => setForm(f=>({...f,primaryDomain:v}))} editing={editing}
-            options={[{value:"internship",label:"Internship"},{value:"placement",label:"Placement"},{value:"both",label:"Both"}]} />
-          <SelectField label="COMPANY DOMAIN" value={form.companyDomain} onChange={v => setForm(f=>({...f,companyDomain:v}))} editing={editing}
-            options={[{value:"Tech",label:"Tech"},{value:"Data Analytics",label:"Data Analytics"},{value:"Consulting",label:"Consulting"},{value:"Product",label:"Product"},{value:"Core Engineering",label:"Core Engineering"}]} />
-        </>}
-        <div>
-          <label style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, display:"block", marginBottom:5 }}>BIO</label>
-          {editing
-            ? <textarea value={form.bio} onChange={e => setForm(f=>({...f,bio:e.target.value}))} rows={3}
-                style={{ width:"100%", background:C.active, border:`1px solid ${C.accent}55`, borderRadius:8, padding:"9px 13px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", resize:"none", boxSizing:"border-box" }} />
-            : <div style={{ fontSize:"0.88rem", color:C.textSub, lineHeight:1.6, paddingTop:6 }}>{form.bio||"—"}</div>
-          }
-        </div>
-      </div>
-
-      {isMentor ? <>
-        <ChipSection title="EXPERTISE" items={form.expertise} editing={editing}
-          onChange={v => setForm(f=>({...f, expertise:v}))}
-          placeholder="Add an expertise, e.g. System Design"
-          emptyText="No expertise added yet. Edit profile to add what you mentor on." />
-        <ChipSection title="TOP COMPANIES" items={form.topCompanies} editing={editing}
-          onChange={v => setForm(f=>({...f, topCompanies:v}))}
-          placeholder="Add a company, e.g. Amazon"
-          emptyText="No companies added yet." />
-        <ChipSection title="ACHIEVEMENTS" items={form.specialTags} editing={editing}
-          onChange={v => setForm(f=>({...f, specialTags:v}))}
-          placeholder="Add a tag, e.g. FAANG, PPO, GATE"
-          emptyText="No achievements added yet." />
-
-        {/* Services the mentor offers — prices are platform-fixed */}
-        <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem", marginBottom:"1.25rem" }}>
-          <div style={{ fontSize:"0.7rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.35rem" }}>SERVICES YOU OFFER</div>
-          <div style={{ fontSize:"0.74rem", color:C.textMuted, marginBottom:"1rem" }}>Prices are set by Atyant — you choose what you offer.</div>
-          {editing ? (
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {serviceCatalog.map(s => {
-                const on = form.servicesOffered.includes(s.id);
-                return (
-                  <button key={s.id} type="button"
-                    onClick={() => setForm(f => ({ ...f, servicesOffered: on ? f.servicesOffered.filter(x => x !== s.id) : [...f.servicesOffered, s.id] }))}
-                    style={{ textAlign:"left", display:"flex", alignItems:"center", gap:12, background: on ? C.accentSoft : C.active, border:`1px solid ${on ? C.accent+"66" : C.cardBorder}`, borderRadius:10, padding:"10px 14px", cursor:"pointer", fontFamily:"inherit" }}>
-                    <span style={{ width:18, height:18, borderRadius:5, border:`1.5px solid ${on ? C.accent : C.textMuted}`, background:on ? C.accent : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#fff", fontSize:11 }}>{on ? "✓" : ""}</span>
-                    <span style={{ flex:1, minWidth:0 }}>
-                      <span style={{ display:"block", color:C.text, fontSize:"0.86rem", fontWeight:500 }}>{s.label}</span>
-                      <span style={{ display:"block", color:C.textMuted, fontSize:"0.72rem" }}>{s.description} · {s.durationMin} min</span>
-                    </span>
-                    <span style={{ color: on ? C.accentText : C.textSub, fontWeight:700, fontSize:"0.9rem", flexShrink:0 }}>₹{s.price}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            form.servicesOffered.length === 0
-              ? <p style={{ fontSize:"0.82rem", color:C.textMuted }}>No services selected yet. Edit profile to choose what you offer.</p>
-              : <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                  {serviceCatalog.filter(s => form.servicesOffered.includes(s.id)).map(s => (
-                    <div key={s.id} style={{ display:"flex", alignItems:"center", gap:12, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:10, padding:"10px 14px" }}>
-                      <span style={{ flex:1, minWidth:0 }}>
-                        <span style={{ display:"block", color:C.text, fontSize:"0.86rem", fontWeight:500 }}>{s.label}</span>
-                        <span style={{ display:"block", color:C.textMuted, fontSize:"0.72rem" }}>{s.durationMin} min</span>
-                      </span>
-                      <span style={{ color:C.accentText, fontWeight:700, fontSize:"0.9rem" }}>₹{s.price}</span>
-                    </div>
-                  ))}
-                </div>
-          )}
-        </div>
-      </> : <>
-        <ChipSection title="CURRENT GOALS" items={form.goals} editing={editing} highlightFirst
-          onChange={v => setForm(f=>({...f, goals:v}))}
-          placeholder="Add a new goal..."
-          emptyText="No goals set. Edit profile to add goals." />
-        <ChipSection title="SKILLS" items={form.skills} editing={editing}
-          onChange={v => setForm(f=>({...f, skills:v}))}
-          placeholder="Add a new skill..."
-          emptyText="No skills added yet." />
-      </>}
-    </div>
-  );
-}
-
 // ─── Auth Modal ───────────────────────────────────────────────────────────────
 function AuthModal({ onClose, onAuthed }) {
   const { login, signup } = useAuth();
@@ -1067,6 +434,22 @@ export default function App() {
   const [activePage,   setActivePage]   = useState("ask");
   const [prevPage,     setPrevPage]     = useState("ask");  // page to return to from Upgrade
   const [showAuth,     setShowAuth]     = useState(false);
+  const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
+  const [serviceCatalog, setServiceCatalog] = useState([]);
+
+  // Load service catalog once for the booking modal
+  useEffect(() => {
+    servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
+  }, []);
+
+  // Global trigger: any component can call window.openBooking({ mentorId, mentorName, mentorPic })
+  useEffect(() => {
+    window.openBooking = (target) => {
+      if (!user) { setShowAuth(true); return; }
+      setBookingTarget({ services: serviceCatalog, ...target });
+    };
+    return () => { delete window.openBooking; };
+  }, [user, serviceCatalog]);
 
   // Go to the upgrade/premium view, remembering where we came from.
   const goToUpgrade = () => { setPrevPage(activePage === "upgrade" ? prevPage : activePage); setActivePage("upgrade"); };
@@ -1262,7 +645,7 @@ export default function App() {
                 transition: "all 0.15s"
               }}
             >
-              <Plus size={14} color="#FFF" strokeWidth={2.5} />
+              <Plus size={14} color={C.accentText} strokeWidth={2.5} />
             </div>
             <span style={{ fontSize: "0.92rem", fontWeight: 500 }}>New chat</span>
           </button>
@@ -1332,7 +715,7 @@ export default function App() {
             <button onClick={goToFree}
               style={{ background: onUpgrade ? "transparent" : C.active, border:`1px solid ${onUpgrade ? C.accent+"55" : C.cardBorder}`, borderRadius:7, padding:"5px 12px", color: onUpgrade ? C.accentText : C.textMuted, fontSize:"0.75rem", fontWeight:500, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>Free Plan</button>
             <button onClick={goToUpgrade}
-              style={{ background: onUpgrade ? C.accent : "transparent", border:`1px solid ${onUpgrade ? C.accent : C.cardBorder}`, borderRadius:7, padding:"5px 12px", color: onUpgrade ? "#fff" : C.textSub, fontSize:"0.75rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>Upgrade</button>
+              style={{ background: C.accent, border:`1px solid ${C.accent}`, borderRadius:7, padding:"5px 12px", color: "#fff", fontSize:"0.75rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>Upgrade</button>
             </>); })()}
           </div>
         </div>
@@ -1340,6 +723,17 @@ export default function App() {
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("ask")} />}
+
+      {bookingTarget && (
+        <BookingModal
+          mentorId={bookingTarget.mentorId}
+          mentorName={bookingTarget.mentorName}
+          mentorPic={bookingTarget.mentorPic}
+          services={bookingTarget.services?.filter(s => (bookingTarget.servicesOffered || bookingTarget.services?.map(x=>x.id))?.includes(s.id)) || bookingTarget.services || []}
+          onClose={() => setBookingTarget(null)}
+          onBooked={() => { setBookingTarget(null); setActivePage("sessions"); }}
+        />
+      )}
 
       <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
     </div>

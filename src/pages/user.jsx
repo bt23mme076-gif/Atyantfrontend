@@ -61,49 +61,68 @@ const MAX_GOALS = 3;
 
 const SESSIONS = [
   {
-    id: 1,
-    title: "Clarity Call",
-    subtitle: "Quick & Focused",
+    id: "text-qa",
+    serviceId: "text-qa",
+    title: "Text Q&A",
+    subtitle: "Quick doubt, one specific question",
     price: 149,
-    originalPrice: 249,
-    duration: "20 mins",
-    icon: FiPhone,
-    badge: "Quick clarity",
+    originalPrice: 149,
+    duration: "48hr async",
+    icon: FiMessageCircle,
+    badge: "Quick doubt",
     color: "blue",
-    bestFor: "One clear blocker solved fast.",
-    outcomes: ["One clear blocker solved", "Resume direction", "Role fit check"],
+    bestFor: "Quick doubt, one specific question",
+    outcomes: ["Quick doubt solved async"],
     popular: false,
     tag: null,
   },
   {
-    id: 2,
-    title: "Path Review",
-    subtitle: "Deep Dive Review",
-    price: 349,
+    id: "audio-call",
+    serviceId: "audio-call",
+    title: "Audio Call",
+    subtitle: "Resume talk, strategy, no video needed",
+    price: 299,
+    originalPrice: 299,
+    duration: "25 min",
+    icon: FiPhone,
+    badge: "Voice call",
+    color: "blue",
+    bestFor: "Resume talk, strategy, no video needed",
+    outcomes: ["Resume talk & strategy"],
+    popular: false,
+    tag: null,
+  },
+  {
+    id: "video-call",
+    serviceId: "video-call",
+    title: "Video Call",
+    subtitle: "Mock interview, screen share, deep dive",
+    price: 499,
     originalPrice: 499,
-    duration: "45 mins",
+    duration: "45 min",
     icon: FiVideo,
     badge: "Most booked",
     color: "gold",
-    bestFor: "Full profile review with screen-share for projects and interview prep.",
-    outcomes: ["Full profile review", "Project feedback", "Interview prep plan"],
+    bestFor: "Mock interview, screen share, deep dive",
+    outcomes: ["Mock interview & deep dive"],
     popular: true,
     tag: "⭐ RECOMMENDED",
   },
   {
-    id: 3,
-    title: "Strategy Session",
-    subtitle: "Full Strategy Session",
-    price: 599,
-    originalPrice: 899,
-    duration: "60 mins",
-    icon: MdOutlineRoute,
-    badge: "Best value",
+    id: "resume-review",
+    serviceId: "resume-review",
+    title: "Resume Review",
+    subtitle: "Written feedback on PDF, no call needed",
+    price: 249,
+    originalPrice: 249,
+    duration: "48hr async",
+    icon: FiBookOpen,
+    badge: "PDF feedback",
     color: "green",
-    bestFor: "Complete roadmap from beginner to placement-ready.",
-    outcomes: ["90-day roadmap", "Skill gap analysis", "30/60/90 milestones"],
+    bestFor: "Written feedback on PDF, no call needed",
+    outcomes: ["Written feedback on PDF"],
     popular: false,
-    tag: "🔥 BEST VALUE",
+    tag: null,
   },
 ];
 
@@ -1794,7 +1813,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
   }, []);
 
-  const SERVICE_ICONS = { "quick-chat": FiMessageCircle, "video-call": FiVideo, "mock-interview": FiUsers, "roadmap": FiTrendingUp };
+  const SERVICE_ICONS = { "text-qa": FiMessageCircle, "audio-call": FiPhone, "video-call": FiVideo, "resume-review": FiBookOpen };
   const sessionOptions = useMemo(() => {
     const offered = mentor?.servicesOffered || [];
     const picked = serviceCatalog.filter(s => offered.includes(s.id));
@@ -1802,14 +1821,18 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     if (!list.length) return SESSIONS;                     // ultimate fallback before catalog loads
     return list.map((s, i) => ({
       id: s.id, serviceId: s.id, title: s.label, subtitle: s.description,
-      price: s.price, originalPrice: s.price, duration: `${s.durationMin} mins`, durationMin: s.durationMin,
-      icon: SERVICE_ICONS[s.id] || FiVideo, badge: i === 0 ? "Most booked" : "", color: i === 0 ? "gold" : "blue",
-      bestFor: s.description, outcomes: [s.description], popular: i === 0, tag: i === 0 ? "⭐ POPULAR" : null,
+      price: s.price, originalPrice: s.price, duration: s.duration || `${s.durationMin} mins`, durationMin: s.durationMin,
+      icon: SERVICE_ICONS[s.id] || FiVideo,
+      badge: s.id === "video-call" ? "Most booked" : "",
+      color: s.id === "video-call" ? "gold" : s.id === "resume-review" ? "green" : "blue",
+      bestFor: s.description, outcomes: [s.description],
+      popular: s.id === "video-call",
+      tag: s.id === "video-call" ? "⭐ RECOMMENDED" : null,
     }));
   }, [serviceCatalog, mentor]);
 
   // 2. Initialize states with the reliable local string source
-  const [selectedSession, setSelectedSession] = useState(SESSIONS[1]);
+  const [selectedSession, setSelectedSession] = useState(SESSIONS[2]);
   // Keep the selected session valid against the mentor's offered services
   useEffect(() => {
     if (sessionOptions.length && !sessionOptions.find(s => s.id === selectedSession?.id)) {
