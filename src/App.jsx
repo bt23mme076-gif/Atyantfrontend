@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
   TrendingUp, Bookmark,
@@ -6,16 +6,19 @@ import {
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check,
 } from "lucide-react";
+import { ToastContainer, Slide } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import useIsMobile  from "./hooks/useIsMobile";
-import BookingPage   from "./pages/user";
-import UpgradePage   from "./pages/UpgradePage";
 import ClarityView    from "./components/clarity/ClarityView";
 import Footer         from "./components/Footer";
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
-import ChatPage       from "./components/clarity/ChatPage";
-import MentorOnboard  from "./pages/MentorOnboard";
-import ProfilePage    from "./pages/ProfilePage";
+// Heavy, rarely-first pages are code-split so the initial bundle stays lean.
+const BookingPage   = lazy(() => import("./pages/user"));
+const UpgradePage   = lazy(() => import("./pages/UpgradePage"));
+const ChatPage      = lazy(() => import("./components/clarity/ChatPage"));
+const MentorOnboard = lazy(() => import("./pages/MentorOnboard"));
+const ProfilePage   = lazy(() => import("./pages/ProfilePage"));
 import Avatar         from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
@@ -788,10 +791,17 @@ export default function App() {
             </>); })()}
           </div>
         </div>
-        <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>{pages[activePage]}</div>
+        <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>
+          <Suspense fallback={<div style={{ padding:"4rem", textAlign:"center", color:C.textMuted }}><Spin size={26} /></div>}>
+            {pages[activePage]}
+          </Suspense>
+        </div>
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("ask")} />}
+
+      {/* Global toast host — booking/payment/chat feedback all render here */}
+      <ToastContainer position="top-center" autoClose={3500} limit={3} newestOnTop pauseOnHover transition={Slide} theme="colored" style={{ zIndex: 99999 }} />
 
       {bookingTarget && (
         <BookingModal

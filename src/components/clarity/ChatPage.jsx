@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { ToastContainer, toast, Slide } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 import { API_URL } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import './ChatPage.css';
@@ -327,7 +326,7 @@ const ChatPage = ({ mentor = null, onBack }) => {
 
   return (
     <div className="chat-page">
-      <ToastContainer position="top-right" autoClose={4000} limit={3} newestOnTop pauseOnHover transition={Slide} style={{ zIndex: 9999 }} />
+      {/* Toasts render via the global ToastContainer in App.jsx */}
 
       {/* Sidebar */}
       <div className="sidebar">

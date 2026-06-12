@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link2, X, Check } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const getToken = () => localStorage.getItem("atyant_token");
 
 const T = {

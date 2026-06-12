@@ -131,10 +131,12 @@ function SessionPricingNote() {
       <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>
         Pay-per-session (no subscription needed)
       </div>
+      {/* Must match backend config/serviceCatalog.js prices */}
       {[
-        { label: "Quick Clarity", sub: "20 min", price: "₹149" },
-        { label: "Path Review",   sub: "45 min", price: "₹299" },
-        { label: "Mock Interview",sub: "60 min", price: "₹499" },
+        { label: "Text Q&A",      sub: "48hr async", price: "₹49"  },
+        { label: "Audio Call",    sub: "25 min",     price: "₹99"  },
+        { label: "Resume Review", sub: "48hr async", price: "₹199" },
+        { label: "Video Call",    sub: "45 min",     price: "₹299" },
       ].map((s) => (
         <div key={s.label} style={{ textAlign: "center" }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{s.price}</div>
@@ -143,7 +145,7 @@ function SessionPricingNote() {
         </div>
       ))}
       <div style={{ fontSize: 11, color: T.textMuted, maxWidth: 200, textAlign: "center", lineHeight: 1.5 }}>
-        Seniors keep 83% · Atyant takes 15% · Powered by Razorpay UPI
+        Seniors keep 83% · Atyant takes 17% · Powered by Razorpay UPI
       </div>
     </div>
   );

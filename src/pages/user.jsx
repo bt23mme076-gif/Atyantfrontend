@@ -41,6 +41,7 @@ import { MdOutlineRoute, MdVerified, MdWorkspacePremium } from "react-icons/md";
 import { HiSparkles } from "react-icons/hi2";
 import { RiMedalLine } from "react-icons/ri";
 import { api, paymentAPI, servicesAPI } from "../api";
+import { toast } from "react-toastify";
 
 // Lazily inject the Razorpay Checkout script (once).
 function loadRazorpay() {
@@ -1716,12 +1717,12 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
             </button>
             <button
               onClick={() => {
+                const text = `I just booked a ${bookingDetails?.sessionType} with ${bookingDetails?.mentorName || "a mentor"} on Atyant!`;
                 if (navigator.share) {
-                  navigator.share({
-                    title: "Session Booked!",
-                    text: `I just booked a ${bookingDetails?.sessionType} with Arjun Khanna on MentorConnect!`,
-                    url: window.location.href,
-                  });
+                  navigator.share({ title: "Session Booked!", text, url: window.location.href }).catch(() => {});
+                } else {
+                  navigator.clipboard?.writeText(`${text} ${window.location.href}`);
+                  toast.success("Copied to clipboard — share it anywhere!");
                 }
               }}
               className="flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
@@ -1811,7 +1812,7 @@ function PaymentPanel({
 
   const handleConfirm = () => {
     if (!isFormValid) {
-      alert("Add your name, email, preferred date and a time slot to continue.");
+      toast.warn("Add your name, email, preferred date and a time slot to continue.");
       return;
     }
     handleBooking();
@@ -2112,7 +2113,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   const applyCoupon = () => {
     const meta = VALID_COUPONS[couponCode.toUpperCase()];
     if (!meta) {
-      alert("Invalid coupon. Try FIRST50, CAREER20, or SUMMER15");
+      toast.error("Invalid coupon. Try FIRST50, CAREER20, or SUMMER15");
       return;
     }
     const discount =
@@ -2154,7 +2155,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
     }
     const mentorId = mentor?._id || mentor?.id || activeMentor?._id || null;
     if (!mentorId) {
-      alert('Please pick a mentor from your matches first.');
+      toast.warn('Please pick a mentor from your matches first.');
       return;
     }
 
@@ -2172,7 +2173,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       // Free mentor → already confirmed server-side
       if (order?.free) {
         setBookingId(order?.session?._id || '');
-        setSuccessInfo({ sessionType: selectedSession?.title || '', date: formatDate(date), time: time ? `${time} IST` : '' });
+        setSuccessInfo({ sessionType: selectedSession?.title || '', mentorName: mentor?.name || activeMentor?.name || '', date: formatDate(date), time: time ? `${time} IST` : '' });
         setShowSuccess(true);
         setRefreshSlots(c => c + 1);
         setIsBooking(false);
@@ -2181,7 +2182,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
 
       // 2) Open Razorpay Checkout
       const ok = await loadRazorpay();
-      if (!ok) { alert('Could not load payment gateway. Check your connection.'); setIsBooking(false); return; }
+      if (!ok) { toast.error('Could not load payment gateway. Check your connection.'); setIsBooking(false); return; }
 
       const rzp = new window.Razorpay({
         key: order.keyId,
@@ -2203,14 +2204,14 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
             });
             if (result?.ok) {
               setBookingId(order.sessionId);
-              setSuccessInfo({ sessionType: selectedSession?.title || '', date: formatDate(date), time: time ? `${time} IST` : '' });
+              setSuccessInfo({ sessionType: selectedSession?.title || '', mentorName: mentor?.name || activeMentor?.name || '', date: formatDate(date), time: time ? `${time} IST` : '' });
               setShowSuccess(true);
               setRefreshSlots(c => c + 1);
             } else {
-              alert(result?.error || 'Payment verification failed. If you were charged, contact support.');
+              toast.error(result?.error || 'Payment verification failed. If you were charged, contact support.');
             }
           } catch (e) {
-            alert(e.message || 'Payment verification failed. If you were charged, contact support.');
+            toast.error(e.message || 'Payment verification failed. If you were charged, contact support.');
           } finally {
             setIsBooking(false);
           }
@@ -2218,12 +2219,12 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
         modal: { ondismiss: () => setIsBooking(false) },
       });
       rzp.on('payment.failed', (resp) => {
-        alert(resp?.error?.description || 'Payment failed. Please try again.');
+        toast.error(resp?.error?.description || 'Payment failed. Please try again.');
         setIsBooking(false);
       });
       rzp.open();
     } catch (err) {
-      alert(err?.data?.error || err?.message || 'Booking failed. Please try again.');
+      toast.error(err?.data?.error || err?.message || 'Booking failed. Please try again.');
       setIsBooking(false);
     }
   };
@@ -2378,6 +2379,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
         onViewDetails={() => { setShowSuccess(false); onViewSessions?.(); }}
         bookingDetails={{
           sessionType: successInfo?.sessionType || selectedSession?.title || '',
+          mentorName: successInfo?.mentorName || mentor?.name || '',
           date: successInfo?.date || formatDate(date),
           time: successInfo?.time || (time ? `${time} IST` : ''),
           bookingId,
