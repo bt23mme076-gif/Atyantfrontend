@@ -600,7 +600,7 @@ export default function App() {
     clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} />,
     chat:     <ChatPage       key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
-    book:     <BookingPage    mentor={bookingMentor} user={user} onAuthRequired={() => setShowAuth(true)} onFindMentor={() => setActivePage("clarity")} onOpenChat={() => { setChatMentor(bookingMentor); setActivePage("chat"); }} />,
+    book:     <BookingPage    mentor={bookingMentor} user={user} onAuthRequired={() => setShowAuth(true)} onFindMentor={() => setActivePage("clarity")} onOpenChat={() => { setChatMentor(bookingMentor); setActivePage("chat"); }} onViewSessions={() => setActivePage("sessions")} />,
     sessions: <MySessionsPage />,
     roadmap:  <MyRoadmapPage  user={user} />,
     saved:    <SavedAnswersPage />,

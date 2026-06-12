@@ -548,9 +548,18 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
             </div>
           )}
 
-          <p style={{ fontSize: "0.78rem", color: C.textMuted, marginBottom: "1.5rem", textAlign: "center" }}>
-            Matched to 800+ verified journeys from Tier-2 colleges across India
-          </p>
+          {isMobile ? (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+              <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "5px 13px", display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
+                {badgeText}
+              </span>
+            </div>
+          ) : (
+            <p style={{ fontSize: "0.78rem", color: C.textMuted, marginBottom: "1.5rem", textAlign: "center" }}>
+              Matched to 800+ verified journeys from Tier-2 colleges across India
+            </p>
+          )}
 
           <AnimatePresence mode="wait">
             {query.trim().length === 0 && (

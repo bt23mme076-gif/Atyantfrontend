@@ -1618,7 +1618,7 @@ function BookingSidebar({
   );
 }
 
-function SuccessModal({ isOpen, onClose, bookingDetails }) {
+function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
   const bookingId = bookingDetails?.bookingId
     ? String(bookingDetails.bookingId).slice(-8).toUpperCase()   // last 8 chars of mongo id
     : generateBookingId();
@@ -1709,7 +1709,7 @@ function SuccessModal({ isOpen, onClose, bookingDetails }) {
 
           <div className="mt-6 flex gap-3">
             <button
-              onClick={onClose}
+              onClick={onViewDetails || onClose}
               className="flex-1 rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] py-3.5 text-sm font-black text-white shadow-lg shadow-[#7567C9]/25 hover:shadow-xl"
             >
               View Details
@@ -1942,7 +1942,7 @@ function PaymentPanel({
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
-export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired }) {
+export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired, onViewSessions }) {
   // 1. Define today's date string first (Local Timezone safe)
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -2048,6 +2048,9 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   const [showPayment, setShowPayment] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  // Snapshot of the booked session, captured at success time — so the success
+  // modal keeps showing the right date/time even after refreshSlots clears them.
+  const [successInfo, setSuccessInfo] = useState(null);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [couponCode, setCouponCode] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
@@ -2169,6 +2172,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       // Free mentor → already confirmed server-side
       if (order?.free) {
         setBookingId(order?.session?._id || '');
+        setSuccessInfo({ sessionType: selectedSession?.title || '', date: formatDate(date), time: time ? `${time} IST` : '' });
         setShowSuccess(true);
         setRefreshSlots(c => c + 1);
         setIsBooking(false);
@@ -2199,6 +2203,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
             });
             if (result?.ok) {
               setBookingId(order.sessionId);
+              setSuccessInfo({ sessionType: selectedSession?.title || '', date: formatDate(date), time: time ? `${time} IST` : '' });
               setShowSuccess(true);
               setRefreshSlots(c => c + 1);
             } else {
@@ -2370,10 +2375,11 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       <SuccessModal
         isOpen={showSuccess}
         onClose={() => setShowSuccess(false)}
+        onViewDetails={() => { setShowSuccess(false); onViewSessions?.(); }}
         bookingDetails={{
-          sessionType: selectedSession?.title || '',
-          date: formatDate(date),
-          time: time ? `${time} IST` : '',
+          sessionType: successInfo?.sessionType || selectedSession?.title || '',
+          date: successInfo?.date || formatDate(date),
+          time: successInfo?.time || (time ? `${time} IST` : ''),
           bookingId,
         }}
       />
