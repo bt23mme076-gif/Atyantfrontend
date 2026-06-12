@@ -1695,7 +1695,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
           <div className="mt-5 space-y-2">
             <p className="text-xs font-bold text-[var(--c-textSub)] uppercase tracking-wide">What happens next</p>
             {[
-              "Check your email for the Google Meet link",
+              "Check your email for your meeting link",
               "Share your resume and GitHub before the session",
               "Join 5 minutes early for a smooth start",
             ].map((step, i) => (

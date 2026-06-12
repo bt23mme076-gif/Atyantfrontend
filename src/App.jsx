@@ -124,11 +124,11 @@ function SessionDetailCard({ s, isUpcoming }) {
         {isUpcoming && (hasMeet ? (
           <a href={s.meetingLink} target="_blank" rel="noreferrer"
              style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9" }}>
-            <Video size={17} /> Join Google Meet <ExternalLink size={13} style={{ opacity:0.85 }} />
+            <Video size={17} /> Join Session <ExternalLink size={13} style={{ opacity:0.85 }} />
           </a>
         ) : (
           <div style={{ marginTop:"1.1rem", padding:"0.75rem 0.9rem", borderRadius:10, background:C.active, border:`1px dashed ${C.cardBorder}`, color:C.textSub, fontSize:"0.78rem", textAlign:"center" }}>
-            🔗 The Google Meet link will be emailed to you before the session.
+            🔗 Your meeting link will be emailed to you before the session.
           </div>
         ))}
 

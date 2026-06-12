@@ -385,7 +385,7 @@ function SuccessStep({ service, date, slot }) {
       <p style={{ margin: "0 0 20px", fontSize: ".84rem", color: C.textMuted, lineHeight: 1.6 }}>
         You're confirmed for <strong style={{ color: C.text }}>{service?.label}</strong> on{" "}
         <strong style={{ color: C.text }}>{formatDate(date)} at {formatSlot(slot)}</strong>.
-        A Google Meet link will be sent to your email.
+        Your meeting link will be sent to your email.
       </p>
       <div style={{ background: "rgba(61,190,130,0.08)", border: `1px solid ${C.green}44`, borderRadius: 12, padding: "12px 16px", fontSize: ".8rem", color: C.textSub, lineHeight: 1.6 }}>
         Check your registered email for the calendar invite and meeting link.
