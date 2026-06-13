@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Compass, Target, Rocket } from "lucide-react";
+import { purchaseSubscription } from "../lib/subscriptionCheckout";
+import { toast } from "react-toastify";
+import { useAuth } from "../context/AuthContext";
 
 // Theme-aware palette (maps to CSS vars in index.css for light + dark).
 const T = {
@@ -152,6 +155,7 @@ function SessionPricingNote() {
 }
 
 export default function UpgradePage({ onBack }) {
+  const { user } = useAuth();
   const [tab, setTab] = useState("student");
   const [billing, setBilling] = useState("monthly");
   const btnMonthlyRef = useRef(null);
@@ -306,13 +310,37 @@ export default function UpgradePage({ onBack }) {
                       ))}
                     </ul>
 
-                    <button
-                      onClick={() => { if (plan.key === "free") onBack?.(); }}
-                      style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...ctaStyle(plan.ctaStyle) }}>
+                    <button 
+                      onClick={() => {
+                        if (plan.key === "free") {
+                          onBack?.();
+                        } else {
+                          if (!user) {
+                            toast.error("Please log in to purchase a subscription");
+                            return;
+                          }
+                          purchaseSubscription({
+                            plan: plan.key,
+                            billing: billing,
+                            onSuccess: (subscription) => {
+                              toast.success(`${plan.name} plan activated! ${subscription.credits} session credits added.`);
+                              onBack?.();
+                            },
+                            onError: (err) => {
+                              toast.error(err.message || "Payment failed. Please try again.");
+                            },
+                          });
+                        }
+                      }}
+                      style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...ctaStyle(plan.ctaStyle) }}
+                    > 
                       {plan.cta}
                     </button>
-                  </div>
+                    
+                    </div>
                 );
+
+
               })}
             </div>
 

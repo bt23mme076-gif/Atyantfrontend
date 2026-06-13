@@ -128,6 +128,18 @@ export const paymentAPI = {
   verify: (payload) => api.post('/api/payments/verify', payload),
 };
 
+// Subscriptions (Razorpay) — Clarity/Pro plan purchases
+export const subscriptionAPI = {
+  // Returns { keyId, orderId, amount, currency, plan, billing }
+  create: (plan, billing) => api.post('/api/subscriptions/create', { plan, billing }),
+  // Verifies subscription payment and activates plan
+  verify: (payload) => api.post('/api/subscriptions/verify', payload),
+  // Returns current subscription status
+  status: () => api.get('/api/subscriptions/status'),
+  // Cancels active subscription
+  cancel: () => api.post('/api/subscriptions/cancel'),
+};
+
 // Platform service catalog (labels + fixed prices set by Atyant)
 export const servicesAPI = {
   catalog: () => api.get('/api/profile/services-catalog'),
