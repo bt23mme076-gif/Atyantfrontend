@@ -396,7 +396,7 @@ function AuthModal({ onClose, onAuthed }) {
         sessionStorage.removeItem("referredBy");
       }
       onClose();
-      onAuthed?.();   // land on home after a successful login/signup
+      onAuthed?.();   // land on profile after a successful login/signup
     } catch (e) {
       setError(e.message || "Something went wrong");
     } finally {
@@ -503,7 +503,11 @@ function AuthModal({ onClose, onAuthed }) {
 // ─── App Shell ────────────────────────────────────────────────────────────────
 export default function App() {
   const { user, loading, logout } = useAuth();
-  const [activePage,   setActivePage]   = useState("ask");
+  // After Google OAuth the backend redirects back with ?token=… — land such
+  // users on their profile (matches the email/password login behaviour).
+  const [activePage,   setActivePage]   = useState(
+    () => new URLSearchParams(window.location.search).get("token") ? "profile" : "ask"
+  );
   const [prevPage,     setPrevPage]     = useState("ask");  // page to return to from Upgrade
   const [showAuth,     setShowAuth]     = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
@@ -798,7 +802,7 @@ export default function App() {
         </div>
       </div>
 
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("ask")} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("profile")} />}
 
       {/* Global toast host — booking/payment/chat feedback all render here */}
       <ToastContainer position="top-center" autoClose={3500} limit={3} newestOnTop pauseOnHover transition={Slide} theme="colored" style={{ zIndex: 99999 }} />

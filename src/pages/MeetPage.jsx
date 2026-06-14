@@ -2,14 +2,16 @@ import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 export default function MeetPage() {
     const { sessionId } = useParams();
+    const navigate = useNavigate();
     const [roomData, setRoomData] = useState(null);
     const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const token = localStorage.getItem('atyant_token');
@@ -17,12 +19,24 @@ export default function MeetPage() {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             withCredentials: true,
         })
-            .then(res => setRoomData(res.data))
-            .catch(() => setError('Could not join session'));
+            .then(res => { setRoomData(res.data); setLoading(false); })
+            .catch(err => {
+                setError(err?.response?.data?.error || 'Could not join session');
+                setLoading(false);
+            });
     }, [sessionId]);
 
-    if (error) return <div>{error}</div>;
-    if (!roomData) return <div>Joining session...</div>;
+    if (loading) return (
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', color: '#fff', fontSize: 18 }}>
+            Joining session...
+        </div>
+    );
+
+    if (error) return (
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', color: '#f87171', fontSize: 18 }}>
+            {error}
+        </div>
+    );
 
     return (
         <LiveKitRoom
@@ -31,7 +45,10 @@ export default function MeetPage() {
             connect={true}
             audio={true}
             video={true}
+            data-lk-theme="default"
             style={{ height: '100vh' }}
+            onDisconnected={() => navigate('/')}
+            options={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
         >
             <VideoConference />
         </LiveKitRoom>
