@@ -48,7 +48,7 @@ export default function MeetPage() {
             data-lk-theme="default"
             style={{ height: '100vh' }}
             onDisconnected={() => navigate('/')}
-            options={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
+            options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
         >
             <VideoConference />
         </LiveKitRoom>
