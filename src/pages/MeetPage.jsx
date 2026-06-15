@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DisconnectReason } from 'livekit-client';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
 export default function MeetPage({ sessionId: propSessionId }) {
     const { sessionId: paramSessionId } = useParams();

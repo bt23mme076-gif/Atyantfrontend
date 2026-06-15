@@ -1,7 +1,10 @@
 // ─── Atyant API Client ───────────────────────────────────────────────────────
 // All calls go through here. Token is read from localStorage on every request.
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
+// Strip any trailing slash so `${BASE}/api/...` never produces a double slash
+// (a trailing slash in the Vercel VITE_API_URL env caused requests like
+// `https://api.product.atyant.in//api/...`).
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
 // Base URL for raw fetch / socket.io (used by the chat page).
 export const API_URL = BASE;
