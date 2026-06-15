@@ -57,7 +57,7 @@ export default function MeetPage() {
             onDisconnected={(reason) => {
                 if (reason === DisconnectReason.CLIENT_INITIATED) navigate('/');
             }}
-            options={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
+            options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
         >
             <VideoConference />
         </LiveKitRoom>
