@@ -81,7 +81,11 @@ function SessionDetailCard({ s, isUpcoming }) {
   const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
   const svc     = SERVICE_META[s.serviceId] || { label: s.topic || "Session", icon: "✨" };
   const bookingId = (s._id || "").slice(-8).toUpperCase();
-  const hasMeet   = !!s.meetingLink;
+  // The meet link is always deterministic — /session/meet/<id>. The backend
+  // ensures the LiveKit room idempotently on join, so we don't depend on
+  // s.meetingLink being saved at booking time (older/free bookings may lack it).
+  const meetUrl   = s.meetingLink || (s._id ? `/session/meet/${s._id}` : "");
+  const hasMeet   = !!meetUrl;
 
   const copyId = () => {
     navigator.clipboard?.writeText(bookingId);
@@ -122,7 +126,7 @@ function SessionDetailCard({ s, isUpcoming }) {
 
         {/* meet CTA */}
         {isUpcoming && (hasMeet ? (
-          <a href={s.meetingLink} target="_blank" rel="noreferrer"
+          <a href={meetUrl} target="_blank" rel="noreferrer"
              style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9" }}>
             <Video size={17} /> Join Session <ExternalLink size={13} style={{ opacity:0.85 }} />
           </a>
@@ -134,7 +138,7 @@ function SessionDetailCard({ s, isUpcoming }) {
 
         {/* raw link (selectable) */}
         {hasMeet && (
-          <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{s.meetingLink}</div>
+          <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{meetUrl}</div>
         )}
       </div>
     </div>
