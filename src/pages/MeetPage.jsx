@@ -3,6 +3,7 @@ import '@livekit/components-styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import { DisconnectReason } from 'livekit-client';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -14,16 +15,22 @@ export default function MeetPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let cancelled = false;
         const token = localStorage.getItem('atyant_token');
         axios.post(`${API_BASE}/api/livekit/join/${sessionId}`, {}, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             withCredentials: true,
         })
-            .then(res => { setRoomData(res.data); setLoading(false); })
+            .then(res => {
+                if (!cancelled) { setRoomData(res.data); setLoading(false); }
+            })
             .catch(err => {
-                setError(err?.response?.data?.error || 'Could not join session');
-                setLoading(false);
+                if (!cancelled) {
+                    setError(err?.response?.data?.error || 'Could not join session');
+                    setLoading(false);
+                }
             });
+        return () => { cancelled = true; };
     }, [sessionId]);
 
     if (loading) return (
@@ -47,8 +54,10 @@ export default function MeetPage() {
             video={true}
             data-lk-theme="default"
             style={{ height: '100vh' }}
-            onDisconnected={() => navigate('/')}
-            options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
+            onDisconnected={(reason) => {
+                if (reason === DisconnectReason.CLIENT_INITIATED) navigate('/');
+            }}
+            options={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
         >
             <VideoConference />
         </LiveKitRoom>
