@@ -7,8 +7,9 @@ import { DisconnectReason } from 'livekit-client';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
-export default function MeetPage() {
-    const { sessionId } = useParams();
+export default function MeetPage({ sessionId: propSessionId }) {
+    const { sessionId: paramSessionId } = useParams();
+    const sessionId = propSessionId || paramSessionId;
     const navigate = useNavigate();
     const [roomData, setRoomData] = useState(null);
     const [error, setError] = useState(null);

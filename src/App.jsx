@@ -81,10 +81,12 @@ function SessionDetailCard({ s, isUpcoming }) {
   const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
   const svc     = SERVICE_META[s.serviceId] || { label: s.topic || "Session", icon: "✨" };
   const bookingId = (s._id || "").slice(-8).toUpperCase();
-  // The meet link is always deterministic — /session/meet/<id>. The backend
-  // ensures the LiveKit room idempotently on join, so we don't depend on
-  // s.meetingLink being saved at booking time (older/free bookings may lack it).
-  const meetUrl   = s.meetingLink || (s._id ? `/session/meet/${s._id}` : "");
+  // The meet opens at /?meet=<id> on the current origin. atyant.in only proxies
+  // "/" to the product app (a /session/meet/<id> path hits the marketing site),
+  // and serving it same-origin keeps the localStorage auth token available.
+  // The backend ensures the LiveKit room idempotently on join, so we build the
+  // link from the id directly rather than relying on a saved meetingLink.
+  const meetUrl   = s._id ? `/?meet=${s._id}` : "";
   const hasMeet   = !!meetUrl;
 
   const copyId = () => {
