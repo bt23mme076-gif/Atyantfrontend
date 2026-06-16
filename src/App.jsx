@@ -434,9 +434,14 @@ function AuthModal({ onClose, onAuthed }) {
       onAuthed?.();
 
     } else if (mode === "forgot") {
-      await authAPI.forgotPassword(email);
+    const response = await authAPI.forgotPassword(email);
 
-      setMode("verify");
+    setSuccess(
+      response.message ||
+      "If an account exists with this email, an OTP has been sent."
+    );
+
+    setMode("verify");
 
     } else if (mode === "verify") {
       await authAPI.verifyResetCode(email, otp);
