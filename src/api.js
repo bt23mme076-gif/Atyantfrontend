@@ -52,9 +52,32 @@ export const api = {
 
 // Auth
 export const authAPI = {
-  login:  (email, password)                   => api.post('/api/auth/login',  { email, password }),
-  signup: (username, email, password, phone, role)  => api.post('/api/auth/signup', { username, email, password, phone, role }),
-  me:     ()                                  => api.get('/api/profile/me'),
+  login: (email, password) =>
+    api.post('/api/auth/login', { email, password }),
+
+  signup: (username, email, password, phone, role) =>
+    api.post('/api/auth/signup', {
+      username,
+      email,
+      password,
+      phone,
+      role
+    }),
+
+  me: () => api.get('/api/profile/me'),
+
+  forgotPassword: (email) =>
+    api.post('/api/auth/forgot-password', { email }),
+
+  verifyResetCode: (email, code) =>
+    api.post('/api/auth/verify-reset-code', { email, code }),
+
+  resetPassword: (email, code, newPassword) =>
+  api.post('/api/auth/reset-password', {
+    email,
+    code,
+    newPassword
+  })
 };
 
 // Profile
