@@ -393,9 +393,11 @@ function AuthModal({ onClose, onAuthed }) {
   const [phone,    setPhone]    = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
+  const [success,  setSuccess]  = useState("");
 
   const handle = async () => {
   setError("");
+  setSuccess("");
   setLoading(true);
 
   try {
@@ -444,13 +446,18 @@ function AuthModal({ onClose, onAuthed }) {
     } else if (mode === "reset") {
       await authAPI.resetPassword(email, otp, newPassword)
 
-      setMode("login");
+      setSuccess(
+        "Password reset successful. Please sign in with your new password."
+      );
 
       setPassword("");
       setOtp("");
       setNewPassword("");
 
-      alert("Password reset successful");
+      setTimeout(() => {
+        setMode("login");
+        setSuccess("");
+      }, 2000);
     }
 
   } catch (e) {
@@ -638,7 +645,21 @@ function AuthModal({ onClose, onAuthed }) {
     )}
 
         {error && <p style={{ color:"#f87171", fontSize:"0.82rem", marginBottom:"1rem" }}>{error}</p>}
-
+        {success && (
+          <p
+            style={{
+              color: "#22c55e",
+              fontSize: "0.82rem",
+              marginBottom: "1rem",
+              background: "rgba(34,197,94,0.1)",
+              border: "1px solid rgba(34,197,94,0.3)",
+              padding: "10px",
+              borderRadius: "8px"
+            }}
+          >
+            ✓ {success}
+          </p>
+        )}        
         <button 
           onClick={handle} 
           disabled={loading}
