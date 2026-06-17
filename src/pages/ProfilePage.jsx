@@ -4,7 +4,7 @@ import {
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
-  CalendarClock, Clock, IndianRupee, Rocket, Star,
+  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -411,6 +411,8 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {
@@ -509,6 +511,53 @@ export default function ProfilePage() {
       setEditing(false);
     } catch (e) { alert(e.message || "Save failed"); }
     finally { setSaving(false); }
+  };
+
+  // ── Import LinkedIn PDF → auto-fill the whole profile, save, open answer card ──
+  // Mirrors the onboarding flow so existing mentors can refresh their profile in
+  // one upload. Parsed values fill only empty fields (never overwrite edits);
+  // tags are merged. After a successful save the answer-card section opens.
+  const handleLinkedinImport = async (file) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") { setImportMsg("Please upload a PDF — on LinkedIn: Profile → More → Save to PDF."); return; }
+    setImportMsg(""); setImporting(true);
+    try {
+      const res = await profileAPI.parseLinkedin(file);
+      const d = res?.data || {};
+      const pEdu = d.education?.[0] || {};
+      const merged = {
+        ...form,
+        name:            form.name            || d.name || "",
+        college:         form.college         || pEdu.institution || "",
+        branch:          form.branch          || pEdu.field || "",
+        year:            form.year            || pEdu.year || "",
+        bio:             form.bio             || d.bio || "",
+        city:            form.city            || d.city || "",
+        linkedinProfile: form.linkedinProfile || d.linkedinProfile || "",
+        topCompanies:    form.topCompanies.length ? form.topCompanies : (d.topCompanies || []),
+        expertise:       form.expertise.length    ? form.expertise    : (d.expertise || []),
+        specialTags:     Array.from(new Set([...form.specialTags, ...(d.specialTags || [])])),
+        primaryDomain:   form.primaryDomain   || d.primaryDomain || "",
+        companyDomain:   form.companyDomain   || d.companyDomain || "",
+      };
+      setForm(merged);
+      const payload = {
+        username: merged.name, bio: merged.bio, college: merged.college, branch: merged.branch,
+        year: merged.year, cgpa: merged.cgpa, expertise: merged.expertise, topCompanies: merged.topCompanies,
+        specialTags: merged.specialTags, city: merged.city, linkedinProfile: merged.linkedinProfile,
+        price: Number(merged.price) || 0, yearsOfExperience: Number(merged.yearsOfExperience) || 0,
+        primaryDomain: merged.primaryDomain, companyDomain: merged.companyDomain, servicesOffered: merged.servicesOffered,
+      };
+      const saved = await profileAPI.update(payload);
+      setUser(saved.user || saved);
+      // Open the answer-card section, same as the onboarding finish step.
+      setShowAnswerCards(true);
+      setAutoOpenCard(true);
+    } catch (e) {
+      setImportMsg(e.message || "Couldn't read that PDF — you can still edit your profile manually.");
+    } finally {
+      setImporting(false);
+    }
   };
 
   const edu = user?.education?.[0] || {};
@@ -686,6 +735,28 @@ export default function ProfilePage() {
         </div>
       </header>
 
+      {/* ════════ IMPORT FROM LINKEDIN (mentors) ════════ */}
+      {isMentor && (
+        <div className="pf-card pf-anim pf-anim-1" style={{ background: "linear-gradient(120deg, rgba(10,102,194,0.10), rgba(117,103,201,0.10))", border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1rem 1.2rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(10,102,194,0.15)", border: "1px solid rgba(10,102,194,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Link2 size={18} style={{ color: "#0A66C2" }} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: ".92rem", fontWeight: 700, color: C.text }}>Auto-fill from LinkedIn</div>
+              <div style={{ fontSize: ".75rem", color: C.textSub, marginTop: 2, lineHeight: 1.5 }}>
+                Upload your LinkedIn PDF — we fill your profile and open your answer card. <span style={{ color: C.textMuted }}>(LinkedIn → More → Save to PDF)</span>
+              </div>
+              {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 6 }}>{importMsg}</div>}
+            </div>
+          </div>
+          <label style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 7, background: importing ? C.active : C.accent, border: "none", borderRadius: 10, padding: "9px 17px", color: importing ? C.textSub : "#fff", fontSize: ".82rem", fontWeight: 700, cursor: importing ? "default" : "pointer", boxShadow: importing ? "none" : "0 3px 12px rgba(117,103,201,0.28)" }}>
+            <input type="file" accept="application/pdf" hidden disabled={importing} onChange={e => handleLinkedinImport(e.target.files?.[0])} />
+            {importing ? <><Spin size={14} /> Reading…</> : <><Upload size={14} /> Upload PDF</>}
+          </label>
+        </div>
+      )}
+
       {/* ════════ STATS ════════ */}
       <div className="pf-stats" style={{ marginBottom: 18 }}>
         {isMentor ? <>
@@ -738,19 +809,18 @@ export default function ProfilePage() {
       {/* ════════ MENTOR MONETIZATION BLOCK (full-width, above everything) ════════ */}
       {isMentor && (
         <div className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
-          {/* Top earnings banner */}
-          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, #5A4CB0 0%, #7567C9 50%, #8E80DB 100%)", padding: "18px 22px", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% -10%, rgba(255,255,255,0.18), transparent 60%)" }} />
+          {/* Top earnings banner — light, soft surface */}
+          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 3px 10px rgba(117,103,201,0.3)" }}>
                   <IndianRupee size={20} style={{ color: "#fff" }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: "1rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.01em" }}>
+                  <div style={{ fontSize: "1rem", fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>
                     Earn ₹49 – ₹299 per session
                   </div>
-                  <div style={{ fontSize: ".75rem", color: "rgba(255,255,255,0.75)", marginTop: 2 }}>
+                  <div style={{ fontSize: ".75rem", color: C.textSub, marginTop: 2 }}>
                     {form.servicesOffered.length === 0
                       ? "Select your services & set availability — students can't book you yet"
                       : form.servicesOffered.length === 1
@@ -761,26 +831,26 @@ export default function ProfilePage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 {form.servicesOffered.length > 0 && (user?.availability?.weekly?.length || 0) > 0 ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.22)", border: "1px solid rgba(61,190,130,0.5)", borderRadius: 999, padding: "6px 14px", color: "#6EEFC0", fontSize: ".76rem", fontWeight: 700 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#6EEFC0", display: "inline-block" }} /> Live & Bookable
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.14)", border: `1px solid ${C.green}55`, borderRadius: 999, padding: "6px 14px", color: C.green, fontSize: ".76rem", fontWeight: 700 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Live & Bookable
                   </span>
                 ) : (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 999, padding: "6px 14px", color: "rgba(255,255,255,0.85)", fontSize: ".76rem", fontWeight: 700 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "6px 14px", color: C.accentText, fontSize: ".76rem", fontWeight: 700 }}>
                     <Rocket size={12} /> Setup required
                   </span>
                 )}
               </div>
             </div>
             {/* Quick earnings math */}
-            <div style={{ position: "relative", display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
+            <div style={{ position: "relative", display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
               {[
                 { label: "Text Q&A", price: "₹49", icon: "💬" },
                 { label: "Audio Call", price: "₹99", icon: "🎙️" },
                 { label: "Video Call", price: "₹299", icon: "📹" },
               ].map(s => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.1)", borderRadius: 8, padding: "5px 12px" }}>
+                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 7, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px" }}>
                   <span style={{ fontSize: ".82rem" }}>{s.icon}</span>
-                  <span style={{ fontSize: ".72rem", color: "rgba(255,255,255,0.85)", fontWeight: 600 }}>{s.label} · {s.price}</span>
+                  <span style={{ fontSize: ".72rem", color: C.textSub, fontWeight: 600 }}>{s.label} · {s.price}</span>
                 </div>
               ))}
             </div>
