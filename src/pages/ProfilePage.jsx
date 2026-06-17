@@ -410,6 +410,8 @@ export default function ProfilePage() {
   const isMobileView = useIsMobile();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingServices, setSavingServices] = useState(false);
+  const [servicesSaved, setServicesSaved] = useState(false); // brief "Saved ✓" flash
   const [uploading, setUploading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState("");
@@ -494,6 +496,30 @@ export default function ProfilePage() {
     ? "CGPA should be a number between 0 and 10" : "";
   const linkedinError = editing && form.linkedinProfile && !/linkedin\.com\//i.test(form.linkedinProfile)
     ? "Doesn't look like a LinkedIn URL" : "";
+
+  // ── Services: directly selectable (no global edit mode) with their own Save ──
+  // Toggling updates the form immediately; servicesDirty drives the Save button.
+  const toggleService = (id) =>
+    setForm(f => ({
+      ...f,
+      servicesOffered: f.servicesOffered.includes(id)
+        ? f.servicesOffered.filter(x => x !== id)
+        : [...f.servicesOffered, id],
+    }));
+
+  const servicesDirty =
+    [...form.servicesOffered].sort().join(",") !== [...(user?.servicesOffered || [])].sort().join(",");
+
+  const saveServices = async () => {
+    setSavingServices(true);
+    try {
+      const res = await profileAPI.update({ servicesOffered: form.servicesOffered });
+      setUser(res.user || res);
+      setServicesSaved(true);
+      setTimeout(() => setServicesSaved(false), 1800);
+    } catch (e) { alert(e.message || "Could not save services"); }
+    finally { setSavingServices(false); }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -868,15 +894,9 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Services you offer</div>
-                    <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>Prices fixed by Atyant</div>
+                    <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>Tap to turn a service on or off</div>
                   </div>
                 </div>
-                {!editing && (
-                  <button className="pf-editbtn pf-icon-btn" onClick={startEdit} aria-label="Edit services"
-                    style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 7px", color: C.textMuted, cursor: "pointer", display: "flex", flexShrink: 0 }}>
-                    <Pencil size={13} />
-                  </button>
-                )}
               </div>
               {serviceCatalog === null ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -887,19 +907,14 @@ export default function ProfilePage() {
                   {serviceCatalog.map(s => {
                     const on = form.servicesOffered.includes(s.id);
                     return (
-                      <div key={s.id} className={`pf-svc-row${on ? " on" : ""}`}
-                        onClick={() => editing && setForm(f => ({ ...f, servicesOffered: on ? f.servicesOffered.filter(x => x !== s.id) : [...f.servicesOffered, s.id] }))}
-                        style={{ display: "flex", alignItems: "center", gap: 12, background: on ? "rgba(117,103,201,0.08)" : C.active, border: `1.5px solid ${on ? C.accent + "66" : C.cardBorder}`, borderRadius: 12, padding: "11px 14px", cursor: editing ? "pointer" : "default" }}>
-                        {editing && (
-                          <span style={{ width: 18, height: 18, borderRadius: 6, border: `1.5px solid ${on ? C.accent : C.textMuted}`, background: on ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", transition: "all .15s" }}>
-                            {on ? <Check size={11} /> : null}
-                          </span>
-                        )}
-                        {!editing && (
-                          <div style={{ width: 30, height: 30, borderRadius: 8, background: on ? C.accentSoft : C.card, border: `1px solid ${on ? C.accent + "44" : C.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <CalendarCheck size={13} style={{ color: on ? C.accentText : C.textMuted }} />
-                          </div>
-                        )}
+                      <div key={s.id} role="button" tabIndex={0} aria-pressed={on}
+                        className={`pf-svc-row${on ? " on" : ""}`}
+                        onClick={() => toggleService(s.id)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleService(s.id); } }}
+                        style={{ display: "flex", alignItems: "center", gap: 12, background: on ? "rgba(117,103,201,0.16)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 12, padding: "11px 14px", cursor: "pointer", transition: "all .15s" }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${on ? C.accent : C.textMuted}`, background: on ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", transition: "all .15s" }}>
+                          {on ? <Check size={12} /> : null}
+                        </span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ display: "block", color: on ? C.text : C.textSub, fontSize: ".86rem", fontWeight: on ? 700 : 500 }}>{s.label}</span>
                           <span style={{ display: "block", color: C.textMuted, fontSize: ".7rem", marginTop: 1 }}>{s.description} · {s.durationMin} min</span>
@@ -910,11 +925,21 @@ export default function ProfilePage() {
                   })}
                 </div>
               )}
-              {form.servicesOffered.length === 0 && !editing && (
-                <button onClick={startEdit} style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: C.accentSoft, border: `1.5px dashed ${C.accent}55`, borderRadius: 11, padding: "10px 0", color: C.accentText, fontSize: ".8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  <Plus size={13} /> Select services to get booked
+              {/* Dedicated Save for services — appears only when there are unsaved changes */}
+              {servicesDirty ? (
+                <button onClick={saveServices} disabled={savingServices}
+                  style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 11, padding: "11px 0", color: "#fff", fontSize: ".86rem", fontWeight: 700, cursor: savingServices ? "default" : "pointer", fontFamily: "inherit", opacity: savingServices ? 0.7 : 1, boxShadow: "0 4px 12px rgba(117,103,201,0.3)" }}>
+                  {savingServices ? <><Spin size={14} /> Saving…</> : <><Check size={15} /> Save services</>}
                 </button>
-              )}
+              ) : servicesSaved ? (
+                <div style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(61,190,130,0.12)", border: `1px solid ${C.green}55`, borderRadius: 11, padding: "10px 0", color: C.green, fontSize: ".82rem", fontWeight: 700 }}>
+                  <Check size={14} /> Services saved
+                </div>
+              ) : form.servicesOffered.length === 0 ? (
+                <div style={{ marginTop: 12, width: "100%", textAlign: "center", background: C.accentSoft, border: `1.5px dashed ${C.accent}55`, borderRadius: 11, padding: "10px 0", color: C.accentText, fontSize: ".8rem", fontWeight: 700 }}>
+                  <Plus size={13} style={{ verticalAlign: "-2px" }} /> Tap a service above to get booked
+                </div>
+              ) : null}
             </div>
 
             {/* Right: Availability */}
