@@ -818,6 +818,11 @@ export default function App() {
     link.rel  = "stylesheet";
     link.href = "https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap";
     document.head.appendChild(link);
+    // Devanagari + Latin face for the अत्यanT wordmark.
+    const devFont = document.createElement("link");
+    devFont.rel  = "stylesheet";
+    devFont.href = "https://fonts.googleapis.com/css2?family=Mukta:wght@600;700&display=swap";
+    document.head.appendChild(devFont);
     document.body.style.margin  = "0";
     document.body.style.padding = "0";
     document.body.style.background = C.bg;
@@ -876,9 +881,13 @@ export default function App() {
     const isActive = activePage===item.id;
     return (
       <button onClick={() => { setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
-        style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"8px 14px", borderRadius:9, border:"none", background:isActive ? C.active : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.86rem", textAlign:"left", transition:"all 0.15s", fontWeight:isActive ? 500 : 400 }}>
-        <item.Icon size={15} strokeWidth={isActive ? 2 : 1.5} />
-        {item.label}
+        style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:500 }}
+        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
+        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
+        {/* Left accent bar — active only */}
+        <span style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)", width:3, height:18, borderRadius:"0 3px 3px 0", background:C.accent, opacity:isActive ? 1 : 0, transition:"opacity 0.2s ease" }} />
+        <item.Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} style={{ color:isActive ? C.accentText : "currentColor", flexShrink:0, transition:"color 0.2s ease" }} />
+        <span>{item.label}</span>
       </button>
     );
   };
@@ -901,10 +910,13 @@ export default function App() {
 
       {/* ── Sidebar ── */}
       <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
-        <div style={{ height:57, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.5rem", flexShrink:0 }}>
-          <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1, fontFamily:"Georgia,'Times New Roman',serif" }}>
-            <span style={{ fontWeight:700, color:C.text }}>अत्यanT</span>
-          </span>
+        <div style={{ height:76, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+            <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
+              <Sparkles size={17} color="#fff" strokeWidth={2.2} />
+            </div>
+            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Mukta','Noto Sans Devanagari',sans-serif" }}>अत्यanT</span>
+          </div>
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
               style={{ width:34, height:34, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}
@@ -915,8 +927,8 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ flex:1, overflowY:"auto", padding:"1rem 0.625rem" }}>
-          {/* ── New Chat Button ── */}
+        <div style={{ flex:1, overflowY:"auto", padding:"4px 12px 1rem" }}>
+          {/* ── New Chat — primary CTA ── */}
           <button
             onClick={() => {
               startNewChatSession();   // rotate to a fresh session id
@@ -929,59 +941,49 @@ export default function App() {
               width: "100%",
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              padding: "10px 14px",
-              borderRadius: 12,
+              justifyContent: "center",
+              gap: 8,
+              height: 46,
+              padding: "0 14px",
+              borderRadius: 13,
               border: "none",
-              background: "transparent",
-              color: C.textSub,
+              background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
+              color: "#fff",
               cursor: "pointer",
               fontFamily: "inherit",
-              fontSize: "0.88rem",
-              fontWeight: 500,
-              transition: "all 0.15s",
-              textAlign: "left",
-              marginBottom: "1.25rem",
+              fontSize: "0.92rem",
+              fontWeight: 600,
+              boxShadow: "0 8px 20px -8px #7567C9",
+              transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
+              marginBottom: "1.5rem",
               boxSizing: "border-box",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.color = C.text;
-              const circle = e.currentTarget.querySelector(".new-chat-circle");
-              if (circle) circle.style.background = C.cardHover;
+              e.currentTarget.style.filter = "brightness(1.08)";
+              e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
+              e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.color = C.textSub;
-              const circle = e.currentTarget.querySelector(".new-chat-circle");
-              if (circle) circle.style.background = C.active;
+              e.currentTarget.style.filter = "none";
+              e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
+              e.currentTarget.style.transform = "none";
             }}
           >
-            <div
-              className="new-chat-circle"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: C.active,
-                border: `1px solid ${C.cardBorder}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "all 0.15s"
-              }}
-            >
-              <Plus size={14} color={C.accentText} strokeWidth={2.5} />
-            </div>
-            <span style={{ fontSize: "0.92rem", fontWeight: 500 }}>New chat</span>
+            <Plus size={17} strokeWidth={2.5} />
+            <span>New chat</span>
           </button>
 
-          <div style={{ marginBottom:"1.75rem" }}>
-            <div style={{ fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.14em", color:C.textMuted, padding:"0 10px", marginBottom:6 }}>WORKSPACE</div>
-            {workspaceItems.map(item => <NavItem key={item.id} item={item} />)}
+          <div style={{ marginBottom:"1.5rem" }}>
+            <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>WORKSPACE</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+              {workspaceItems.map(item => <NavItem key={item.id} item={item} />)}
+            </div>
           </div>
           <div>
-            <div style={{ fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.14em", color:C.textMuted, padding:"0 10px", marginBottom:6 }}>JOURNEY</div>
-            {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
+            <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>JOURNEY</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+              {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
+            </div>
           </div>
         </div>
 
