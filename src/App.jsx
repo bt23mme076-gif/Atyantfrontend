@@ -901,9 +901,9 @@ export default function App() {
 
       {/* ── Sidebar ── */}
       <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
-        <div style={{ height:57, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.25rem", flexShrink:0 }}>
-          <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1 }}>
-            <span style={{ fontWeight:700, color:C.accent }}>Aty</span><span style={{ color:C.text }}>ant</span>
+        <div style={{ height:57, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.5rem", flexShrink:0 }}>
+          <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1, fontFamily:"Georgia,'Times New Roman',serif" }}>
+            <span style={{ fontWeight:700, color:C.text }}>अत्यanT</span>
           </span>
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
@@ -1026,8 +1026,14 @@ export default function App() {
       </div>
 
       {/* ── Main ── */}
-      <div style={{ flex:1, overflow:"hidden", height:"100dvh", display:"flex", flexDirection:"column" }}>
-        <div style={{ height:57, display:"flex", justifyContent:"space-between", alignItems:"center", padding:isMobile ? "0 16px" : "0 24px", background:C.bg, flexShrink:0 }}>
+      <div style={{ position:"relative", flex:1, overflow:"hidden", height:"100dvh", display:"flex", flexDirection:"column" }}>
+        {/* Ambient AI backdrop — spans the toolbar + page so the gradient is one
+            continuous surface (no seam under the header). Home view only. */}
+        {activePage === "ask" && (<>
+          <div className="ai-grid" aria-hidden="true" />
+          <div className="ai-aurora" aria-hidden="true" />
+        </>)}
+        <div style={{ position:"relative", zIndex:1, height:57, display:"flex", justifyContent:"space-between", alignItems:"center", padding:isMobile ? "0 16px" : "0 24px", background:"transparent", flexShrink:0 }}>
           {isMobile ? (
             <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
               style={{ width:36, height:36, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}>
@@ -1044,7 +1050,7 @@ export default function App() {
             </>); })()}
           </div>
         </div>
-        <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>
+        <div style={{ position:"relative", zIndex:1, flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>
           <Suspense fallback={<div style={{ padding:"4rem", textAlign:"center", color:C.textMuted }}><Spin size={26} /></div>}>
             {pages[activePage]}
           </Suspense>
