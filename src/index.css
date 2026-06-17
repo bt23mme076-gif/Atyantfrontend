@@ -41,28 +41,30 @@
 }
 
 .dark {
-  /* App shell palette — dark (original values) */
-  --c-bg:            #13121A;
+  /* App shell palette — dark. Surfaces and borders lifted a step so cards,
+     service rows and booking slots read lighter/clearer; page bg stays dark
+     for contrast. */
+  --c-bg:            #15141D;
   --c-sidebar:       #0D0C12;
-  --c-sidebarBorder: #211F2B;
-  --c-card:          #1A1823;
-  --c-cardHover:     #211E2C;
-  --c-cardBorder:    #322E40;
-  --c-active:        #221E33;
-  --c-activeBorder:  #443A6B;
-  --c-accentSoft:    #7567C922;
-  --c-accentText:    #8E80DB;
-  --c-text:          #ECEAF3;
-  --c-textSub:       #978FAB;
-  --c-textMuted:     #5F576F;
+  --c-sidebarBorder: #262333;
+  --c-card:          #221F2E;
+  --c-cardHover:     #2A2638;
+  --c-cardBorder:    #3D3852;
+  --c-active:        #2A2640;
+  --c-activeBorder:  #4E4378;
+  --c-accentSoft:    #7567C933;
+  --c-accentText:    #A99CEC;
+  --c-text:          #F1EFF7;
+  --c-textSub:       #A79FBA;
+  --c-textMuted:     #6E667E;
 
   /* Legacy vars referenced by App.css */
   --accent:        #7567C9;
-  --accent-bg:     #7567C922;
-  --accent-border: #7567C955;
-  --border:        #322E40;
-  --text-h:        #ECEAF3;
-  --social-bg:     #1A1823;
+  --accent-bg:     #7567C933;
+  --accent-border: #7567C966;
+  --border:        #3D3852;
+  --text-h:        #F1EFF7;
+  --social-bg:     #221F2E;
   --shadow:        0 8px 24px rgba(0, 0, 0, 0.45);
 
   /* Translucent "glass" panel + subtle row hover (theme-aware overlays) */
