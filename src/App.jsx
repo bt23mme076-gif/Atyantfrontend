@@ -86,6 +86,10 @@ function SessionDetailCard({ s, isUpcoming }) {
   const dateStr = date.toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
   const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
   const svc     = SERVICE_META[s.serviceId] || { label: s.topic || "Session", icon: "✨" };
+  // Mentors see the student; students see the mentor. Backend sends counterpart*.
+  const isMentorView    = s.viewerRole === "mentor";
+  const counterpartName = s.counterpartName || s.mentorName || "Your Mentor";
+  const counterpartPic  = s.counterpartPicture || s.mentorProfilePicture;
   const bookingId = (s._id || "").slice(-8).toUpperCase();
   // The meet opens at /?meet=<id> on the current origin. atyant.in only proxies
   // "/" to the product app (a /session/meet/<id> path hits the marketing site),
@@ -105,12 +109,14 @@ function SessionDetailCard({ s, isUpcoming }) {
     <div style={{ background:C.card, border:`1px solid ${isUpcoming ? C.accent+"44" : C.cardBorder}`, borderRadius:18, overflow:"hidden" }}>
       {isUpcoming && <div style={{ height:4, background:"linear-gradient(90deg,#7567C9,#9F7AEA,#3DBE82)" }} />}
       <div style={{ padding:"1.3rem 1.4rem" }}>
-        {/* header */}
+        {/* header — show the other party (student sees mentor, mentor sees student) */}
         <div style={{ display:"flex", alignItems:"center", gap:13 }}>
-          <Avatar src={s.mentorProfilePicture} name={s.mentorName || "Your Mentor"} size={46} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
+          <Avatar src={counterpartPic} name={counterpartName} size={46} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:600, color:C.text, fontSize:"0.95rem" }}>{s.mentorName || "Your Mentor"}</div>
-            <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:2 }}>{svc.icon} {svc.label}</div>
+            <div style={{ fontWeight:600, color:C.text, fontSize:"0.95rem" }}>{counterpartName}</div>
+            <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:2 }}>
+              {isMentorView && <span style={{ color:C.accentText, fontWeight:600 }}>Student · </span>}{svc.icon} {svc.label}
+            </div>
           </div>
           <span style={{ fontSize:"0.7rem", fontWeight:600, padding:"4px 11px", borderRadius:999, background:isUpcoming ? C.accentSoft : C.active, color:isUpcoming ? C.accentText : C.textMuted, border:`1px solid ${isUpcoming ? C.accent+"40" : C.cardBorder}`, whiteSpace:"nowrap" }}>
             {isUpcoming ? "Upcoming" : (s.status === "completed" ? "Completed" : "Past")}

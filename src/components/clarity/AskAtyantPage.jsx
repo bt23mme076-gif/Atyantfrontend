@@ -156,10 +156,12 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const sessionIdRef = useRef(getStoredSessionId());
 
   // Auto-grow a textarea up to a max height, then scroll internally.
+  // Cap lower on mobile so the box never swallows the screen (ChatGPT-style).
   const autoGrow = (el) => {
     if (!el) return;
+    const max = isMobile ? 96 : 140;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+    el.style.height = Math.min(el.scrollHeight, max) + "px";
   };
   // When the query is cleared (e.g. after sending), collapse both inputs back to one line.
   useEffect(() => {
@@ -425,7 +427,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
               onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="Ask Atyant.."
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "1rem", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: 140, overflowY: "auto" }}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
             />
 
             {/* Right: badge + mic + send */}
@@ -733,7 +735,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                 onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Ask Atyant.."
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "0.95rem", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: 140, overflowY: "auto" }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
               />
 
               {/* Right controls */}

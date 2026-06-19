@@ -15,11 +15,20 @@ export default function MeetPage({ sessionId: propSessionId }) {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [needsAuth, setNeedsAuth] = useState(false);
+
     useEffect(() => {
         let cancelled = false;
         const token = localStorage.getItem('atyant_token');
+        // No token at all → don't even hit the API; ask the user to sign in.
+        if (!token) {
+            setNeedsAuth(true);
+            setError('Please sign in to join this session.');
+            setLoading(false);
+            return;
+        }
         axios.post(`${API_BASE}/api/livekit/join/${sessionId}`, {}, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            headers: { Authorization: `Bearer ${token}` },
             withCredentials: true,
         })
             .then(res => {
@@ -27,7 +36,16 @@ export default function MeetPage({ sessionId: propSessionId }) {
             })
             .catch(err => {
                 if (!cancelled) {
-                    setError(err?.response?.data?.error || 'Could not join session');
+                    const status = err?.response?.status;
+                    const data = err?.response?.data || {};
+                    // A 401 means the stored token is missing/expired/invalid for this
+                    // backend — surface a clear re-login prompt instead of a dead end.
+                    if (status === 401) {
+                        setNeedsAuth(true);
+                        setError('Your session has expired. Please sign in again to join.');
+                    } else {
+                        setError(data.error || data.message || 'Could not join session');
+                    }
                     setLoading(false);
                 }
             });
@@ -41,8 +59,16 @@ export default function MeetPage({ sessionId: propSessionId }) {
     );
 
     if (error) return (
-        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', color: '#f87171', fontSize: 18 }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', justifyContent: 'center', background: '#111', color: '#f87171', fontSize: 18, padding: 24, textAlign: 'center' }}>
             {error}
+            {needsAuth && (
+                <button
+                    onClick={() => { window.location.href = `/?redirect=${encodeURIComponent(`/?meet=${sessionId}`)}`; }}
+                    style={{ background: '#7567C9', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+                >
+                    Sign in to join
+                </button>
+            )}
         </div>
     );
 
