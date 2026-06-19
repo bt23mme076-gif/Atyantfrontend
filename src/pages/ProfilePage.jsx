@@ -456,7 +456,7 @@ export default function ProfilePage() {
   const isMentor = user?.role === "mentor";
   const [serviceCatalog, setServiceCatalog] = useState(null); // null = loading
   const [form, setForm] = useState({
-    name: "", college: "", branch: "", year: "", cgpa: "", bio: "", goals: [], skills: [],
+    name: "", phone: "", college: "", branch: "", year: "", cgpa: "", bio: "", goals: [], skills: [],
     expertise: [], topCompanies: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
     primaryDomain: "", companyDomain: "", servicesOffered: []
   });
@@ -471,6 +471,7 @@ export default function ProfilePage() {
     const edu = user.education?.[0] || {};
     setForm({
       name: user.username || "",
+      phone: user.phone || "",
       college: edu.institutionName || edu.institution || "",
       branch: edu.field || "",
       year: edu.year || "",
@@ -492,6 +493,11 @@ export default function ProfilePage() {
   }, [user]);
 
   // Inline validation (non-blocking hints)
+  const cleanFormPhone = (form.phone || "").replace(/\D/g, "").slice(-10);
+  const phoneError = editing && (
+    !form.phone ? "Mobile number is required" :
+    !/^[6-9]\d{9}$/.test(cleanFormPhone) ? "Enter a valid 10-digit Indian mobile number" : ""
+  );
   const cgpaError = editing && form.cgpa && (isNaN(Number(form.cgpa)) || Number(form.cgpa) < 0 || Number(form.cgpa) > 10)
     ? "CGPA should be a number between 0 and 10" : "";
   const linkedinError = editing && form.linkedinProfile && !/linkedin\.com\//i.test(form.linkedinProfile)
@@ -522,9 +528,11 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    if (phoneError || cgpaError || linkedinError) return;
     setSaving(true);
     try {
-      const base = { username: form.name, bio: form.bio, college: form.college, branch: form.branch, year: form.year, cgpa: form.cgpa };
+      const cleanPhone = form.phone.replace(/\D/g, "").slice(-10);
+      const base = { username: form.name, phone: cleanPhone, bio: form.bio, college: form.college, branch: form.branch, year: form.year, cgpa: form.cgpa };
       const payload = isMentor
         ? {
           ...base, expertise: form.expertise, topCompanies: form.topCompanies, specialTags: form.specialTags,
@@ -964,6 +972,7 @@ export default function ProfilePage() {
         {/* About */}
         <Section Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={2}>
           <FieldRow label="DISPLAY NAME" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} editing={editing} placeholder="Your name" />
+          <FieldRow label="MOBILE NUMBER" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} editing={editing} placeholder="9876543210" error={phoneError} />
           <div style={{ marginBottom: 0 }}>
             <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 6 }}>BIO</label>
             {editing

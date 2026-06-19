@@ -66,6 +66,9 @@ export const authAPI = {
 
   me: () => api.get('/api/profile/me'),
 
+  // Set the logged-in user's mobile (mandatory step after Google sign-up).
+  setPhone: (phone) => api.put('/api/profile/phone', { phone }),
+
   forgotPassword: (email) =>
     api.post('/api/auth/forgot-password', { email }),
 

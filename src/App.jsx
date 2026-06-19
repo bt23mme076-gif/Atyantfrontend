@@ -580,12 +580,12 @@ function AuthModal({ onClose, onAuthed }) {
         </>}
 
 <div style={{ marginBottom: "1rem" }}>
-  <label style={lbl}>EMAIL</label>
+  <label style={lbl}>{mode === "login" ? "EMAIL OR MOBILE NUMBER" : "EMAIL"}</label>
 
   <input
     value={email}
     onChange={e => setEmail(e.target.value)}
-    placeholder="you@college.ac.in"
+    placeholder={mode === "login" ? "you@college.ac.in or 9876543210" : "you@college.ac.in"}
     style={inp}
   />
 </div>
@@ -756,6 +756,65 @@ function AuthModal({ onClose, onAuthed }) {
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
+// ─── Mandatory mobile-number gate ──────────────────────────────────────────────
+// Google sign-up gives us no phone number, so any logged-in user who still has
+// none is blocked behind this until they add a valid 10-digit Indian mobile.
+// Email/password signups already provide a phone, so they never see this.
+function RequirePhoneGate() {
+  const { user, setUser } = useAuth();
+  const [phone,   setPhone]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  if (!user || user.phone) return null;
+
+  const gInp = { width:"100%", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"12px 14px", color:C.text, fontSize:"1rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
+
+  const submit = async () => {
+    setError("");
+    const clean = phone.replace(/\D/g, "").slice(-10);
+    if (!/^[6-9]\d{9}$/.test(clean)) { setError("Enter a valid 10-digit Indian mobile number"); return; }
+    setLoading(true);
+    try {
+      const res = await authAPI.setPhone(clean);
+      if (res?.user) setUser(res.user);
+    } catch (e) {
+      setError(e?.data?.message || e?.message || "Couldn't save. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:100000, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.25rem" }}>
+      <div style={{ width:"100%", maxWidth:380, background:C.bg, border:`1px solid ${C.cardBorder}`, borderRadius:16, padding:"1.75rem" }}>
+        <h2 style={{ margin:"0 0 6px", color:C.text, fontSize:"1.2rem", fontWeight:700 }}>One last step</h2>
+        <p style={{ margin:"0 0 18px", color:C.textSub, fontSize:"0.9rem", lineHeight:1.5 }}>
+          Add your mobile number so mentors can reach you for sessions.
+        </p>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") submit(); }}
+          placeholder="10-digit mobile number"
+          autoFocus
+          style={gInp}
+        />
+        {error && <div style={{ color:"#ef4444", fontSize:"0.82rem", marginTop:8 }}>{error}</div>}
+        <button
+          onClick={submit}
+          disabled={loading}
+          style={{ marginTop:16, width:"100%", background:C.accent, color:"#fff", border:"none", borderRadius:9, padding:"12px", fontSize:"0.95rem", fontWeight:600, cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}
+        >
+          {loading ? "Saving…" : "Save & continue"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const { user, loading, logout } = useAuth();
   // After Google OAuth the backend redirects back with ?token=… — land such
@@ -1066,6 +1125,9 @@ export default function App() {
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("profile")} />}
+
+      {/* Mandatory mobile capture for phone-less (e.g. Google) accounts */}
+      <RequirePhoneGate />
 
       {/* Global toast host — booking/payment/chat feedback all render here */}
       <ToastContainer position="top-center" autoClose={3500} limit={3} newestOnTop pauseOnHover transition={Slide} theme="colored" style={{ zIndex: 99999 }} />
