@@ -11,8 +11,8 @@ function getInitialTheme() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "light" || saved === "dark") return saved;
   } catch { /* ignore */ }
-  // Default to the current look (dark). Flip the next line to respect OS instead.
-  return "dark";
+  // Default to light mode.
+  return "light";
 }
 
 /** Apply the theme to <html> so both Tailwind `dark:` variants and our CSS vars react. */

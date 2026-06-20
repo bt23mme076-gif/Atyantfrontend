@@ -856,8 +856,11 @@ function RequirePhoneGate() {
     <div style={{ position:"fixed", inset:0, zIndex:100000, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.25rem" }}>
       <div style={{ width:"100%", maxWidth:380, background:C.bg, border:`1px solid ${C.cardBorder}`, borderRadius:16, padding:"1.75rem" }}>
         <h2 style={{ margin:"0 0 6px", color:C.text, fontSize:"1.2rem", fontWeight:700 }}>One last step</h2>
-        <p style={{ margin:"0 0 18px", color:C.textSub, fontSize:"0.9rem", lineHeight:1.5 }}>
-          Add your mobile number so mentors can reach you for sessions.
+        <p style={{ margin:"0 0 6px", color:C.textSub, fontSize:"0.9rem", lineHeight:1.5 }}>
+          Add your number so we can reach you when you have a session.
+        </p>
+        <p style={{ margin:"0 0 18px", color:C.textMuted, fontSize:"0.78rem", lineHeight:1.5, display:"flex", alignItems:"center", gap:5 }}>
+          🔒 We will never spam you. Only session-related messages, promise.
         </p>
         <input
           type="tel"

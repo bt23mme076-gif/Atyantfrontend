@@ -5,9 +5,19 @@ import { profileAPI, mentorAPI } from "../api";
 import Avatar from "../components/Avatar";
 
 const C = {
-  bg: "#13121A", card: "#1A1823", cardHover: "#211E2C", cardBorder: "#322E40",
-  active: "#221E33", activeBorder: "#443A6B", accent: "#7567C9", accentSoft: "#7567C922",
-  accentText: "#8E80DB", text: "#ECEAF3", textSub: "#978FAB", textMuted: "#5F576F", green: "#3DBE82",
+  bg:          "var(--c-bg)",
+  card:        "var(--c-card)",
+  cardHover:   "var(--c-cardHover)",
+  cardBorder:  "var(--c-cardBorder)",
+  active:      "var(--c-active)",
+  activeBorder:"var(--c-activeBorder)",
+  accent:      "#7567C9",
+  accentSoft:  "var(--c-accentSoft)",
+  accentText:  "var(--c-accentText)",
+  text:        "var(--c-text)",
+  textSub:     "var(--c-textSub)",
+  textMuted:   "var(--c-textMuted)",
+  green:       "#3DBE82",
 };
 
 const SPECIAL_TAGS = [
@@ -254,7 +264,7 @@ export default function MentorOnboard({ onDone }) {
             const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
             window.location.href = `${apiBase}/api/auth/google`;
           }}
-          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#fff", border: "1px solid #ddd", borderRadius: 10, padding: "11px 16px", fontSize: "0.9rem", fontWeight: 600, color: "#1a1a1a", cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "11px 16px", fontSize: "0.9rem", fontWeight: 600, color: C.text, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
           Continue with Google
@@ -294,7 +304,7 @@ export default function MentorOnboard({ onDone }) {
                   onChange={e => setLinkedinUrl(e.target.value)}
                 />
                 {linkedinUrl.trim() ? (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, background: "#1a2a1f", border: "1px solid #3DBE8233", borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8233", borderRadius: 8, padding: "10px 12px" }}>
                     <Check size={14} color={C.green} style={{ marginTop: 1, flexShrink: 0 }} />
                     <span style={{ color: C.green, fontSize: "0.8rem", lineHeight: 1.5 }}>
                       LinkedIn URL added — your name, college, companies and skills will be auto-imported after signup.
@@ -396,7 +406,7 @@ export default function MentorOnboard({ onDone }) {
         </div>
 
         {linkedinImported && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#0f2a1e", border: "1px solid #3DBE8244", borderRadius: 9, padding: "9px 12px", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8244", borderRadius: 9, padding: "9px 12px", marginBottom: 16 }}>
             <Check size={14} color={C.green} />
             <span style={{ color: C.green, fontSize: "0.82rem", fontWeight: 500 }}>Imported from LinkedIn — review your details below</span>
           </div>
@@ -525,7 +535,7 @@ const chip = (on) => ({
   fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
 });
 const Field = ({ label, children }) => (<div><span style={lbl}>{label}</span>{children}</div>);
-const Err = ({ msg }) => (<div style={{ background: "#3a1a1f", border: "1px solid #f8717155", color: "#fca5a5", borderRadius: 9, padding: "9px 12px", fontSize: "0.82rem", marginBottom: 14 }}>{msg}</div>);
+const Err = ({ msg }) => (<div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid #f8717155", color: "#e05555", borderRadius: 9, padding: "9px 12px", fontSize: "0.82rem", marginBottom: 14 }}>{msg}</div>);
 
 function Header({ step }) {
   const steps = [
