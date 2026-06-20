@@ -886,9 +886,16 @@ export default function App() {
   const { user, loading, logout } = useAuth();
   // After Google OAuth the backend redirects back with ?token=… — land such
   // users on their profile (matches the email/password login behaviour).
-  const [activePage,   setActivePage]   = useState(
-    () => new URLSearchParams(window.location.search).get("token") ? "profile" : "ask"
-  );
+  const [activePage,   setActivePage]   = useState(() => {
+    const hasToken = new URLSearchParams(window.location.search).get("token");
+    if (hasToken) {
+      // If mentor intent was set before Google OAuth redirect, resume onboarding
+      const mentorIntent = sessionStorage.getItem("mentor_intent");
+      if (mentorIntent) { sessionStorage.removeItem("mentor_intent"); return "mentor-onboard"; }
+      return "profile";
+    }
+    return "ask";
+  });
   const [prevPage,     setPrevPage]     = useState("ask");  // page to return to from Upgrade
   const [showAuth,     setShowAuth]     = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
@@ -953,7 +960,7 @@ export default function App() {
     // Devanagari + Latin face for the अत्यanT wordmark.
     const devFont = document.createElement("link");
     devFont.rel  = "stylesheet";
-    devFont.href = "https://fonts.googleapis.com/css2?family=Mukta:wght@600;700&display=swap";
+    devFont.href = "https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@600;700&display=swap";
     document.head.appendChild(devFont);
     document.body.style.margin  = "0";
     document.body.style.padding = "0";
@@ -1046,7 +1053,7 @@ export default function App() {
             <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
               <Sparkles size={17} color="#fff" strokeWidth={2.2} />
             </div>
-            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Mukta','Noto Sans Devanagari',sans-serif" }}>अत्यanT</span>
+            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
           </div>
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"

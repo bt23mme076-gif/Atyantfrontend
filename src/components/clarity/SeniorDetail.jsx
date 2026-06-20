@@ -101,11 +101,13 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
 
             {/* Trust badges row */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 999, background: "rgba(61,190,130,0.12)", color: T.green, border: `1px solid ${T.green}35`, fontFamily: "Inter, sans-serif" }}
-              >
-                <BadgeCheck size={11} /> Verified Mentor
-              </span>
+              {(mentor.isVerified || (mentor.completionPct ?? 0) >= 80) && (
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 999, background: "rgba(61,190,130,0.12)", color: T.green, border: `1px solid ${T.green}35`, fontFamily: "Inter, sans-serif" }}
+                >
+                  <BadgeCheck size={11} /> Verified Mentor
+                </span>
+              )}
               {linkedinUrl && (
                 <a
                   href={linkedinUrl.startsWith("http") ? linkedinUrl : `https://${linkedinUrl}`}

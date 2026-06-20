@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, Sparkles, FileText, Plus as PlusIcon, Trash2, Check, Pencil } from "lucide-react";
+import { X, Loader2, Sparkles, FileText, Plus as PlusIcon, Trash2, Check, Pencil, Eye, EyeOff } from "lucide-react";
 import { mentorAPI } from "../api";
 
 // Theme palette — maps to CSS vars defined in index.css (light + dark).
@@ -39,8 +39,9 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
       actionableSteps:   Array.isArray(ac.actionableSteps) ? ac.actionableSteps : [],
     };
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState("");
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState("");
+  const [previewMode, setPreview] = useState(false);
   const [story, setStory]       = useState(initialStory);  // free-text for AI draft (pre-filled)
   const [generating, setGenerating] = useState(false);
   const autoRan = useRef(false);
@@ -111,11 +112,118 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
 
   return (
     <div>
+      {/* Preview toggle */}
+      <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:"0.75rem" }}>
+        <button
+          type="button"
+          onClick={() => setPreview(p => !p)}
+          style={{ display:"flex", alignItems:"center", gap:6, background: previewMode ? C.accent : C.active, border:`1px solid ${previewMode ? C.accent : C.cardBorder}`, borderRadius:8, padding:"6px 14px", color: previewMode ? "#fff" : C.accentText, fontSize:"0.78rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
+        >
+          {previewMode ? <EyeOff size={13}/> : <Eye size={13}/>}
+          {previewMode ? "Back to edit" : "Preview as student"}
+        </button>
+      </div>
+
+      {/* ── Student-facing preview ── */}
+      {previewMode && (
+        <div style={{ border:`1px solid ${C.cardBorder}`, borderRadius:14, overflow:"hidden", marginBottom:"1.25rem" }}>
+          {/* Label */}
+          <div style={{ background:`${C.accent}18`, borderBottom:`1px solid ${C.accent}30`, padding:"7px 14px", display:"flex", alignItems:"center", gap:6 }}>
+            <Eye size={12} color={C.accentText}/>
+            <span style={{ fontSize:"0.7rem", fontWeight:700, color:C.accentText, letterSpacing:"0.06em" }}>THIS IS WHAT STUDENTS SEE</span>
+          </div>
+
+          <div style={{ padding:"16px 14px", display:"flex", flexDirection:"column", gap:14 }}>
+
+            {/* Headline answer */}
+            {c.mainAnswer && (
+              <div style={{ background:C.card, borderRadius:10, padding:"12px 14px", border:`1px solid ${C.cardBorder}` }}>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, marginBottom:6 }}>HEADLINE ANSWER</div>
+                <p style={{ fontSize:"0.9rem", fontWeight:600, color:C.text, lineHeight:1.55, margin:0 }}>{c.mainAnswer}</p>
+              </div>
+            )}
+
+            {/* Their journey / situation */}
+            {c.situation && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, marginBottom:6 }}>THEIR JOURNEY</div>
+                <p style={{ fontSize:"0.84rem", color:C.textSub, lineHeight:1.8, margin:0 }}>{c.situation}</p>
+              </div>
+            )}
+
+            {/* What worked */}
+            {c.whatWorked && (
+              <div style={{ background:`#3DBE820D`, border:`1px solid #3DBE8230`, borderRadius:10, padding:"11px 14px", display:"flex", gap:10 }}>
+                <div style={{ width:20, height:20, borderRadius:"50%", background:"#3DBE8228", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>
+                  <span style={{ color:"#3DBE82", fontSize:"0.65rem", fontWeight:700 }}>✓</span>
+                </div>
+                <div>
+                  <div style={{ fontSize:"0.66rem", fontWeight:700, color:"#3DBE82", marginBottom:4 }}>WHAT WORKED</div>
+                  <p style={{ fontSize:"0.84rem", color:C.textSub, lineHeight:1.6, margin:0 }}>{c.whatWorked}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Timeline */}
+            {c.timeline && (
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted }}>TIMELINE</span>
+                <span style={{ background:C.active, borderRadius:999, padding:"3px 10px", fontSize:"0.78rem", color:C.textSub, border:`1px solid ${C.cardBorder}` }}>{c.timeline}</span>
+              </div>
+            )}
+
+            {/* Action steps */}
+            {c.actionableSteps?.length > 0 && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, marginBottom:8 }}>ACTION PLAN</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+                  {c.actionableSteps.map((s, i) => (
+                    <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                      <span style={{ flexShrink:0, width:22, height:22, borderRadius:"50%", background:C.accentSoft, color:C.accentText, fontSize:"0.7rem", fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center" }}>{i+1}</span>
+                      <div>
+                        {s.step && <div style={{ fontSize:"0.8rem", fontWeight:600, color:C.text, marginBottom:2 }}>{s.step}</div>}
+                        <div style={{ fontSize:"0.8rem", color:C.textSub, lineHeight:1.5 }}>{s.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Key mistakes */}
+            {c.keyMistakes?.length > 0 && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, marginBottom:8 }}>MISTAKES TO AVOID</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                  {c.keyMistakes.map((m, i) => (
+                    <div key={i} style={{ display:"flex", gap:8, fontSize:"0.82rem", color:C.textSub }}>
+                      <span style={{ color:"#f87171", flexShrink:0 }}>✕</span>{m}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* What I'd do differently */}
+            {c.differentApproach && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.1em", color:C.textMuted, marginBottom:6 }}>IF I DID IT TODAY</div>
+                <p style={{ fontSize:"0.84rem", color:C.textSub, lineHeight:1.6, margin:0 }}>{c.differentApproach}</p>
+              </div>
+            )}
+
+            {!c.mainAnswer && !c.situation && (
+              <p style={{ fontSize:"0.82rem", color:C.textMuted, textAlign:"center", padding:"1rem 0" }}>Fill some sections in the editor — they'll appear here.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Honest-intent note — reminds mentors this is real, matched & tracked */}
       <div style={{ display:"flex", alignItems:"flex-start", gap:9, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:10, padding:"11px 13px", marginBottom:"1.25rem" }}>
         <span style={{ fontSize:"1rem", lineHeight:1, marginTop:1 }}>✍️</span>
         <div style={{ fontSize:"0.8rem", color:C.textSub, lineHeight:1.6 }}>
-          This is <strong style={{ color:C.text }}>your real experience</strong> — juniors get matched to you based on it, and we track how your journey actually helps them. So keep it <strong style={{ color:C.text }}>honest and real</strong>. No need to sound perfect — the genuine struggles, mistakes and small wins are exactly what students connect with. 💛
+          This is <strong style={{ color:C.text }}>your journey</strong> — students read it, connect with your background, and book a session with you. The more real it is, the more they trust you. <strong style={{ color:C.text }}>Your struggles, your path, your wins</strong> — that's what makes someone say "this senior gets me." We also use it to track how your guidance actually helps students over time. 💛
         </div>
       </div>
 
@@ -125,8 +233,8 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
           <div style={{ display:"flex", alignItems:"flex-start", gap:9 }}>
             <Sparkles size={15} style={{ color:C.green, flexShrink:0, marginTop:1 }} />
             <div style={{ fontSize:"0.8rem", color:C.text, lineHeight:1.5 }}>
-              <strong>AI-drafted from your story — review before it goes live.</strong>
-              <span style={{ color:C.textMuted }}> Edit any section below, or keep it as-is.</span>
+              <strong>We've drafted your journey card — review before students see it.</strong>
+              <span style={{ color:C.textMuted }}> Students will read this to decide if they want to book a session with you. Edit any section, or keep it as-is.</span>
             </div>
           </div>
           {onConfirm && (
@@ -148,8 +256,8 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
         </div>
         <p style={{ fontSize:"0.76rem", color:C.textMuted, margin:"0 0 8px", lineHeight:1.5 }}>
           {generating
-            ? "Building every section from your profile — one sec."
-            : "We've drafted the card below from your profile. Edit the story and regenerate, or just tweak the sections and publish."}
+            ? "Writing your journey card — one sec."
+            : "Your journey card is what students read before booking a session with you. Add more to your story below and regenerate, or just edit the sections directly and publish."}
         </p>
         <textarea rows={3} value={story} onChange={e => setStory(e.target.value)} style={ta}
           placeholder="e.g. I was a Chemical branch student with no CS background. I cold-mailed 40 startups, built 2 projects in DSA + ML, and converted an internship in 3 months. Biggest mistake was studying in patches…" />
@@ -159,8 +267,17 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
         </button>
       </div>
 
-      <label style={{ ...lbl, marginTop:0 }}>HEADLINE ANSWER</label>
-      <textarea rows={2} value={c.mainAnswer} onChange={e => set("mainAnswer", e.target.value)} style={ta} placeholder="The one-line answer students see first" />
+      <div style={{ background:"#f871711a", border:"1px solid #f8717144", borderRadius:10, padding:"10px 13px", marginBottom:10 }}>
+        <div style={{ fontSize:"0.72rem", fontWeight:800, color:"#f87171", letterSpacing:"0.08em", marginBottom:5 }}>
+          ⚡ HEADLINE — what students see first · most important field
+        </div>
+        <div style={{ fontSize:"0.72rem", lineHeight:1.6 }}>
+          <span style={{ color:C.textMuted }}>Write it as your transformation: </span>
+          <span style={{ color:"#f87171", fontWeight:700 }}>"[Where you started] → [What you cracked]"</span><br/>
+          <span style={{ color:"#f87171", opacity:0.8 }}>e.g. "Failed 3 campus drives, cracked Amazon off-campus in final year" · "Metallurgy → IIM research intern without CAT" · "Zero DSA to Microsoft in 8 months from NIT Raipur"</span>
+        </div>
+      </div>
+      <textarea rows={2} value={c.mainAnswer} onChange={e => set("mainAnswer", e.target.value)} style={ta} placeholder='e.g. "Core branch, no coding background → cracked FAANG SDE off-campus in 6 months"' />
 
       <label style={lbl}>THE SITUATION</label>
       <textarea rows={3} value={c.situation} onChange={e => set("situation", e.target.value)} style={ta} placeholder="What was your situation?" />
