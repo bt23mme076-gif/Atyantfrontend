@@ -36,7 +36,7 @@ const BookingStyles = () => (
     .bk-in { animation: bkFadeIn .25s ease-out both; }
     .bk-svc { transition: all .15s ease; cursor: pointer; }
     .bk-svc:hover { border-color:#7567C9 !important; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(117,103,201,0.18); }
-    .bk-svc.selected { border-color:#7567C9 !important; background: rgba(117,103,201,0.08) !important; }
+    .bk-svc.selected { border-color:#7567C9 !important; background: rgba(117,103,201,0.18) !important; }
     .bk-day { transition: all .12s ease; }
     .bk-day:not(:disabled):hover { background: rgba(117,103,201,0.14) !important; color: var(--c-accentText) !important; }
     .bk-slot { transition: all .12s ease; cursor: pointer; }

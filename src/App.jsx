@@ -24,7 +24,13 @@ import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth }    from "./context/AuthContext";
 import { ThemeToggle } from "./context/ThemeContext";
-import { sessionAPI, savedAnswerAPI, roadmapAPI, servicesAPI } from "./api";
+import {
+  sessionAPI,
+  savedAnswerAPI,
+  roadmapAPI,
+  servicesAPI,
+  authAPI
+} from "./api";
 import BookingModal from "./components/BookingModal";
 
 // Theme palette. Each value maps to a CSS variable defined in index.css for both
@@ -80,8 +86,18 @@ function SessionDetailCard({ s, isUpcoming }) {
   const dateStr = date.toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
   const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
   const svc     = SERVICE_META[s.serviceId] || { label: s.topic || "Session", icon: "✨" };
+  // Mentors see the student; students see the mentor. Backend sends counterpart*.
+  const isMentorView    = s.viewerRole === "mentor";
+  const counterpartName = s.counterpartName || s.mentorName || "Your Mentor";
+  const counterpartPic  = s.counterpartPicture || s.mentorProfilePicture;
   const bookingId = (s._id || "").slice(-8).toUpperCase();
-  const hasMeet   = !!s.meetingLink;
+  // The meet opens at /?meet=<id> on the current origin. atyant.in only proxies
+  // "/" to the product app (a /session/meet/<id> path hits the marketing site),
+  // and serving it same-origin keeps the localStorage auth token available.
+  // The backend ensures the LiveKit room idempotently on join, so we build the
+  // link from the id directly rather than relying on a saved meetingLink.
+  const meetUrl   = s._id ? `/?meet=${s._id}` : "";
+  const hasMeet   = !!meetUrl;
 
   const copyId = () => {
     navigator.clipboard?.writeText(bookingId);
@@ -93,12 +109,14 @@ function SessionDetailCard({ s, isUpcoming }) {
     <div style={{ background:C.card, border:`1px solid ${isUpcoming ? C.accent+"44" : C.cardBorder}`, borderRadius:18, overflow:"hidden" }}>
       {isUpcoming && <div style={{ height:4, background:"linear-gradient(90deg,#7567C9,#9F7AEA,#3DBE82)" }} />}
       <div style={{ padding:"1.3rem 1.4rem" }}>
-        {/* header */}
+        {/* header — show the other party (student sees mentor, mentor sees student) */}
         <div style={{ display:"flex", alignItems:"center", gap:13 }}>
-          <Avatar src={s.mentorProfilePicture} name={s.mentorName || "Your Mentor"} size={46} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
+          <Avatar src={counterpartPic} name={counterpartName} size={46} bg="7567c9" style={{ border:`1.5px solid ${isUpcoming ? C.accent+"60" : C.activeBorder}` }} />
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:600, color:C.text, fontSize:"0.95rem" }}>{s.mentorName || "Your Mentor"}</div>
-            <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:2 }}>{svc.icon} {svc.label}</div>
+            <div style={{ fontWeight:600, color:C.text, fontSize:"0.95rem" }}>{counterpartName}</div>
+            <div style={{ fontSize:"0.78rem", color:C.textSub, marginTop:2 }}>
+              {isMentorView && <span style={{ color:C.accentText, fontWeight:600 }}>Student · </span>}{svc.icon} {svc.label}
+            </div>
           </div>
           <span style={{ fontSize:"0.7rem", fontWeight:600, padding:"4px 11px", borderRadius:999, background:isUpcoming ? C.accentSoft : C.active, color:isUpcoming ? C.accentText : C.textMuted, border:`1px solid ${isUpcoming ? C.accent+"40" : C.cardBorder}`, whiteSpace:"nowrap" }}>
             {isUpcoming ? "Upcoming" : (s.status === "completed" ? "Completed" : "Past")}
@@ -122,7 +140,7 @@ function SessionDetailCard({ s, isUpcoming }) {
 
         {/* meet CTA */}
         {isUpcoming && (hasMeet ? (
-          <a href={s.meetingLink} target="_blank" rel="noreferrer"
+          <a href={meetUrl} target="_blank" rel="noreferrer"
              style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9" }}>
             <Video size={17} /> Join Session <ExternalLink size={13} style={{ opacity:0.85 }} />
           </a>
@@ -134,7 +152,7 @@ function SessionDetailCard({ s, isUpcoming }) {
 
         {/* raw link (selectable) */}
         {hasMeet && (
-          <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{s.meetingLink}</div>
+          <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{meetUrl}</div>
         )}
       </div>
     </div>
@@ -373,36 +391,93 @@ function AuthModal({ onClose, onAuthed }) {
   const [mode,     setMode]     = useState("login");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
+
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  
   const [username, setUsername] = useState("");
   const [phone,    setPhone]    = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
+  const [success,  setSuccess]  = useState("");
 
   const handle = async () => {
-    setError(""); setLoading(true);
-    try {
-      if (mode==="login") await login(email, password);
-      else {
-        // Normalize phone → bare 10-digit Indian number (strip +91 / spaces / leading 0).
-        const cleanPhone = phone.replace(/\D/g, "").slice(-10);
-        if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-          setError("Enter a valid 10-digit Indian mobile number");
-          setLoading(false);
-          return;
-        }
-        // Carry referral credit if someone landed via a shared profile link
-        const referredBy = sessionStorage.getItem("referredBy") || undefined;
-        await signup(username, email, password, cleanPhone, undefined, referredBy);
-        sessionStorage.removeItem("referredBy");
-      }
+  setError("");
+  setSuccess("");
+  setLoading(true);
+
+  try {
+    if (mode === "login") {
+      await login(email, password);
+
       onClose();
-      onAuthed?.();   // land on home after a successful login/signup
-    } catch (e) {
-      setError(e.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+      onAuthed?.();
+
+    } else if (mode === "signup") {
+      const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        setError("Enter a valid 10-digit Indian mobile number");
+        setLoading(false);
+        return;
+      }
+
+      const referredBy =
+        sessionStorage.getItem("referredBy") || undefined;
+
+      await signup(
+        username,
+        email,
+        password,
+        cleanPhone,
+        undefined,
+        referredBy
+      );
+
+      sessionStorage.removeItem("referredBy");
+
+      onClose();
+      onAuthed?.();
+
+    } else if (mode === "forgot") {
+    const response = await authAPI.forgotPassword(email);
+
+    setSuccess(
+      response.message ||
+      "If an account exists with this email, an OTP has been sent."
+    );
+
+    setMode("verify");
+
+    } else if (mode === "verify") {
+      await authAPI.verifyResetCode(email, otp);
+
+      setMode("reset");
+
+    } else if (mode === "reset") {
+      await authAPI.resetPassword(email, otp, newPassword)
+
+      setSuccess(
+        "Password reset successful. Please sign in with your new password."
+      );
+
+      setPassword("");
+      setOtp("");
+      setNewPassword("");
+
+      setTimeout(() => {
+        setMode("login");
+        setSuccess("");
+      }, 2000);
     }
-  };
+
+  } catch (e) {
+    setError(e.message || "Something went wrong");
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   const inp = { width:"100%", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"10px 14px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
   const lbl = { fontSize:"0.75rem", color:C.textSub, display:"block", marginBottom:6, letterSpacing:"0.05em" };
@@ -418,48 +493,80 @@ function AuthModal({ onClose, onAuthed }) {
 
         <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:"1.5rem" }}>
           <div style={{ width:28, height:28, borderRadius:7, background:C.accent, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:"#fff", fontWeight:700 }}>A</div>
-          <span style={{ fontWeight:600, fontSize:"1rem", color:C.text }}>{mode==="login" ? "Sign in to Atyant" : "Create your account"}</span>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: "1rem",
+              color: C.text
+            }}
+          >
+            {
+              mode === "login"
+                ? "Sign in to Atyant"
+                : mode === "signup"
+                ? "Create your account"
+                : mode === "forgot"
+                ? "Forgot Password"
+                : mode === "verify"
+                ? "Verify OTP"
+                : "Reset Password"
+            }
+          </span>
         </div>
 
-        {/* Google Sign-in Button */}
-        <button onClick={() => {
-          const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
-          window.location.href = `${apiBase}/api/auth/google`;
-        }}
-          style={{
-            width: "100%",
-            background: C.active,
-            border: `1px solid ${C.cardBorder}`,
-            borderRadius: 10,
-            padding: "10px 14px",
-            color: C.text,
-            fontSize: "0.88rem",
-            fontWeight: 500,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            marginBottom: "1rem",
-            transition: "all 0.15s"
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.borderColor = C.accent + "66"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = C.active; e.currentTarget.style.borderColor = C.cardBorder; }}>
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-          </svg>
-          Continue with Google
-        </button>
+{(mode === "login" || mode === "signup") && (
+  <>
+    {/* Google Sign-in Button */}
+    <button 
+      onClick={() => {
+        const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        window.location.href = `${apiBase}/api/auth/google`;
+      }}
+      style={{
+        width: "100%",
+        background: C.active,
+        border: `1px solid ${C.cardBorder}`,
+        borderRadius: 10,
+        padding: "10px 14px",
+        color: C.text,
+        fontSize: "0.88rem",
+        fontWeight: 500,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        marginBottom: "1rem",
+        transition: "all 0.15s"
+      }}
+      onMouseEnter={e => { 
+        e.currentTarget.style.background = C.cardHover; 
+        e.currentTarget.style.borderColor = C.accent + "66"; 
+      }}
+      onMouseLeave={e => { 
+        e.currentTarget.style.background = C.active; 
+        e.currentTarget.style.borderColor = C.cardBorder; 
+      }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1rem" }}>
-          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
-          <span style={{ fontSize: "0.72rem", color: C.textMuted, fontWeight: 500 }}>or</span>
-          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
-        </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1rem" }}>
+      <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+      <span style={{ fontSize: "0.72rem", color: C.textMuted, fontWeight: 500 }}>
+        or
+      </span>
+      <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+    </div>
+  </>
+)}
 
         {mode==="signup" && <>
           <div style={{ marginBottom:"1rem" }}>
@@ -472,38 +579,249 @@ function AuthModal({ onClose, onAuthed }) {
           </div>
         </>}
 
-        <div style={{ marginBottom:"1rem" }}>
-          <label style={lbl}>EMAIL</label>
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@college.ac.in" style={inp} />
-        </div>
-        <div style={{ marginBottom:"1.5rem" }}>
-          <label style={lbl}>PASSWORD</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={inp}
-            onKeyDown={e => e.key==="Enter" && handle()} />
-        </div>
+<div style={{ marginBottom: "1rem" }}>
+  <label style={lbl}>{mode === "login" ? "EMAIL OR MOBILE NUMBER" : "EMAIL"}</label>
+
+  <input
+    value={email}
+    onChange={e => setEmail(e.target.value)}
+    placeholder={mode === "login" ? "you@college.ac.in or 9876543210" : "you@college.ac.in"}
+    style={inp}
+  />
+</div>
+
+    {(mode === "login" || mode === "signup") && (
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label style={lbl}>PASSWORD</label>
+
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="••••••••"
+          style={inp}
+          onKeyDown={e => e.key === "Enter" && handle()}
+        />
+      </div>
+    )}
+
+    {mode === "verify" && (
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label style={lbl}>OTP CODE</label>
+
+        <input
+          value={otp}
+          onChange={e => setOtp(e.target.value)}
+          placeholder="123456"
+          style={inp}
+        />
+      </div>
+    )}
+
+    {mode === "reset" && (
+      <div style={{ marginBottom: "1.5rem" }}>
+        <label style={lbl}>NEW PASSWORD</label>
+
+        <input
+          type="password"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+          placeholder="••••••••"
+          style={inp}
+        />
+      </div>
+    )}
+
+    {mode === "login" && (
+      <div
+        style={{
+          textAlign: "right",
+          marginBottom: "1rem"
+        }}
+      >
+        <span
+          style={{
+            color: C.accentText,
+            cursor: "pointer",
+            fontSize: "0.8rem"
+          }}
+          onClick={() => {
+            setMode("forgot");
+            setError("");
+          }}
+        >
+          Forgot Password?
+        </span>
+      </div>
+    )}
 
         {error && <p style={{ color:"#f87171", fontSize:"0.82rem", marginBottom:"1rem" }}>{error}</p>}
-
-        <button onClick={handle} disabled={loading}
-          style={{ width:"100%", background:C.accent, border:"none", borderRadius:10, padding:11, color:"#fff", fontSize:"0.92rem", fontWeight:600, cursor:loading ? "not-allowed" : "pointer", fontFamily:"inherit", opacity:loading ? 0.7 : 1, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-          {loading ? <><Spin size={16}/> {mode==="login" ? "Signing in…" : "Creating account…"}</> : mode==="login" ? "Sign in →" : "Create account →"}
+        {success && (
+          <p
+            style={{
+              color: "#22c55e",
+              fontSize: "0.82rem",
+              marginBottom: "1rem",
+              background: "rgba(34,197,94,0.1)",
+              border: "1px solid rgba(34,197,94,0.3)",
+              padding: "10px",
+              borderRadius: "8px"
+            }}
+          >
+            ✓ {success}
+          </p>
+        )}        
+        <button 
+          onClick={handle} 
+          disabled={loading}
+          style={{ 
+            width: "100%", 
+            background: C.accent, 
+            border: "none", 
+            borderRadius: 10, 
+            padding: 11, 
+            color: "#fff", 
+            fontSize: "0.92rem", 
+            fontWeight: 600, 
+            cursor: loading ? "not-allowed" : "pointer", 
+            fontFamily: "inherit", 
+            opacity: loading ? 0.7 : 1, 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            gap: 8 
+          }}
+        >
+          {loading ? (
+            <>
+              <Spin size={16} />{" "}
+              {mode === "login"
+                ? "Signing in…"
+                : mode === "signup"
+                ? "Creating account…"
+                : mode === "forgot"
+                ? "Sending OTP…"
+                : mode === "verify"
+                ? "Verifying OTP…"
+                : "Resetting password…"}
+            </>
+          ) : (
+            mode === "login"
+              ? "Sign in →"
+              : mode === "signup"
+              ? "Create account →"
+              : mode === "forgot"
+              ? "Send OTP →"
+              : mode === "verify"
+              ? "Verify OTP →"
+              : "Reset Password →"
+          )}
         </button>
 
-        <p style={{ textAlign:"center", fontSize:"0.78rem", color:C.textMuted, marginTop:"1.25rem", marginBottom:0 }}>
-          {mode==="login" ? "Don't have an account? " : "Already have an account? "}
-          <span style={{ color:C.accentText, cursor:"pointer" }} onClick={() => { setMode(mode==="login" ? "signup" : "login"); setError(""); }}>
-            {mode==="login" ? "Sign up" : "Sign in"}
+      <p style={{ textAlign: "center", fontSize: "0.78rem", color: C.textMuted, marginTop: "1.25rem", marginBottom: 0 }}>
+        {mode === "login" || mode === "signup" ? (
+          <>
+            {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+            <span
+              style={{
+                color: C.accentText,
+                cursor: "pointer"
+              }}
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setError("");
+              }}
+            >
+              {mode === "login" ? "Sign up" : "Sign in"}
+            </span>
+          </>
+        ) : (
+          <span
+            style={{
+              color: C.accentText,
+              cursor: "pointer"
+            }}
+            onClick={() => {
+              setMode("login");
+              setError("");
+            }}
+          >
+            ← Back to Sign in
           </span>
-        </p>
+        )}
+      </p>
       </div>
     </div>
   );
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
+// ─── Mandatory mobile-number gate ──────────────────────────────────────────────
+// Google sign-up gives us no phone number, so any logged-in user who still has
+// none is blocked behind this until they add a valid 10-digit Indian mobile.
+// Email/password signups already provide a phone, so they never see this.
+function RequirePhoneGate() {
+  const { user, setUser } = useAuth();
+  const [phone,   setPhone]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  if (!user || user.phone) return null;
+
+  const gInp = { width:"100%", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"12px 14px", color:C.text, fontSize:"1rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
+
+  const submit = async () => {
+    setError("");
+    const clean = phone.replace(/\D/g, "").slice(-10);
+    if (!/^[6-9]\d{9}$/.test(clean)) { setError("Enter a valid 10-digit Indian mobile number"); return; }
+    setLoading(true);
+    try {
+      const res = await authAPI.setPhone(clean);
+      if (res?.user) setUser(res.user);
+    } catch (e) {
+      setError(e?.data?.message || e?.message || "Couldn't save. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:100000, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.25rem" }}>
+      <div style={{ width:"100%", maxWidth:380, background:C.bg, border:`1px solid ${C.cardBorder}`, borderRadius:16, padding:"1.75rem" }}>
+        <h2 style={{ margin:"0 0 6px", color:C.text, fontSize:"1.2rem", fontWeight:700 }}>One last step</h2>
+        <p style={{ margin:"0 0 18px", color:C.textSub, fontSize:"0.9rem", lineHeight:1.5 }}>
+          Add your mobile number so mentors can reach you for sessions.
+        </p>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") submit(); }}
+          placeholder="10-digit mobile number"
+          autoFocus
+          style={gInp}
+        />
+        {error && <div style={{ color:"#ef4444", fontSize:"0.82rem", marginTop:8 }}>{error}</div>}
+        <button
+          onClick={submit}
+          disabled={loading}
+          style={{ marginTop:16, width:"100%", background:C.accent, color:"#fff", border:"none", borderRadius:9, padding:"12px", fontSize:"0.95rem", fontWeight:600, cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}
+        >
+          {loading ? "Saving…" : "Save & continue"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const { user, loading, logout } = useAuth();
-  const [activePage,   setActivePage]   = useState("ask");
+  // After Google OAuth the backend redirects back with ?token=… — land such
+  // users on their profile (matches the email/password login behaviour).
+  const [activePage,   setActivePage]   = useState(
+    () => new URLSearchParams(window.location.search).get("token") ? "profile" : "ask"
+  );
   const [prevPage,     setPrevPage]     = useState("ask");  // page to return to from Upgrade
   const [showAuth,     setShowAuth]     = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
@@ -565,6 +883,11 @@ export default function App() {
     link.rel  = "stylesheet";
     link.href = "https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap";
     document.head.appendChild(link);
+    // Devanagari + Latin face for the अत्यanT wordmark.
+    const devFont = document.createElement("link");
+    devFont.rel  = "stylesheet";
+    devFont.href = "https://fonts.googleapis.com/css2?family=Mukta:wght@600;700&display=swap";
+    document.head.appendChild(devFont);
     document.body.style.margin  = "0";
     document.body.style.padding = "0";
     document.body.style.background = C.bg;
@@ -623,9 +946,13 @@ export default function App() {
     const isActive = activePage===item.id;
     return (
       <button onClick={() => { setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
-        style={{ width:"100%", display:"flex", alignItems:"center", gap:10, padding:"8px 14px", borderRadius:9, border:"none", background:isActive ? C.active : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.86rem", textAlign:"left", transition:"all 0.15s", fontWeight:isActive ? 500 : 400 }}>
-        <item.Icon size={15} strokeWidth={isActive ? 2 : 1.5} />
-        {item.label}
+        style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:500 }}
+        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
+        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
+        {/* Left accent bar — active only */}
+        <span style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)", width:3, height:18, borderRadius:"0 3px 3px 0", background:C.accent, opacity:isActive ? 1 : 0, transition:"opacity 0.2s ease" }} />
+        <item.Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} style={{ color:isActive ? C.accentText : "currentColor", flexShrink:0, transition:"color 0.2s ease" }} />
+        <span>{item.label}</span>
       </button>
     );
   };
@@ -648,10 +975,13 @@ export default function App() {
 
       {/* ── Sidebar ── */}
       <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
-        <div style={{ height:57, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.25rem", flexShrink:0 }}>
-          <span style={{ fontWeight:700, fontSize:"1.3rem", letterSpacing:"-0.02em", lineHeight:1 }}>
-            <span style={{ fontWeight:700, color:C.accent }}>Aty</span><span style={{ color:C.text }}>ant</span>
-          </span>
+        <div style={{ height:76, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+            <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
+              <Sparkles size={17} color="#fff" strokeWidth={2.2} />
+            </div>
+            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Mukta','Noto Sans Devanagari',sans-serif" }}>अत्यanT</span>
+          </div>
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
               style={{ width:34, height:34, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}
@@ -662,8 +992,8 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ flex:1, overflowY:"auto", padding:"1rem 0.625rem" }}>
-          {/* ── New Chat Button ── */}
+        <div style={{ flex:1, overflowY:"auto", padding:"4px 12px 1rem" }}>
+          {/* ── New Chat — primary CTA ── */}
           <button
             onClick={() => {
               startNewChatSession();   // rotate to a fresh session id
@@ -676,59 +1006,49 @@ export default function App() {
               width: "100%",
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              padding: "10px 14px",
-              borderRadius: 12,
+              justifyContent: "center",
+              gap: 8,
+              height: 46,
+              padding: "0 14px",
+              borderRadius: 13,
               border: "none",
-              background: "transparent",
-              color: C.textSub,
+              background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
+              color: "#fff",
               cursor: "pointer",
               fontFamily: "inherit",
-              fontSize: "0.88rem",
-              fontWeight: 500,
-              transition: "all 0.15s",
-              textAlign: "left",
-              marginBottom: "1.25rem",
+              fontSize: "0.92rem",
+              fontWeight: 600,
+              boxShadow: "0 8px 20px -8px #7567C9",
+              transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
+              marginBottom: "1.5rem",
               boxSizing: "border-box",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.color = C.text;
-              const circle = e.currentTarget.querySelector(".new-chat-circle");
-              if (circle) circle.style.background = C.cardHover;
+              e.currentTarget.style.filter = "brightness(1.08)";
+              e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
+              e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.color = C.textSub;
-              const circle = e.currentTarget.querySelector(".new-chat-circle");
-              if (circle) circle.style.background = C.active;
+              e.currentTarget.style.filter = "none";
+              e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
+              e.currentTarget.style.transform = "none";
             }}
           >
-            <div
-              className="new-chat-circle"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: C.active,
-                border: `1px solid ${C.cardBorder}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                transition: "all 0.15s"
-              }}
-            >
-              <Plus size={14} color={C.accentText} strokeWidth={2.5} />
-            </div>
-            <span style={{ fontSize: "0.92rem", fontWeight: 500 }}>New chat</span>
+            <Plus size={17} strokeWidth={2.5} />
+            <span>New chat</span>
           </button>
 
-          <div style={{ marginBottom:"1.75rem" }}>
-            <div style={{ fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.14em", color:C.textMuted, padding:"0 10px", marginBottom:6 }}>WORKSPACE</div>
-            {workspaceItems.map(item => <NavItem key={item.id} item={item} />)}
+          <div style={{ marginBottom:"1.5rem" }}>
+            <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>WORKSPACE</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+              {workspaceItems.map(item => <NavItem key={item.id} item={item} />)}
+            </div>
           </div>
           <div>
-            <div style={{ fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.14em", color:C.textMuted, padding:"0 10px", marginBottom:6 }}>JOURNEY</div>
-            {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
+            <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>JOURNEY</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+              {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
+            </div>
           </div>
         </div>
 
@@ -773,8 +1093,14 @@ export default function App() {
       </div>
 
       {/* ── Main ── */}
-      <div style={{ flex:1, overflow:"hidden", height:"100dvh", display:"flex", flexDirection:"column" }}>
-        <div style={{ height:57, display:"flex", justifyContent:"space-between", alignItems:"center", padding:isMobile ? "0 16px" : "0 24px", background:C.bg, flexShrink:0 }}>
+      <div style={{ position:"relative", flex:1, overflow:"hidden", height:"100dvh", display:"flex", flexDirection:"column" }}>
+        {/* Ambient AI backdrop — spans the toolbar + page so the gradient is one
+            continuous surface (no seam under the header). Home view only. */}
+        {activePage === "ask" && (<>
+          <div className="ai-grid" aria-hidden="true" />
+          <div className="ai-aurora" aria-hidden="true" />
+        </>)}
+        <div style={{ position:"relative", zIndex:1, height:57, display:"flex", justifyContent:"space-between", alignItems:"center", padding:isMobile ? "0 16px" : "0 24px", background:"transparent", flexShrink:0 }}>
           {isMobile ? (
             <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
               style={{ width:36, height:36, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}>
@@ -791,14 +1117,17 @@ export default function App() {
             </>); })()}
           </div>
         </div>
-        <div style={{ flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>
+        <div style={{ position:"relative", zIndex:1, flex:1, overflow: ["ask","clarity","chat"].includes(activePage) ? "hidden" : "auto" }}>
           <Suspense fallback={<div style={{ padding:"4rem", textAlign:"center", color:C.textMuted }}><Spin size={26} /></div>}>
             {pages[activePage]}
           </Suspense>
         </div>
       </div>
 
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("ask")} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("profile")} />}
+
+      {/* Mandatory mobile capture for phone-less (e.g. Google) accounts */}
+      <RequirePhoneGate />
 
       {/* Global toast host — booking/payment/chat feedback all render here */}
       <ToastContainer position="top-center" autoClose={3500} limit={3} newestOnTop pauseOnHover transition={Slide} theme="colored" style={{ zIndex: 99999 }} />

@@ -1,7 +1,10 @@
 // ─── Atyant API Client ───────────────────────────────────────────────────────
 // All calls go through here. Token is read from localStorage on every request.
 
-const BASE = import.meta.env.VITE_API_URL ?? '';
+// Strip any trailing slash so `${BASE}/api/...` never produces a double slash
+// (a trailing slash in the Vercel VITE_API_URL env caused requests like
+// `https://api.product.atyant.in//api/...`).
+const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
 // Base URL for raw fetch / socket.io (used by the chat page).
 export const API_URL = BASE;
@@ -49,9 +52,35 @@ export const api = {
 
 // Auth
 export const authAPI = {
-  login:  (email, password)                   => api.post('/api/auth/login',  { email, password }),
-  signup: (username, email, password, phone, role)  => api.post('/api/auth/signup', { username, email, password, phone, role }),
-  me:     ()                                  => api.get('/api/profile/me'),
+  login: (email, password) =>
+    api.post('/api/auth/login', { email, password }),
+
+  signup: (username, email, password, phone, role) =>
+    api.post('/api/auth/signup', {
+      username,
+      email,
+      password,
+      phone,
+      role
+    }),
+
+  me: () => api.get('/api/profile/me'),
+
+  // Set the logged-in user's mobile (mandatory step after Google sign-up).
+  setPhone: (phone) => api.put('/api/profile/phone', { phone }),
+
+  forgotPassword: (email) =>
+    api.post('/api/auth/forgot-password', { email }),
+
+  verifyResetCode: (email, code) =>
+    api.post('/api/auth/verify-reset-code', { email, code }),
+
+  resetPassword: (email, code, newPassword) =>
+  api.post('/api/auth/reset-password', {
+    email,
+    code,
+    newPassword
+  })
 };
 
 // Profile

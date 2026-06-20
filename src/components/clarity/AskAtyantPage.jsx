@@ -156,10 +156,12 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const sessionIdRef = useRef(getStoredSessionId());
 
   // Auto-grow a textarea up to a max height, then scroll internally.
+  // Cap lower on mobile so the box never swallows the screen (ChatGPT-style).
   const autoGrow = (el) => {
     if (!el) return;
+    const max = isMobile ? 96 : 140;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+    el.style.height = Math.min(el.scrollHeight, max) + "px";
   };
   // When the query is cleared (e.g. after sending), collapse both inputs back to one line.
   useEffect(() => {
@@ -386,7 +388,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
   const wordCount = query.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 57px)", minHeight: 0, background: C.bg, fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 57px)", minHeight: 0, background: "transparent", fontFamily: "'Inter', sans-serif" }}>
       {/* CSS Animations */}
       <style>{`
         @keyframes fadeIn {
@@ -403,15 +405,15 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
 
       {messages.length === 0 ? (
         /* Landing View */
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-          <h1 style={{ textAlign: "center", fontSize: "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: "2rem", color: C.text, fontFamily: "Georgia,'Times New Roman',serif" }}>
-            Find someone exactly like you...
+        <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", overflow: "hidden" }}>
+          <h1 style={{ position: "relative", zIndex: 1, textAlign: "center", fontSize: "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: "2rem", color: C.text, fontFamily: "Georgia,'Times New Roman',serif" }}>
+            Find someone exactly like you<span></span>...
           </h1>
 
           <div
-            style={{ width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", marginBottom: "0.6rem", display: "flex", alignItems: "flex-end", gap: 10, minHeight: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
-            onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22`; }}
-            onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}
+            style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", marginBottom: "0.6rem", display: "flex", alignItems: "flex-end", gap: 10, minHeight: 54, boxShadow: "0 18px 50px -24px var(--accent)", transition: "border-color 0.2s, box-shadow 0.2s" }}
+            onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22, 0 18px 50px -24px var(--accent)`; }}
+            onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "0 18px 50px -24px var(--accent)"; }}
           >
             {/* + */}
             <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.3rem", lineHeight: 1, padding: 0, flexShrink: 0, height: 54, display: "flex", alignItems: "center" }}>+</button>
@@ -425,7 +427,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
               onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="Ask Atyant.."
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "1rem", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: 140, overflowY: "auto" }}
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
             />
 
             {/* Right: badge + mic + send */}
@@ -455,6 +457,8 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
           {/* Context Panel */}
           {showContext && (
             <div style={{
+              position: "relative",
+              zIndex: 1,
               animation: "fadeIn 0.3s ease-out",
               background: "var(--c-glass)",
               border: `1px solid ${C.cardBorder}`,
@@ -549,14 +553,14 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
           )}
 
           {isMobile ? (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
               <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "5px 13px", display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
                 {badgeText}
               </span>
             </div>
           ) : (
-            <p style={{ fontSize: "0.78rem", color: C.textMuted, marginBottom: "1.5rem", textAlign: "center" }}>
+            <p style={{ position: "relative", zIndex: 1, fontSize: "0.78rem", color: C.textMuted, marginBottom: "1.5rem", textAlign: "center" }}>
               Matched to 800+ verified journeys from Tier-2 colleges across India
             </p>
           )}
@@ -573,7 +577,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                   visible: { transition: { staggerChildren: 0.06, delayChildren: 0 } },
                   exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
                 }}
-                style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}
+                style={{ position: "relative", zIndex: 1, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}
               >
                 {quickActions.map((a, i) => (
                   <motion.button
@@ -731,7 +735,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                 onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Ask Atyant.."
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "0.95rem", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: 140, overflowY: "auto" }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
               />
 
               {/* Right controls */}
