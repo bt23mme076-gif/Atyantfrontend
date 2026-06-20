@@ -1,4 +1,4 @@
-﻿import Avatar from "../Avatar";
+import Avatar from "../Avatar";
 
 // Design tokens
 const T = {
@@ -16,13 +16,16 @@ const T = {
   green: "#3DBE82",
 };
 
-const AVATAR = {
-  AK: { bg: "rgba(117,103,201,0.28)", text: "var(--c-accentText)" },
-  PS: { bg: "rgba(59,130,246,0.22)",  text: "#7EB8F7" },
-  RT: { bg: "rgba(61,190,130,0.22)",  text: "#3DBE82" },
+const DOMAIN_LABEL = {
+  internship: "Internship",
+  placement:  "Placement",
+  both:       "Intern + Placement",
 };
 
 export default function SeniorCard({ mentor, isSelected, onClick }) {
+  const domainLabel = DOMAIN_LABEL[mentor.primaryDomain] || null;
+  const fieldLabel  = mentor.companyDomain || null;
+
   return (
     <div
       onClick={onClick}
@@ -56,6 +59,24 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
           <p className="text-xs" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>match</p>
         </div>
       </div>
+
+      {/* Specialization pills */}
+      {(domainLabel || fieldLabel) && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {domainLabel && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{ background: `${T.accent}18`, color: T.accentText, border: `1px solid ${T.accent}35`, fontFamily: "Inter, sans-serif" }}>
+              {domainLabel}
+            </span>
+          )}
+          {fieldLabel && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{ background: `${T.green}14`, color: T.green, border: `1px solid ${T.green}35`, fontFamily: "Inter, sans-serif" }}>
+              {fieldLabel}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Why matched */}
       <p className="text-xs leading-relaxed" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>

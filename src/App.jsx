@@ -4,7 +4,7 @@ import {
   TrendingUp, Bookmark,
   Plus, Clock, Lock, ChevronRight, Search,
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
-  Copy, ExternalLink, Hash, Check,
+  Copy, ExternalLink, Hash, Check, Star,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -81,7 +81,12 @@ function Detail({ icon, label, value, valueColor, span }) {
 }
 
 function SessionDetailCard({ s, isUpcoming }) {
-  const [copied, setCopied] = useState(false);
+  const [copied,       setCopied]       = useState(false);
+  const [hoverRating,  setHoverRating]  = useState(0);
+  const [chosenRating, setChosenRating] = useState(s.review?.rating || 0);
+  const [comment,      setComment]      = useState(s.review?.comment || "");
+  const [reviewing,    setReviewing]    = useState(false);
+  const [reviewed,     setReviewed]     = useState(!!s.review?.submittedAt);
   const date    = new Date(s.scheduledAt);
   const dateStr = date.toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
   const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
@@ -153,6 +158,68 @@ function SessionDetailCard({ s, isUpcoming }) {
         {/* raw link (selectable) */}
         {hasMeet && (
           <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{meetUrl}</div>
+        )}
+
+        {/* Review section — only for past student sessions */}
+        {!isUpcoming && !isMentorView && (
+          <div style={{ marginTop:"1.1rem", padding:"1rem 1.1rem", background:C.bg, borderRadius:12, border:`1px solid ${C.cardBorder}` }}>
+            {reviewed ? (
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ display:"flex", gap:3 }}>
+                  {[1,2,3,4,5].map(n => (
+                    <Star key={n} size={14} fill={n <= chosenRating ? "#F59E0B" : "none"} stroke={n <= chosenRating ? "#F59E0B" : C.textMuted} />
+                  ))}
+                </div>
+                <span style={{ fontSize:"0.75rem", color:C.textSub }}>
+                  {comment ? `"${comment}"` : "Thanks for your review!"}
+                </span>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize:"0.72rem", fontWeight:600, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"0.6rem" }}>Rate this session</p>
+                <div style={{ display:"flex", gap:6, marginBottom:"0.7rem" }}>
+                  {[1,2,3,4,5].map(n => (
+                    <Star
+                      key={n}
+                      size={22}
+                      fill={n <= (hoverRating || chosenRating) ? "#F59E0B" : "none"}
+                      stroke={n <= (hoverRating || chosenRating) ? "#F59E0B" : C.textMuted}
+                      style={{ cursor:"pointer", transition:"transform 0.1s", transform: n <= (hoverRating || chosenRating) ? "scale(1.15)" : "scale(1)" }}
+                      onMouseEnter={() => setHoverRating(n)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setChosenRating(n)}
+                    />
+                  ))}
+                </div>
+                {chosenRating > 0 && (
+                  <>
+                    <textarea
+                      value={comment}
+                      onChange={e => setComment(e.target.value)}
+                      placeholder="What did you take away? (optional)"
+                      maxLength={300}
+                      rows={2}
+                      style={{ width:"100%", padding:"0.55rem 0.75rem", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:C.text, fontSize:"0.8rem", resize:"none", fontFamily:"Inter, sans-serif", marginBottom:"0.6rem", outline:"none", boxSizing:"border-box" }}
+                    />
+                    <button
+                      disabled={reviewing}
+                      onClick={async () => {
+                        setReviewing(true);
+                        try {
+                          await sessionAPI.review(s._id, chosenRating, comment);
+                          setReviewed(true);
+                        } catch { /* silent */ }
+                        setReviewing(false);
+                      }}
+                      style={{ padding:"0.5rem 1.2rem", borderRadius:8, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:600, fontSize:"0.8rem", border:"none", cursor:"pointer", opacity: reviewing ? 0.7 : 1 }}
+                    >
+                      {reviewing ? "Saving…" : "Submit Review"}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -922,7 +989,7 @@ export default function App() {
   ];
 
   const pages = {
-    ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} />,
+    ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} />,
     clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} />,
     chat:     <ChatPage       key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,

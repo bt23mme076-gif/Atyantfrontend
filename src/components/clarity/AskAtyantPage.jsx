@@ -134,7 +134,7 @@ const MessageActions = ({ message, onRegenerate }) => {
   );
 };
 
-export default function AskAtyantPage({ user, onGoToClarity }) {
+export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard }) {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
@@ -170,7 +170,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     }
   }, [query]);
 
-  // Live community count for the badge � refetched when the college changes.
+  // Live community count for the badge  refetched when the college changes.
   useEffect(() => {
     const college = context.college?.trim();
     if (!college) { setCommunityCount(0); return; }
@@ -212,7 +212,7 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
     { label: "Switch Field" },
     { label: "Build Skills" },
     { label: "Get Roadmap" },
-    { label: "Talk to Senior" },
+    { label: "Become Mentor", isSpecial: true },
     { label: "Find My Match" },
   ];
 
@@ -582,16 +582,52 @@ export default function AskAtyantPage({ user, onGoToClarity }) {
                 {quickActions.map((a, i) => (
                   <motion.button
                     key={a.label}
-                    onClick={() => handleSend(a.label)}
+                    onClick={() => {
+                      if (a.isSpecial) {
+                        onGoToMentorOnboard?.();
+                      } else {
+                        handleSend(a.label);
+                      }
+                    }}
                     variants={{
                       hidden: { opacity: 0, y: 10, scale: 0.98 },
                       visible: { opacity: 1, y: 0, scale: 1 },
                       exit: { opacity: 0, y: 8, scale: 0.98, transition: { duration: 0.22, ease: "easeOut" } },
                     }}
                     transition={{ duration: 0.22, ease: "easeOut" }}
-                    style={{ background: "var(--c-active)", border: `1px solid var(--c-cardBorder)`, borderRadius: 999, padding: "7px 18px", color: C.textSub, fontSize: "0.82rem", cursor: "pointer", fontFamily: "inherit", transition: "background-color 0.15s, color 0.15s, border-color 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "88"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "var(--c-active)"; e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = "var(--c-cardBorder)"; }}
+                    style={{
+                      background: a.isSpecial ? C.accent : "var(--c-active)",
+                      border: a.isSpecial ? `1px solid ${C.accent}` : `1px solid var(--c-cardBorder)`,
+                      borderRadius: 999,
+                      padding: "7px 18px",
+                      color: a.isSpecial ? "#fff" : C.textSub,
+                      fontSize: "0.82rem",
+                      fontWeight: a.isSpecial ? 600 : 500,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      boxShadow: a.isSpecial ? "0 4px 12px rgba(117,103,201,0.25)" : "none",
+                      transition: "all 0.15s"
+                    }}
+                    onMouseEnter={e => {
+                      if (a.isSpecial) {
+                        e.currentTarget.style.filter = "brightness(1.1)";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      } else {
+                        e.currentTarget.style.background = C.cardHover;
+                        e.currentTarget.style.color = C.text;
+                        e.currentTarget.style.borderColor = C.accent + "88";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (a.isSpecial) {
+                        e.currentTarget.style.filter = "none";
+                        e.currentTarget.style.transform = "none";
+                      } else {
+                        e.currentTarget.style.background = "var(--c-active)";
+                        e.currentTarget.style.color = C.textSub;
+                        e.currentTarget.style.borderColor = "var(--c-cardBorder)";
+                      }
+                    }}
                   >
                     {a.label}
                   </motion.button>
