@@ -1,6 +1,7 @@
-import { Star, Users, Clock, Video } from "lucide-react";
+import { Star, Users, Clock, Video, MessageCircle } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import Avatar from "../Avatar";
+import { useAuth } from "../../context/AuthContext";
 
 // Design tokens
 const T = {
@@ -21,8 +22,9 @@ const T = {
 // the service catalog on the full Book a Session page.
 const STARTING_PRICE = 49;
 
-export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor }) {
+export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor, onOpenChat }) {
   if (!mentor) return null;
+  const { user: currentUser } = useAuth();
 
   return (
     <div
@@ -151,7 +153,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
 
       {/* ── Fixed Footer CTA ── */}
       <div className="px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${T.cardBorder}`, background: T.card }}>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto flex gap-3">
           <button
             onClick={() => {
               if (onSelect) onSelect();
@@ -159,7 +161,7 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
               // instead of a cramped in-place sheet.
               if (onTalkToMentor) onTalkToMentor(mentor);
             }}
-            className="w-full py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
+            className="flex-1 py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
               background: "linear-gradient(135deg, #7567C9, #5a52a8)",
               color: "#fff",
@@ -173,6 +175,22 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
             <Video size={16} />
             Book 1:1 session — starting ₹{STARTING_PRICE}
           </button>
+          {onOpenChat && (
+            <button
+              onClick={() => onOpenChat(mentor)}
+              className="py-3.5 px-5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
+              style={{
+                background: T.accentSoft,
+                color: T.accentText,
+                border: `1px solid ${T.accent}55`,
+                fontFamily: "Inter, sans-serif",
+                cursor: "pointer",
+              }}
+            >
+              <MessageCircle size={16} />
+              Chat
+            </button>
+          )}
         </div>
       </div>
     </div>

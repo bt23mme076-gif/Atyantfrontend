@@ -904,7 +904,6 @@ export default function App() {
     setActivePage("book");
   };
 
-  // "Talk to Senior" → open the real-time chat with that mentor
   const handleOpenChat = (mentor) => {
     setChatMentor(mentor);
     setActivePage("chat");
@@ -923,7 +922,7 @@ export default function App() {
 
   const pages = {
     ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} />,
-    clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} />,
+    clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} onOpenChat={handleOpenChat} />,
     chat:     <ChatPage       key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
     book:     <BookingPage    mentor={bookingMentor} user={user} onAuthRequired={() => setShowAuth(true)} onFindMentor={() => setActivePage("clarity")} onOpenChat={() => { setChatMentor(bookingMentor); setActivePage("chat"); }} onViewSessions={() => setActivePage("sessions")} />,
