@@ -1,6 +1,7 @@
-import { Star, Users, Clock, Video, ExternalLink, BadgeCheck } from "lucide-react";
+import { Star, Users, Clock, Video, ExternalLink, BadgeCheck, MessageCircle } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import Avatar from "../Avatar";
+import { useAuth } from "../../context/AuthContext";
 
 const T = {
   bg:         "var(--c-bg)",
@@ -39,8 +40,9 @@ function StarRow({ value }) {
   );
 }
 
-export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor }) {
+export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor, onOpenChat }) {
   if (!mentor) return null;
+  const { user: currentUser } = useAuth();
 
   const domainLabel    = DOMAIN_LABEL[mentor.primaryDomain] || null;
   const fieldLabel     = mentor.companyDomain || null;
@@ -233,12 +235,13 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
 
       {/* ── CTA footer ── */}
       <div className="px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${T.cardBorder}`, background: T.card }}>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto flex gap-3">
           <button
             onClick={() => {
               if (onSelect) onSelect();
               if (onTalkToMentor) onTalkToMentor(mentor);
             }}
+            className="flex-1 py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
               width: "100%",
               padding: "14px 0",
@@ -261,6 +264,22 @@ export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkTo
             <Video size={16} />
             Book 1:1 session — starting ₹{STARTING_PRICE}
           </button>
+          {onOpenChat && (
+            <button
+              onClick={() => onOpenChat(mentor)}
+              className="py-3.5 px-5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
+              style={{
+                background: T.accentSoft,
+                color: T.accentText,
+                border: `1px solid ${T.accent}55`,
+                fontFamily: "Inter, sans-serif",
+                cursor: "pointer",
+              }}
+            >
+              <MessageCircle size={16} />
+              Chat
+            </button>
+          )}
         </div>
       </div>
     </div>

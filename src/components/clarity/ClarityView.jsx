@@ -16,7 +16,7 @@ const trackView = (mentor) => {
 // from the service catalog on the full Book a Session page.
 const STARTING_PRICE = 49;
 
-export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor }) {
+export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor, onOpenChat }) {
   const isMobile = useIsMobile();
   const [mentors, setMentors] = useState([]);
   const [answerCards, setAnswerCards] = useState([]);   // scrollable feed
@@ -185,6 +185,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   user={user}
                   onClose={() => setSelectedMentor(null)}
                   onTalkToMentor={onTalkToMentor}
+                  onOpenChat={onOpenChat}
                 />
               </div>
             </div>
@@ -348,6 +349,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                     user={user}
                     onClose={() => setSelectedMentor(null)}
                     onTalkToMentor={onTalkToMentor}
+                    onOpenChat={onOpenChat}
                   />
                 </div>
               </motion.div>
