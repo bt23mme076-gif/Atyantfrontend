@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
-import { profileAPI, servicesAPI, availabilityAPI } from "../api";
+import { profileAPI, servicesAPI, availabilityAPI, mentorAPI } from "../api";
 import Avatar from "../components/Avatar";
 import ShareProfile from "../components/ShareProfile";
 import AnswerCardManager from "../components/AnswerCardManager";
@@ -500,8 +500,11 @@ export default function ProfilePage() {
   const [savingServices, setSavingServices] = useState(false);
   const [servicesSaved, setServicesSaved] = useState(false); // brief "Saved ✓" flash
   const [uploading, setUploading] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState("");
+  const [importing,   setImporting]   = useState(false);
+  const [importMsg,   setImportMsg]   = useState("");
+  const [importTab,   setImportTab]   = useState("url"); // "url" | "pdf"
+  const [importUrl,   setImportUrl]   = useState("");
+  const [importDone,  setImportDone]  = useState(false);
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {
@@ -681,6 +684,43 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLinkedinUrlImport = async () => {
+    if (!importUrl.trim()) { setImportMsg("Paste your LinkedIn profile URL first."); return; }
+    setImportMsg(""); setImporting(true); setImportDone(false);
+    try {
+      const res = await mentorAPI.linkedinAutofill(importUrl.trim());
+      const d = res?.data?.fields || res?.fields || {};
+      const merged = {
+        ...form,
+        name:            form.name            || d.username || "",
+        college:         form.college         || d.college  || "",
+        branch:          form.branch          || d.branch   || "",
+        year:            form.year            || d.year     || "",
+        bio:             form.bio             || d.bio      || "",
+        city:            form.city            || d.city     || "",
+        linkedinProfile: form.linkedinProfile || d.linkedinProfile || importUrl.trim(),
+        topCompanies:    form.topCompanies.length ? form.topCompanies : (d.topCompanies || []),
+        expertise:       form.expertise.length    ? form.expertise    : (d.expertise   || []),
+        primaryDomain:   form.primaryDomain   || d.primaryDomain || "",
+        companyDomain:   form.companyDomain   || d.companyDomain || "",
+        story:           form.story           || d.story    || "",
+      };
+      setForm(merged);
+      const payload = {
+        username: merged.name, bio: merged.bio, college: merged.college, branch: merged.branch,
+        year: merged.year, city: merged.city, linkedinProfile: merged.linkedinProfile,
+        expertise: merged.expertise, topCompanies: merged.topCompanies,
+        primaryDomain: merged.primaryDomain, companyDomain: merged.companyDomain,
+        servicesOffered: merged.servicesOffered, price: Number(merged.price) || 0,
+        yearsOfExperience: Number(merged.yearsOfExperience) || 0,
+      };
+      await profileAPI.update(payload);
+      setImportDone(true);
+    } catch (e) {
+      setImportMsg(e.message || "Couldn't fetch LinkedIn profile — check the URL and try again.");
+    } finally { setImporting(false); }
+  };
+
   const edu = user?.education?.[0] || {};
 
   // ── Completion checklist (weights sum to 100 per role) ──
@@ -856,25 +896,61 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* ════════ IMPORT FROM LINKEDIN (mentors) — hidden once profile is 60%+ ════════ */}
+      {/* ════════ IMPORT — LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
       {isMentor && pct < 60 && (
-        <div className="pf-card pf-anim pf-anim-1" style={{ background: "linear-gradient(120deg, rgba(10,102,194,0.10), rgba(117,103,201,0.10))", border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1rem 1.2rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(10,102,194,0.15)", border: "1px solid rgba(10,102,194,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Link2 size={18} style={{ color: "#0A66C2" }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: ".92rem", fontWeight: 700, color: C.text }}>Auto-fill from Resume or LinkedIn PDF</div>
-              <div style={{ fontSize: ".75rem", color: C.textSub, marginTop: 2, lineHeight: 1.5 }}>
-                Upload your resume or LinkedIn PDF — we extract everything automatically. <span style={{ color: C.textMuted }}>(LinkedIn → More → Save to PDF)</span>
-              </div>
-              {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 6 }}>{importMsg}</div>}
-            </div>
+        <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, overflow: "hidden" }}>
+          {/* Tab header */}
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.cardBorder}` }}>
+            {[
+              { id: "url", icon: <Link2 size={13} />, label: "LinkedIn URL" },
+              { id: "pdf", icon: <FileText size={13} />, label: "Resume PDF" },
+            ].map(tab => (
+              <button key={tab.id} type="button" onClick={() => { setImportTab(tab.id); setImportMsg(""); setImportDone(false); }}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", border: "none", borderBottom: importTab === tab.id ? `2px solid ${C.accent}` : "2px solid transparent", background: "transparent", color: importTab === tab.id ? C.accentText : C.textMuted, fontSize: ".78rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
+                {tab.icon}{tab.label}
+              </button>
+            ))}
           </div>
-          <label style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 7, background: importing ? C.active : C.accent, border: "none", borderRadius: 10, padding: "9px 17px", color: importing ? C.textSub : "#fff", fontSize: ".82rem", fontWeight: 700, cursor: importing ? "default" : "pointer", boxShadow: importing ? "none" : "0 3px 12px rgba(117,103,201,0.28)" }}>
-            <input type="file" accept="application/pdf" hidden disabled={importing} onChange={e => handleLinkedinImport(e.target.files?.[0])} />
-            {importing ? <><Spin size={14} /> Reading…</> : <><Upload size={14} /> Upload PDF</>}
-          </label>
+
+          <div style={{ padding: "14px 16px" }}>
+            {importTab === "url" ? (
+              <>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    style={{ flex: 1, background: C.active, border: `1.5px solid ${importUrl.trim() ? C.accent : C.cardBorder}`, borderRadius: 9, padding: "9px 12px", color: C.text, fontSize: ".86rem", outline: "none", fontFamily: "inherit", transition: "border-color .15s" }}
+                    type="url" placeholder="https://linkedin.com/in/yourname"
+                    value={importUrl} onChange={e => { setImportUrl(e.target.value); setImportMsg(""); setImportDone(false); }}
+                    onKeyDown={e => { if (e.key === "Enter") handleLinkedinUrlImport(); }}
+                  />
+                  <button onClick={handleLinkedinUrlImport} disabled={importing || !importUrl.trim()}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: importUrl.trim() ? C.accent : C.active, border: "none", borderRadius: 9, padding: "9px 16px", color: importUrl.trim() ? "#fff" : C.textMuted, fontSize: ".82rem", fontWeight: 700, cursor: importUrl.trim() && !importing ? "pointer" : "not-allowed", fontFamily: "inherit", flexShrink: 0, transition: "all .15s" }}>
+                    {importing ? <><Spin size={13} /> Importing…</> : "Import"}
+                  </button>
+                </div>
+                {importDone && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8244", borderRadius: 8, padding: "8px 12px" }}>
+                    <Check size={13} color={C.green} /><span style={{ fontSize: ".78rem", color: C.green, fontWeight: 600 }}>Profile auto-filled from LinkedIn — review and save</span>
+                  </div>
+                )}
+                {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 8 }}>{importMsg}</div>}
+                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7 }}>We extract name, college, companies, skills — you just review</div>
+              </>
+            ) : (
+              <>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, border: `2px dashed ${C.cardBorder}`, borderRadius: 10, padding: "18px 16px", cursor: importing ? "default" : "pointer", background: C.active }}>
+                  <input type="file" accept="application/pdf" hidden disabled={importing} onChange={e => { const f = e.target.files?.[0]; if (f) handleLinkedinImport(f); e.target.value = ""; }} />
+                  {importing
+                    ? <><Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: C.accentText }} /><span style={{ fontSize: ".82rem", color: C.accentText, fontWeight: 600 }}>Reading resume…</span></>
+                    : importDone
+                      ? <><Check size={20} color={C.green} /><span style={{ fontSize: ".82rem", color: C.green, fontWeight: 600 }}>Imported — review your fields above</span></>
+                      : <><Upload size={20} color={C.textMuted} /><span style={{ fontSize: ".82rem", color: C.textSub, fontWeight: 600 }}>Click to upload your Resume PDF</span></>
+                  }
+                </label>
+                {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 8 }}>{importMsg}</div>}
+                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7, textAlign: "center" }}>Any resume PDF works — LinkedIn: Profile → More → Save to PDF</div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
