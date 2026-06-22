@@ -212,7 +212,11 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     { label: "Switch Field" },
     { label: "Build Skills" },
     { label: "Get Roadmap" },
-    { label: "Become Mentor", isSpecial: true },
+
+    ...(!user
+    ? [{ label: "Become Mentor", isSpecial: true }]
+    : []),
+
     { label: "Find My Match" },
   ];
 
