@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import MeetPage from './pages/MeetPage.jsx'
+import PublicMentorProfile from './pages/PublicMentorProfile.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')).render(
           <BrowserRouter>
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
+              <Route path="/:slug" element={<PublicMentorProfile />} />
               <Route path="/*" element={<RootOrMeet />} />
             </Routes>
           </BrowserRouter>
