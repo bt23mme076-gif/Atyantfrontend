@@ -532,9 +532,9 @@ const btn = (primary) => ({
   fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
 });
 const chip = (on) => ({
-  background: on ? C.accentSoft : C.active, border: `1px solid ${on ? C.accent : C.cardBorder}`,
-  color: on ? C.accentText : C.textSub, borderRadius: 999, padding: "8px 14px", fontSize: "0.85rem",
-  fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+  background: on ? "#fff1f1" : C.active, border: `1px solid ${on ? "#e53e3e" : C.cardBorder}`,
+  color: on ? "#c53030" : C.textSub, borderRadius: 999, padding: "8px 14px", fontSize: "0.85rem",
+  fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
 });
 const Field = ({ label, children }) => (<div><span style={lbl}>{label}</span>{children}</div>);
 const Err = ({ msg }) => (<div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid #f8717155", color: "#e05555", borderRadius: 9, padding: "9px 12px", fontSize: "0.82rem", marginBottom: 14 }}>{msg}</div>);
