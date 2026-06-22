@@ -4,6 +4,7 @@ import {
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
+  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
   CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -500,6 +501,12 @@ export default function ProfilePage() {
   const [savingServices, setSavingServices] = useState(false);
   const [servicesSaved, setServicesSaved] = useState(false); // brief "Saved ✓" flash
   const [uploading, setUploading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const [slugEditing, setSlugEditing] = useState(false);
+  const [slugValue, setSlugValue] = useState("");
+  const [slugSaving, setSlugSaving] = useState(false);
+  const [slugError, setSlugError] = useState("");
   const [importing,   setImporting]   = useState(false);
   const [importMsg,   setImportMsg]   = useState("");
   const [importTab,   setImportTab]   = useState("url"); // "url" | "pdf"
@@ -550,6 +557,57 @@ export default function ProfilePage() {
     expertise: [], topCompanies: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
     primaryDomain: "", companyDomain: "", servicesOffered: []
   });
+
+  // Initialize slug value when user changes
+  useEffect(() => {
+    if (user?.slug) {
+      setSlugValue(user.slug);
+    }
+  }, [user]);
+
+  // Handle slug update
+  const handleSlugUpdate = async () => {
+    if (!slugValue.trim()) {
+      setSlugError("Slug cannot be empty");
+      return;
+    }
+
+    // Validate slug format: lowercase, alphanumeric and hyphens only, 3-100 chars
+    const slugRegex = /^[a-z0-9-]{3,100}$/;
+    if (!slugRegex.test(slugValue)) {
+      setSlugError("Use lowercase letters, numbers, and hyphens only (3-100 characters)");
+      return;
+    }
+
+    if (slugValue.startsWith('-') || slugValue.endsWith('-') || slugValue.includes('--')) {
+      setSlugError("Slug cannot start/end with hyphen or have consecutive hyphens");
+      return;
+    }
+
+    setSlugSaving(true);
+    setSlugError("");
+    try {
+      const res = await mentorAPI.updateSlug(slugValue.trim());
+      if (res.ok) {
+        setUser(prev => ({ ...prev, slug: res.slug }));
+        setSlugEditing(false);
+      } else {
+        setSlugError(res.error || "Failed to update slug");
+      }
+    } catch (err) {
+      setSlugError(err.message || "Failed to update slug");
+    } finally {
+      setSlugSaving(false);
+    }
+  };
+
+  const handleSlugCancel = () => {
+    setSlugValue(user?.slug || "");
+    setSlugEditing(false);
+    setSlugError("");
+  };
+
+  const publicUrl = user?.slug ? `${window.location.origin}/${user.slug}` : "";
 
   // Load the platform service catalog once (mentors pick from it)
   useEffect(() => {
@@ -1301,6 +1359,80 @@ export default function ProfilePage() {
                   : <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set</div>}
               </div>
             </>}
+          </Section>
+
+          {/* Public Profile URL */}
+          <Section Icon={Globe} title="Public Profile URL" subtitle="Shareable link for your mentor profile" delay={4}>
+            {slugEditing ? (
+              <div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>CUSTOM SLUG</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 13px", flex: 1 }}>
+                      <span style={{ color: C.textMuted, fontSize: ".88rem", marginRight: 4 }}>{window.location.origin}/</span>
+                      <input
+                        type="text"
+                        value={slugValue}
+                        onChange={e => setSlugValue(e.target.value.toLowerCase())}
+                        placeholder="your-name"
+                        style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: ".88rem", fontFamily: "inherit" }}
+                      />
+                    </div>
+                  </div>
+                  {slugError && <div style={{ fontSize: ".7rem", color: "#F87171", marginTop: 4 }}>{slugError}</div>}
+                  <div style={{ fontSize: ".72rem", color: C.textMuted, marginTop: 6 }}>
+                    Use lowercase letters, numbers, and hyphens only (3-100 characters)
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={handleSlugCancel}
+                    disabled={slugSaving}
+                    style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "9px 18px", color: C.textSub, fontSize: ".82rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSlugUpdate}
+                    disabled={slugSaving}
+                    style={{ display: "flex", alignItems: "center", gap: 7, background: C.green, border: "none", borderRadius: 10, padding: "9px 22px", color: "#fff", fontSize: ".82rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}
+                  >
+                    {slugSaving ? <><Spin size={13} /> Saving…</> : <><Check size={14} /> Save</>}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>PUBLIC URL</div>
+                  {publicUrl ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(117,103,201,0.08)", border: "1px solid rgba(117,103,201,0.25)", borderRadius: 10, padding: "10px 13px" }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(117,103,201,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Globe size={13} style={{ color: C.accentText }} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: ".82rem", fontWeight: 600, color: C.accentText }}>{publicUrl}</div>
+                      </div>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(publicUrl)}
+                        style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: 4, display: "flex" }}
+                        title="Copy URL"
+                      >
+                        <Copy size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set yet</div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSlugEditing(true)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
+                >
+                  <Pencil size={13} /> Customize slug
+                </button>
+              </div>
+            )}
           </Section>
 
           {/* Verification Status */}

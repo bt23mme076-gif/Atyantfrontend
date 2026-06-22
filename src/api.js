@@ -123,6 +123,8 @@ export const mentorAPI = {
   createAnswerCard: (content) => api.post('/api/mentor/answer-cards', content),
   // Edit one card's content — the server re-embeds it for matching.
   updateAnswerCard: (id, content) => api.put(`/api/mentor/answer-cards/${id}`, content),
+  // Update mentor's public profile slug
+  updateSlug: (slug) => api.put('/api/mentor/slug', { slug }),
 };
 
 // Clarity (AI mentor matching)
