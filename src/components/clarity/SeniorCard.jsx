@@ -1,93 +1,162 @@
+import { BadgeCheck } from "lucide-react";
 import Avatar from "../Avatar";
 
-// Design tokens
 const T = {
-  bg: "var(--c-bg)",
-  card: "var(--c-card)",
+  bg:         "var(--c-bg)",
+  card:       "var(--c-card)",
   cardBorder: "var(--c-cardBorder)",
-  active: "var(--c-active)",
-  activeBorder: "#7567C955",
-  accent: "#7567C9",
+  active:     "var(--c-active)",
+  accent:     "#7567C9",
   accentSoft: "var(--c-accentSoft)",
   accentText: "var(--c-accentText)",
-  text: "var(--c-text)",
-  textSub: "var(--c-textSub)",
-  textMuted: "var(--c-textMuted)",
-  green: "#3DBE82",
+  text:       "var(--c-text)",
+  textSub:    "var(--c-textSub)",
+  textMuted:  "var(--c-textMuted)",
+  green:      "#22C67A",
 };
 
-const DOMAIN_LABEL = {
+const DOMAIN_SHORT = {
   internship: "Internship",
   placement:  "Placement",
   both:       "Intern + Placement",
 };
 
 export default function SeniorCard({ mentor, isSelected, onClick }) {
-  const domainLabel = DOMAIN_LABEL[mentor.primaryDomain] || null;
+  const domainLabel = DOMAIN_SHORT[mentor.primaryDomain] || null;
   const fieldLabel  = mentor.companyDomain || null;
+  const isVerified  = mentor.isVerified || (mentor.completionPct ?? 0) >= 80;
 
   return (
     <div
       onClick={onClick}
-      className="relative cursor-pointer rounded-2xl p-4"
       style={{
-        background: isSelected ? T.active : T.card,
-        border: `1px solid ${isSelected ? T.activeBorder : T.cardBorder}`,
+        position: "relative",
+        cursor: "pointer",
+        borderRadius: 16,
+        padding: "14px",
+        background: isSelected ? T.accentSoft : T.card,
+        border: `1.5px solid ${isSelected ? T.accent + "55" : T.cardBorder}`,
         boxShadow: isSelected
-          ? `0 0 0 1px ${T.accent}30, 0 4px 24px ${T.accent}14`
-          : "0 1px 6px rgba(0,0,0,0.35)",
-        transition: "background 0.18s, border-color 0.18s, box-shadow 0.18s",
+          ? `0 0 0 1px ${T.accent}25, 0 4px 20px ${T.accent}12`
+          : "0 1px 4px rgba(0,0,0,0.06)",
+        transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+      }}
+      onMouseEnter={e => {
+        if (!isSelected) {
+          e.currentTarget.style.borderColor = T.accent + "40";
+          e.currentTarget.style.boxShadow = `0 4px 16px ${T.accent}14`;
+          e.currentTarget.style.transform = "translateY(-1px)";
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isSelected) {
+          e.currentTarget.style.borderColor = T.cardBorder;
+          e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)";
+          e.currentTarget.style.transform = "none";
+        }
       }}
     >
-      {/* Avatar + Name + Match% */}
-      <div className="flex items-start gap-3 mb-2.5">
-        <Avatar src={mentor.profilePicture} name={mentor.name || mentor.initials} size={36} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight truncate"
-            style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
-            {mentor.name}
-          </p>
-          <p className="text-xs mt-0.5 truncate" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
-            {mentor.role}
+      {/* Selected accent bar */}
+      {isSelected && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, bottom: 0, width: 3,
+          borderRadius: "16px 0 0 16px",
+          background: `linear-gradient(180deg, ${T.accent}, #9F7AEA)`,
+        }} />
+      )}
+
+      {/* Top row: avatar + name + match% */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 11, marginBottom: 10 }}>
+        {/* Avatar with gradient ring */}
+        <div style={{
+          width: 42, height: 42, borderRadius: 12, flexShrink: 0, padding: 2,
+          background: isSelected
+            ? `linear-gradient(135deg, ${T.accent}, ${T.green})`
+            : `linear-gradient(135deg, ${T.accent}50, ${T.green}40)`,
+        }}>
+          <Avatar
+            src={mentor.profilePicture}
+            name={mentor.name || mentor.initials}
+            size={38}
+            style={{ borderRadius: 10, display: "block" }}
+          />
+        </div>
+
+        {/* Name + role */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+            <p style={{
+              fontFamily: "Fraunces, Georgia, serif",
+              fontSize: 14, fontWeight: 700, color: T.text,
+              margin: 0, lineHeight: 1.2,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {mentor.name}
+            </p>
+            {isVerified && (
+              <BadgeCheck size={13} color={T.green} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+            )}
+          </div>
+          <p style={{
+            fontSize: 11.5, color: T.textSub, margin: "2px 0 0",
+            fontFamily: "Inter, sans-serif", fontWeight: 400,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {mentor.role || [mentor.college, mentor.branch].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <div className="flex-shrink-0 text-right">
-          <span className="text-lg font-bold leading-none"
-            style={{ color: T.accent, fontFamily: "Fraunces, serif" }}>
-            {mentor.matchPct}%
-          </span>
-          <p className="text-xs" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>match</p>
-        </div>
+
+        {/* Match % */}
+        {mentor.matchPct > 0 && (
+          <div style={{
+            flexShrink: 0, textAlign: "right",
+            background: isSelected ? `${T.accent}18` : "transparent",
+            borderRadius: 8, padding: isSelected ? "3px 7px" : "3px 0",
+          }}>
+            <span style={{
+              fontFamily: "Fraunces, serif", fontSize: 17, fontWeight: 800,
+              color: T.accent, lineHeight: 1, display: "block",
+            }}>
+              {mentor.matchPct}%
+            </span>
+            <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: "Inter, sans-serif" }}>match</span>
+          </div>
+        )}
       </div>
 
-      {/* Specialization pills */}
+      {/* Domain pills */}
       {(domainLabel || fieldLabel) && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 9 }}>
           {domainLabel && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-              style={{ background: `${T.accent}18`, color: T.accentText, border: `1px solid ${T.accent}35`, fontFamily: "Inter, sans-serif" }}>
+            <span style={{
+              padding: "3px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
+              background: `${T.accent}14`, color: T.accentText,
+              border: `1px solid ${T.accent}28`, fontFamily: "Inter, sans-serif",
+            }}>
               {domainLabel}
             </span>
           )}
           {fieldLabel && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-              style={{ background: `${T.green}14`, color: T.green, border: `1px solid ${T.green}35`, fontFamily: "Inter, sans-serif" }}>
+            <span style={{
+              padding: "3px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
+              background: `${T.green}12`, color: T.green,
+              border: `1px solid ${T.green}28`, fontFamily: "Inter, sans-serif",
+            }}>
               {fieldLabel}
             </span>
           )}
         </div>
       )}
 
-      {/* Why matched */}
-      <p className="text-xs leading-relaxed" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
-        <span className="font-semibold" style={{ color: T.textMuted }}>Why matched: </span>
-        {mentor.matchReason}
-      </p>
-
-      {/* Selected glow dot */}
-      {isSelected && (
-        <div className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full"
-          style={{ background: T.accent, boxShadow: `0 0 6px ${T.accent}` }} />
+      {/* Match reason */}
+      {mentor.matchReason && (
+        <p style={{
+          fontSize: 12, lineHeight: 1.65, color: T.textSub,
+          fontFamily: "Inter, sans-serif", margin: 0,
+        }}>
+          <span style={{ fontWeight: 600, color: T.textMuted }}>Why matched: </span>
+          {mentor.matchReason}
+        </p>
       )}
     </div>
   );

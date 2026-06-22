@@ -307,7 +307,7 @@ export default function MentorOnboard({ onDone }) {
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8233", borderRadius: 8, padding: "10px 12px" }}>
                     <Check size={14} color={C.green} style={{ marginTop: 1, flexShrink: 0 }} />
                     <span style={{ color: C.green, fontSize: "0.8rem", lineHeight: 1.5 }}>
-                      LinkedIn URL added — your name, college, companies and skills will be auto-imported after signup.
+                      LinkedIn URL added — your name, college, companies and skills will be auto-imported after signup. Also fill in your email, mobile number, and password below to complete your account.
                     </span>
                   </div>
                 ) : (

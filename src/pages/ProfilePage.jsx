@@ -4,8 +4,7 @@ import {
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
-  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
-  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, ChevronLeft, ChevronRight,
+  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -501,17 +500,15 @@ export default function ProfilePage() {
   const [savingServices, setSavingServices] = useState(false);
   const [servicesSaved, setServicesSaved] = useState(false); // brief "Saved ✓" flash
   const [uploading, setUploading] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState("");
+  const [importing,  setImporting]  = useState(false);
+  const [importMsg,  setImportMsg]  = useState("");
+  const [importTab,  setImportTab]  = useState("url"); // "url" | "pdf"
+  const [importUrl,  setImportUrl]  = useState("");
+  const [importDone, setImportDone] = useState(false);
   const [slugEditing, setSlugEditing] = useState(false);
-  const [slugValue, setSlugValue] = useState("");
-  const [slugSaving, setSlugSaving] = useState(false);
-  const [slugError, setSlugError] = useState("");
-  const [importing,   setImporting]   = useState(false);
-  const [importMsg,   setImportMsg]   = useState("");
-  const [importTab,   setImportTab]   = useState("url"); // "url" | "pdf"
-  const [importUrl,   setImportUrl]   = useState("");
-  const [importDone,  setImportDone]  = useState(false);
+  const [slugValue,   setSlugValue]   = useState("");
+  const [slugSaving,  setSlugSaving]  = useState(false);
+  const [slugError,   setSlugError]   = useState("");
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {

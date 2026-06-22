@@ -460,13 +460,15 @@ function MentorCard({ mentor }) {
                 </div>
                 <div className="flex gap-2">
                   {[
-                    { icon: FiLinkedin, label: "linkedin", href: mentor.socials?.linkedin || "#" },
-                    { icon: FiTwitter,  label: "twitter",  href: mentor.socials?.twitter  || "#" },
-                    { icon: FiMail,     label: "email",    href: `mailto:${mentor.socials?.email || ""}` },
-                  ].map(({ icon: Icon, label, href }) => (
+                    { icon: FiLinkedin, label: "linkedin", href: mentor.socials?.linkedin ? (mentor.socials.linkedin.startsWith('http') ? mentor.socials.linkedin : `https://${mentor.socials.linkedin}`) : null, target: "_blank" },
+                    { icon: FiTwitter,  label: "twitter",  href: mentor.socials?.twitter  ? (mentor.socials.twitter.startsWith('http') ? mentor.socials.twitter : `https://twitter.com/${mentor.socials.twitter.replace(/^@/, '')}`) : null, target: "_blank" },
+                    { icon: FiMail,     label: "email",    href: mentor.socials?.email     ? `mailto:${mentor.socials.email}` : null, target: undefined },
+                  ].filter(s => s.href).map(({ icon: Icon, label, href, target }) => (
                     <a
                       key={label}
                       href={href}
+                      target={target}
+                      rel={target === "_blank" ? "noopener noreferrer" : undefined}
                       className="flex h-7 w-7 items-center justify-center rounded-lg border text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9] border-[var(--c-cardBorder)] text-[var(--c-textMuted)]"
                     >
                       <Icon size={13} />
@@ -1971,7 +1973,11 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
         { value: "98%", label: "Satisfaction", icon: FiHeart },
       ],
       badges: mentor.tags || ["Verified", "Top Mentor"],
-      socials: mentor.socials || { linkedin: "#", twitter: "#", email: "mentor@atyant.com" },
+      socials: mentor.socials || {
+        linkedin: mentor.linkedinProfile || null,
+        twitter:  mentor.socialLinks?.twitter || null,
+        email:    mentor.email || null,
+      },
       responseTime: mentor.responseTime || "2 hrs",
       slotsLeft: mentor.slotsLeft || 3,
     };
