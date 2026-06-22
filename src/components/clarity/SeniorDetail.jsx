@@ -1,175 +1,266 @@
-import { Star, Users, Clock, Video, MessageCircle } from "lucide-react";
+import { Star, Users, Clock, Video, ExternalLink, BadgeCheck, MessageCircle } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import Avatar from "../Avatar";
 import { useAuth } from "../../context/AuthContext";
 
-// Design tokens
 const T = {
-  bg: "var(--c-bg)",
-  card: "var(--c-card)",
+  bg:         "var(--c-bg)",
+  card:       "var(--c-card)",
   cardBorder: "var(--c-cardBorder)",
-  accent: "#7567C9",
+  accent:     "#7567C9",
   accentSoft: "var(--c-accentSoft)",
   accentText: "var(--c-accentText)",
-  text: "var(--c-text)",
-  textSub: "var(--c-textSub)",
-  textMuted: "var(--c-textMuted)",
-  green: "#3DBE82",
+  text:       "var(--c-text)",
+  textSub:    "var(--c-textSub)",
+  textMuted:  "var(--c-textMuted)",
+  green:      "#3DBE82",
 };
 
-// Cheapest session price (the platform "1:1 Chat" tier) — shown on the CTA so the
-// student sees a price before tapping. The real, mentor-specific prices load from
-// the service catalog on the full Book a Session page.
+const DOMAIN_LABEL = {
+  internship: "Internship Guidance",
+  placement:  "Placement Guidance",
+  both:       "Internship & Placement",
+};
+
 const STARTING_PRICE = 49;
+
+function StarRow({ value }) {
+  const num = parseFloat(value) || 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "center" }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <Star
+          key={n}
+          size={11}
+          fill={n <= Math.round(num) ? "#F59E0B" : "none"}
+          stroke={n <= Math.round(num) ? "#F59E0B" : T.textMuted}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function SeniorDetail({ mentor, user, onClose, onSelect, onTalkToMentor, onOpenChat }) {
   if (!mentor) return null;
   const { user: currentUser } = useAuth();
 
-  return (
-    <div
-      className="flex flex-col overflow-hidden h-full"
-      style={{ position: "relative", background: T.bg }}
-    >
-      {/* ── Header ── */}
-      <div className="px-4 sm:px-6 py-2.5 flex-shrink-0" style={{ borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}>
-        <div className="flex items-center gap-3.5 max-w-3xl mx-auto">
-          {/* Avatar */}
-          <Avatar src={mentor.profilePicture} name={mentor.name || mentor.initials} size={44} style={{ borderRadius: 12 }} />
+  const domainLabel    = DOMAIN_LABEL[mentor.primaryDomain] || null;
+  const fieldLabel     = mentor.companyDomain || null;
+  const linkedinUrl    = mentor.linkedinProfile || null;
+  const rawRating      = parseFloat(mentor.rating) || 0;
+  const ratingDisplay  = rawRating > 0 ? rawRating.toFixed(1) : null;
+  const sessionsRaw    = parseInt(mentor.studentsHelped, 10) || 0;
+  const sessionsLabel  = sessionsRaw > 0 ? String(sessionsRaw) : "New";
+  const expLabel       = mentor.timeline || "Active";
 
-          {/* Name block */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-semibold"
-                style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
-                {mentor.name}
-              </h2>
-              <VerifiedBadge verifiedVia={mentor.verifiedVia} />
-            </div>
-            <p className="text-xs mt-0.5" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
-              {mentor.role}
-            </p>
-            <p className="text-[11px] mt-0.5" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-              {mentor.college} · {mentor.branch}
-            </p>
+  return (
+    <div className="flex flex-col overflow-hidden h-full" style={{ background: T.bg }}>
+
+      {/* ── Hero header ── */}
+      <div
+        className="px-5 sm:px-6 pt-5 pb-4 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${T.cardBorder}`, background: T.card }}
+      >
+        <div className="flex gap-4 max-w-3xl mx-auto">
+          {/* Avatar — larger for trust */}
+          <div style={{ flexShrink: 0 }}>
+            <Avatar
+              src={mentor.profilePicture}
+              name={mentor.name || mentor.initials}
+              size={58}
+              style={{ borderRadius: 14, border: `2px solid ${T.accent}40` }}
+            />
           </div>
 
-          {/* Match % */}
-          <div className="text-right flex-shrink-0">
-            <span className="text-xl font-bold"
-              style={{ color: T.accent, fontFamily: "Fraunces, serif" }}>
-              {mentor.matchPct}%
-            </span>
-            <p className="text-xs" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>match</p>
+          {/* Identity */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+              <div>
+                <h2
+                  style={{ fontSize: 17, fontWeight: 700, color: T.text, fontFamily: "Fraunces, serif", lineHeight: 1.2 }}
+                >
+                  {mentor.name}
+                </h2>
+                <p style={{ fontSize: 12, color: T.textSub, marginTop: 2, fontFamily: "Inter, sans-serif" }}>
+                  {mentor.role}
+                </p>
+                <p style={{ fontSize: 11, color: T.textMuted, marginTop: 1, fontFamily: "Inter, sans-serif" }}>
+                  {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+              {/* Match % — kept here only, removed from card pill */}
+              {mentor.matchPct > 0 && (
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: T.accent, fontFamily: "Fraunces, serif", lineHeight: 1 }}>
+                    {mentor.matchPct}%
+                  </span>
+                  <p style={{ fontSize: 10, color: T.textMuted, fontFamily: "Inter, sans-serif", marginTop: 1 }}>match</p>
+                </div>
+              )}
+            </div>
+
+            {/* Trust badges row */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              {(mentor.isVerified || (mentor.completionPct ?? 0) >= 80) && (
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 999, background: "rgba(61,190,130,0.12)", color: T.green, border: `1px solid ${T.green}35`, fontFamily: "Inter, sans-serif" }}
+                >
+                  <BadgeCheck size={11} /> Verified Mentor
+                </span>
+              )}
+              {linkedinUrl && (
+                <a
+                  href={linkedinUrl.startsWith("http") ? linkedinUrl : `https://${linkedinUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 999, background: "rgba(10,102,194,0.12)", color: "#0A66C2", border: "1px solid rgba(10,102,194,0.28)", textDecoration: "none", fontFamily: "Inter, sans-serif" }}
+                >
+                  <ExternalLink size={10} /> LinkedIn Profile
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── Body ── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 flex flex-col gap-3.5 max-w-3xl mx-auto">
-          {/* Journey */}
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-              style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-              Their Journey
-            </p>
-            <p className="text-sm leading-[1.85]"
-              style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}
-              dangerouslySetInnerHTML={{ __html: mentor.story }}
-            />
-          </div>
+        <div className="p-4 sm:p-5 flex flex-col gap-4 max-w-3xl mx-auto">
 
-          {/* Outcome box */}
+          {/* Stats strip */}
           <div
-            className="rounded-xl p-3 flex items-start gap-3"
-            style={{ background: `${T.green}10`, border: `1px solid ${T.green}30` }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              borderRadius: 12,
+              overflow: "hidden",
+              border: `1px solid ${T.cardBorder}`,
+            }}
           >
-            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-              style={{ background: `${T.green}25` }}>
-              <span style={{ color: T.green, fontSize: "10px", lineHeight: 1 }}>✓</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1" style={{ color: T.green, fontFamily: "Inter, sans-serif" }}>
-                Outcome
-              </p>
-              <p className="text-sm leading-relaxed" style={{ color: T.textSub, fontFamily: "Inter, sans-serif" }}>
-                {mentor.outcome}
-              </p>
-            </div>
-          </div>
-
-          {/* Similarity tags */}
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-              style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-              Why You Match
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {mentor.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{
-                    background: T.accentSoft,
-                    border: `1px solid ${T.accent}55`,
-                    color: T.accentText,
-                    fontFamily: "Inter, sans-serif",
-                    boxShadow: `0 0 8px ${T.accent}14`,
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-3 rounded-xl overflow-hidden"
-            style={{ border: `1px solid ${T.cardBorder}` }}>
             {[
-              { icon: <Users size={13} />, label: "Students", value: mentor.studentsHelped },
-              { icon: <Star size={13} />, label: "Rating", value: mentor.rating },
-              { icon: <Clock size={13} />, label: "Timeline", value: mentor.timeline },
+              {
+                top: ratingDisplay
+                  ? <StarRow value={rawRating} />
+                  : <span style={{ fontSize: 11, color: T.textMuted, fontFamily: "Inter, sans-serif" }}>New</span>,
+                label: ratingDisplay ? `${ratingDisplay} rating` : "Rating",
+              },
+              {
+                top: <span style={{ fontSize: 15, fontWeight: 800, color: T.text, fontFamily: "Fraunces, serif" }}>{sessionsLabel}</span>,
+                label: sessionsRaw > 0 ? "Sessions" : "First sessions",
+              },
+              {
+                top: <span style={{ fontSize: 15, fontWeight: 800, color: T.text, fontFamily: "Fraunces, serif" }}>{expLabel}</span>,
+                label: "Experience",
+              },
             ].map((s, i) => (
-              <div key={s.label} className="p-2 text-center"
+              <div
+                key={i}
                 style={{
+                  padding: "10px 6px",
+                  textAlign: "center",
                   background: T.bg,
                   borderRight: i < 2 ? `1px solid ${T.cardBorder}` : "none",
-                }}>
-                <div className="flex justify-center mb-1" style={{ color: T.textMuted }}>{s.icon}</div>
-                <p className="text-sm font-bold" style={{ color: T.text, fontFamily: "Fraunces, serif" }}>
-                  {s.value}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: T.textMuted, fontFamily: "Inter, sans-serif" }}>
-                  {s.label}
-                </p>
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 3 }}>{s.top}</div>
+                <p style={{ fontSize: 10, color: T.textMuted, fontFamily: "Inter, sans-serif" }}>{s.label}</p>
               </div>
             ))}
           </div>
 
+          {/* Specialization */}
+          {(domainLabel || fieldLabel) && (
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textMuted, fontFamily: "Inter, sans-serif", marginBottom: 7 }}>
+                Specializes In
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {domainLabel && (
+                  <span style={{ padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: `${T.accent}18`, color: T.accentText, border: `1px solid ${T.accent}40`, fontFamily: "Inter, sans-serif" }}>
+                    {domainLabel}
+                  </span>
+                )}
+                {fieldLabel && (
+                  <span style={{ padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: `${T.green}14`, color: T.green, border: `1px solid ${T.green}40`, fontFamily: "Inter, sans-serif" }}>
+                    {fieldLabel}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Journey */}
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textMuted, fontFamily: "Inter, sans-serif", marginBottom: 7 }}>
+              Their Journey
+            </p>
+            <p style={{ fontSize: 13, lineHeight: 1.85, color: T.textSub, fontFamily: "Inter, sans-serif" }}
+              dangerouslySetInnerHTML={{ __html: mentor.story }}
+            />
+          </div>
+
+          {/* Outcome */}
+          <div
+            style={{ borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 10, background: `${T.green}0D`, border: `1px solid ${T.green}30` }}
+          >
+            <div style={{ width: 20, height: 20, borderRadius: "50%", background: `${T.green}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+              <span style={{ color: T.green, fontSize: 10, fontWeight: 700 }}>✓</span>
+            </div>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, color: T.green, marginBottom: 3, fontFamily: "Inter, sans-serif" }}>Outcome</p>
+              <p style={{ fontSize: 13, lineHeight: 1.6, color: T.textSub, fontFamily: "Inter, sans-serif" }}>{mentor.outcome}</p>
+            </div>
+          </div>
+
+          {/* Why you match tags */}
+          {(mentor.tags || []).length > 0 && (
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: T.textMuted, fontFamily: "Inter, sans-serif", marginBottom: 7 }}>
+                Why You Match
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                {mentor.tags.map(tag => (
+                  <span
+                    key={tag}
+                    style={{ padding: "4px 11px", borderRadius: 999, fontSize: 11, fontWeight: 500, background: T.accentSoft, border: `1px solid ${T.accent}50`, color: T.accentText, fontFamily: "Inter, sans-serif" }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* ── Fixed Footer CTA ── */}
+      {/* ── CTA footer ── */}
       <div className="px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderTop: `1px solid ${T.cardBorder}`, background: T.card }}>
         <div className="max-w-3xl mx-auto flex gap-3">
           <button
             onClick={() => {
               if (onSelect) onSelect();
-              // Go straight to the full Book a Session page (bigger, readable layout)
-              // instead of a cramped in-place sheet.
               if (onTalkToMentor) onTalkToMentor(mentor);
             }}
             className="flex-1 py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition hover:opacity-90"
             style={{
+              width: "100%",
+              padding: "14px 0",
+              borderRadius: 12,
               background: "linear-gradient(135deg, #7567C9, #5a52a8)",
               color: "#fff",
-              fontFamily: "Inter, sans-serif",
-              boxShadow: `0 4px 20px ${T.accent}40`,
+              fontWeight: 700,
+              fontSize: 15,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
               border: "none",
-              letterSpacing: "0.01em",
               cursor: "pointer",
+              boxShadow: `0 4px 20px ${T.accent}40`,
+              fontFamily: "Inter, sans-serif",
+              letterSpacing: "0.01em",
             }}
           >
             <Video size={16} />

@@ -5,6 +5,7 @@ import {
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
   CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
+  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -85,9 +86,8 @@ const PageStyles = () => (
     .pf-icon-btn { transition: background .15s, color .15s, transform .15s; }
     .pf-icon-btn:hover { background: var(--c-accentSoft) !important; color: var(--c-accentText) !important; transform: translateY(-1px); }
 
-    .pf-editbtn { opacity:0; transition: opacity .18s ease, color .15s; }
-    .pf-card:hover .pf-editbtn { opacity:1; }
-    .pf-editbtn:hover { color:var(--c-accentText) !important; }
+    .pf-editbtn { opacity:1; transition: background .15s, transform .15s, box-shadow .15s; }
+    .pf-editbtn:hover { background:#f87171 !important; color:#fff !important; border-color:#f87171 !important; transform:translateY(-1px); box-shadow:0 3px 10px rgba(248,113,113,0.4) !important; }
     @media (hover:none) { .pf-editbtn { opacity:1; } }
 
     .pf-skel { background:linear-gradient(90deg, var(--c-active) 25%, var(--c-cardHover) 50%, var(--c-active) 75%);
@@ -146,9 +146,9 @@ function StatCard({ Icon, label, value, hint, delay }) {
 }
 
 /* ─── Section card shell ────────────────────────────────────────────────────── */
-function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2 }) {
+function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2, id }) {
   return (
-    <section className={`pf-card pf-anim pf-anim-${delay}`} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1.35rem 1.4rem", minWidth: 0 }}>
+    <section id={id} className={`pf-card pf-anim pf-anim-${delay}`} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1.35rem 1.4rem", minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.2rem", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
           <div style={{
@@ -258,11 +258,11 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
       </div>
       {editing && (
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <input className="pf-input" style={{ flex: 1 }} value={draft} placeholder={placeholder}
+          <input className="pf-input" style={{ flex: 1, border: `1.5px solid ${draft.trim() ? "#3DBE82" : C.cardBorder}`, outline: "none", transition: "border-color .15s" }} value={draft} placeholder={placeholder}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
-          <button type="button" onClick={add}
-            style={{ background: C.accentSoft, border: `1px solid ${C.accent}55`, color: C.accentText, borderRadius: 10, padding: "0 16px", cursor: "pointer", fontSize: ".82rem", fontWeight: 600, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
+          <button type="button" onClick={add} disabled={!draft.trim()}
+            style={{ background: draft.trim() ? "#3DBE82" : C.active, border: `1px solid ${draft.trim() ? "#3DBE82" : C.cardBorder}`, color: draft.trim() ? "#fff" : C.textMuted, borderRadius: 10, padding: "0 16px", cursor: draft.trim() ? "pointer" : "not-allowed", fontSize: ".82rem", fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, transition: "all .15s" }}>
             <Plus size={13} /> Add
           </button>
         </div>
@@ -271,33 +271,42 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
   );
 }
 
-/* ─── Weekly Availability Editor ───────────────────────────────────────────── */
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
+/* ─── Availability Editor — calendar-grid style (same as student booking) ───── */
+const CAL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const CAL_DAY_H  = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+const TIME_SLOTS  = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
 const fmtSlot = (s) => { const [h] = s.split(':').map(Number); const p = h >= 12 ? 'PM' : 'AM'; const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${h12} ${p}`; };
 
 function AvailabilityEditor({ userId }) {
-  const [weekly, setWeekly] = useState(null); // null = loading
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const today = new Date();
+  const [weekly, setWeekly]   = useState(null);
+  const [saving, setSaving]   = useState(false);
+  const [saved,  setSaved]    = useState(false);
+  const [calYear,  setCalYear]  = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [selDay,   setSelDay]   = useState(null); // JS day-of-week 0-6 currently editing slots
+  const [customTime, setCustomTime] = useState(""); // HH:MM input for custom slot
 
   useEffect(() => {
     availabilityAPI.getSchedule(userId)
-      .then(d => setWeekly((d.availability?.weekly || [])))
+      .then(d => setWeekly(d.availability?.weekly || []))
       .catch(() => setWeekly([]));
   }, [userId]);
 
-  const toggleDay = (day) => {
+  const toggleDow = (dow) => {
     setWeekly(prev => {
-      if (prev.some(d => d.day === day)) return prev.filter(d => d.day !== day);
-      return [...prev, { day, slots: ["09:00", "10:00", "14:00", "15:00"] }];
+      if (prev.some(d => d.day === dow)) {
+        setSelDay(s => s === dow ? null : s);
+        return prev.filter(d => d.day !== dow);
+      }
+      setSelDay(dow);
+      return [...prev, { day: dow, slots: ["09:00","10:00","14:00","15:00"] }];
     });
   };
 
-  const toggleSlot = (day, slot) => {
+  const toggleSlot = (dow, slot) => {
     setWeekly(prev => prev.map(d => {
-      if (d.day !== day) return d;
+      if (d.day !== dow) return d;
       const slots = d.slots.includes(slot) ? d.slots.filter(s => s !== slot) : [...d.slots, slot].sort();
       return { ...d, slots };
     }));
@@ -307,98 +316,177 @@ function AvailabilityEditor({ userId }) {
     setSaving(true);
     try {
       await availabilityAPI.save({ weekly });
-      setSaved(true); setEditing(false);
+      setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) { alert(e.message || 'Save failed'); }
     finally { setSaving(false); }
   };
 
-  const activeDay = weekly?.find(d => d.day);
-  const totalSlots = (weekly || []).reduce((s, d) => s + d.slots.length, 0);
+  // Calendar grid helpers
+  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const canPrev = calYear > today.getFullYear() || calMonth > today.getMonth();
+  const prevM = () => { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); };
+  const nextM = () => { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); };
+
+  const getDow = (d) => new Date(calYear, calMonth, d).getDay();
+  const isPast = (d) => new Date(calYear, calMonth, d) < new Date(today.toDateString());
+
+  const totalSlots = (weekly||[]).reduce((s,d)=>s+d.slots.length,0);
+  const selEntry   = selDay != null ? (weekly||[]).find(d=>d.day===selDay) : null;
 
   if (weekly === null) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {[0, 1, 2].map(i => <div key={i} className="pf-skel" style={{ height: 44, borderRadius: 10 }} />)}
+    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      {[0,1,2].map(i=><div key={i} className="pf-skel" style={{ height:44, borderRadius:10 }} />)}
     </div>
   );
 
   return (
     <div>
-      {/* Day toggles */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-        {[1, 2, 3, 4, 5, 6, 0].map(day => {
-          const active = weekly.some(d => d.day === day);
-          return (
-            <button key={day} type="button" onClick={() => { if (!editing) return; toggleDay(day); }}
-              style={{ background: active ? C.accentSoft : C.active, border: `1.5px solid ${active ? C.accent + "77" : C.cardBorder}`, borderRadius: 8, padding: "7px 13px", color: active ? C.accentText : C.textMuted, fontSize: ".78rem", fontWeight: 700, cursor: editing ? "pointer" : "default", fontFamily: "inherit", transition: "all .15s" }}>
-              {DAY_NAMES[day]}
-            </button>
-          );
-        })}
+      {/* ── Calendar grid ── */}
+      <div style={{ background: C.active, borderRadius:12, padding:"12px 14px", marginBottom:12 }}>
+        {/* Month nav */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+          <button onClick={prevM} disabled={!canPrev}
+            style={{ background:"none", border:"none", cursor:canPrev?"pointer":"default", color:canPrev?C.textSub:C.textMuted, padding:"4px 6px", borderRadius:6, display:"flex" }}>
+            <ChevronLeft size={16} />
+          </button>
+          <span style={{ fontWeight:700, fontSize:".84rem", color:C.text }}>{CAL_MONTHS[calMonth]} {calYear}</span>
+          <button onClick={nextM}
+            style={{ background:"none", border:"none", cursor:"pointer", color:C.textSub, padding:"4px 6px", borderRadius:6, display:"flex" }}>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        {/* Day headers */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3, marginBottom:4 }}>
+          {CAL_DAY_H.map(h=>(
+            <div key={h} style={{ textAlign:"center", fontSize:".62rem", fontWeight:700, color:C.textMuted, padding:"3px 0" }}>{h}</div>
+          ))}
+        </div>
+
+        {/* Date cells */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3 }}>
+          {cells.map((d,i) => {
+            if (!d) return <div key={`e${i}`} />;
+            const dow = getDow(d);
+            const past = isPast(d);
+            const entry = (weekly||[]).find(w=>w.day===dow);
+            const active = !past && !!entry;
+            const isSelDay = !past && active && selDay===dow;
+            const slotCount = active ? entry.slots.length : 0;
+            return (
+              <button key={d} type="button" disabled={past}
+                onClick={() => { if (past) return; if (active) setSelDay(s => s===dow ? null : dow); else toggleDow(dow); }}
+                style={{
+                  borderRadius:8, border:`1.5px solid ${isSelDay ? C.accent : active ? C.accent+"55" : "transparent"}`,
+                  background: isSelDay ? C.accent : active ? C.accentSoft : "transparent",
+                  color: isSelDay ? "#fff" : active ? C.accentText : past ? C.textMuted+"44" : C.textSub,
+                  cursor: past ? "default" : "pointer", fontFamily:"inherit", transition:"all .12s",
+                  display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+                  padding:"5px 2px", gap:1,
+                }}>
+                <span style={{ fontSize:".78rem", fontWeight: active ? 700 : 400, lineHeight:1 }}>{d}</span>
+                {active && <span style={{ fontSize:".52rem", fontWeight:700, letterSpacing:".02em", opacity:.85, lineHeight:1 }}>
+                  {slotCount} slot{slotCount !== 1 ? "s" : ""}
+                </span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ fontSize:".66rem", color:C.textMuted, marginTop:10, textAlign:"center" }}>
+          Tap a date to mark that weekday available — repeats every week
+        </div>
       </div>
 
-      {/* Slot grids for each active day */}
-      {editing && weekly.sort((a, b) => (a.day === 0 ? 7 : a.day) - (b.day === 0 ? 7 : b.day)).map(({ day, slots }) => (
-        <div key={day} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, marginBottom: 7 }}>
-            {DAY_NAMES[day].toUpperCase()} — select available hours
+      {/* ── Time slots for selected weekday ── */}
+      {selDay != null && selEntry && (
+        <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:12, padding:"12px 14px", marginBottom:12 }}>
+          <div style={{ fontSize:".7rem", fontWeight:700, color:C.accentText, letterSpacing:".06em", marginBottom:10 }}>
+            {["SUN","MON","TUE","WED","THU","FRI","SAT"][selDay]} — pick your available hours
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+            {/* Preset slots */}
             {TIME_SLOTS.map(slot => {
-              const on = slots.includes(slot);
+              const on = selEntry.slots.includes(slot);
               return (
-                <button key={slot} type="button" onClick={() => toggleSlot(day, slot)}
-                  style={{ background: on ? C.accentSoft : C.active, border: `1.5px solid ${on ? C.accent + "66" : C.cardBorder}`, borderRadius: 8, padding: "6px 11px", color: on ? C.accentText : C.textMuted, fontSize: ".75rem", fontWeight: on ? 700 : 400, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all .12s" }}>
-                  {on && <Check size={10} />}{fmtSlot(slot)}
+                <button key={slot} type="button" onClick={()=>toggleSlot(selDay,slot)}
+                  style={{ background:on?C.accent:C.active, border:`1.5px solid ${on?C.accent:C.cardBorder}`, borderRadius:8, padding:"7px 12px", color:on?"#fff":C.textMuted, fontSize:".75rem", fontWeight:on?700:400, cursor:"pointer", fontFamily:"inherit", transition:"all .12s" }}>
+                  {fmtSlot(slot)}
                 </button>
               );
             })}
+            {/* Custom slots added by mentor */}
+            {selEntry.slots.filter(s => !TIME_SLOTS.includes(s)).map(slot => (
+              <button key={slot} type="button" onClick={()=>toggleSlot(selDay,slot)}
+                style={{ background:C.accent, border:`1.5px solid ${C.accent}`, borderRadius:8, padding:"7px 12px", color:"#fff", fontSize:".75rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all .12s", display:"flex", alignItems:"center", gap:5 }}>
+                {fmtSlot(slot)} <span style={{ opacity:.7, fontSize:".65rem" }}>✕</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Custom time input */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:12, borderTop:`1px solid ${C.cardBorder}`, paddingTop:12 }}>
+            <span style={{ fontSize:".7rem", color:C.textMuted, fontWeight:600, flexShrink:0 }}>Custom time:</span>
+            <input
+              type="time"
+              value={customTime}
+              onChange={e => setCustomTime(e.target.value)}
+              style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 10px", color:C.text, fontSize:".78rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }}
+            />
+            <button type="button"
+              disabled={!customTime}
+              onClick={() => {
+                if (!customTime) return;
+                // normalise to "HH:MM"
+                const norm = customTime.length === 5 ? customTime : customTime.slice(0,5);
+                if (!selEntry.slots.includes(norm)) toggleSlot(selDay, norm);
+                setCustomTime("");
+              }}
+              style={{ background:customTime?C.accent:C.active, border:"none", borderRadius:8, padding:"7px 14px", color:customTime?"#fff":C.textMuted, fontSize:".75rem", fontWeight:700, cursor:customTime?"pointer":"not-allowed", fontFamily:"inherit", transition:"all .15s" }}>
+              + Add
+            </button>
           </div>
         </div>
-      ))}
+      )}
 
-      {/* Summary when not editing */}
-      {!editing && weekly.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14 }}>
-          {weekly.sort((a, b) => (a.day === 0 ? 7 : a.day) - (b.day === 0 ? 7 : b.day)).map(({ day, slots }) => (
-            <div key={day} style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 12px" }}>
-              <div style={{ fontSize: ".68rem", fontWeight: 700, color: C.textMuted, marginBottom: 5 }}>{DAY_NAMES[day].toUpperCase()}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {slots.slice(0, 5).map(s => (
-                  <span key={s} style={{ background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 6, padding: "3px 8px", fontSize: ".7rem", fontWeight: 600, color: C.accentText }}>{fmtSlot(s)}</span>
-                ))}
-                {slots.length > 5 && <span style={{ fontSize: ".7rem", color: C.textMuted, alignSelf: "center" }}>+{slots.length - 5}</span>}
-              </div>
+      {/* ── Summary chips ── */}
+      {(weekly||[]).length > 0 && (
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:12 }}>
+          {[...weekly].sort((a,b)=>(a.day===0?7:a.day)-(b.day===0?7:b.day)).map(({day,slots})=>(
+            <div key={day} style={{ display:"flex", alignItems:"center", gap:6, background:C.active, border:`1px solid ${selDay===day?C.accent:C.cardBorder}`, borderRadius:9, padding:"5px 10px", cursor:"pointer" }}
+              onClick={()=>setSelDay(s=>s===day?null:day)}>
+              <span style={{ fontSize:".7rem", fontWeight:700, color:selDay===day?C.accentText:C.textSub }}>
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]}
+              </span>
+              <span style={{ fontSize:".66rem", color:C.textMuted }}>{slots.length} slots</span>
+              <button type="button" onClick={e=>{e.stopPropagation();toggleDow(day);}}
+                style={{ background:"none", border:"none", cursor:"pointer", color:C.textMuted, padding:0, lineHeight:1, fontSize:".7rem" }}>✕</button>
             </div>
           ))}
         </div>
       )}
 
-      {!editing && weekly.length === 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.active, borderRadius: 10, border: `1px dashed ${C.cardBorder}`, padding: "12px 14px", marginBottom: 14 }}>
-          <CalendarClock size={15} style={{ color: C.textMuted, flexShrink: 0 }} />
-          <span style={{ fontSize: ".8rem", color: C.textMuted }}>No availability set — students can't book you yet. Click Edit to add your schedule.</span>
+      {(weekly||[]).length === 0 && (
+        <div style={{ display:"flex", alignItems:"center", gap:10, background:C.active, borderRadius:10, border:`1px dashed ${C.cardBorder}`, padding:"11px 14px", marginBottom:12 }}>
+          <CalendarClock size={14} style={{ color:C.textMuted, flexShrink:0 }} />
+          <span style={{ fontSize:".78rem", color:C.textMuted }}>Tap any date on the calendar to mark that weekday available</span>
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {!editing
-          ? <button type="button" onClick={() => setEditing(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}55`, borderRadius: 10, padding: "8px 16px", color: C.accentText, fontSize: ".8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            <Pencil size={12} /> Edit schedule
-          </button>
-          : <>
-            <button type="button" onClick={() => setEditing(false)}
-              style={{ background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
-              Cancel
-            </button>
-            <button type="button" onClick={handleSave} disabled={saving}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: C.green, border: "none", borderRadius: 10, padding: "8px 18px", color: "#fff", fontSize: ".8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              {saving ? <><Spin size={13} /> Saving…</> : <><Check size={12} /> Save schedule</>}
-            </button>
-          </>}
-        {saved && <span style={{ fontSize: ".78rem", color: C.green, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}><Check size={12} /> Saved</span>}
-        {weekly.length > 0 && !editing && <span style={{ fontSize: ".72rem", color: C.textMuted }}>{totalSlots} slots / week</span>}
+      {/* ── Save ── */}
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <button type="button" onClick={handleSave} disabled={saving || (weekly||[]).length===0}
+          style={{ display:"flex", alignItems:"center", gap:6, background:(weekly||[]).length>0?C.green:C.active, border:"none", borderRadius:10, padding:"9px 18px", color:(weekly||[]).length>0?"#fff":C.textMuted, fontSize:".8rem", fontWeight:700, cursor:(weekly||[]).length>0?"pointer":"not-allowed", fontFamily:"inherit", opacity:saving?.7:1 }}>
+          {saving?<><Spin size={13}/>Saving…</>:<><Check size={12}/>Save schedule</>}
+        </button>
+        {saved && <span style={{ fontSize:".78rem", color:C.green, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}><Check size={12}/>Saved</span>}
+        {(weekly||[]).length>0 && <span style={{ fontSize:".72rem", color:C.textMuted }}>{totalSlots} slots/week</span>}
       </div>
     </div>
   );
@@ -419,6 +507,11 @@ export default function ProfilePage() {
   const [slugValue, setSlugValue] = useState("");
   const [slugSaving, setSlugSaving] = useState(false);
   const [slugError, setSlugError] = useState("");
+  const [importing,   setImporting]   = useState(false);
+  const [importMsg,   setImportMsg]   = useState("");
+  const [importTab,   setImportTab]   = useState("url"); // "url" | "pdf"
+  const [importUrl,   setImportUrl]   = useState("");
+  const [importDone,  setImportDone]  = useState(false);
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {
@@ -649,6 +742,43 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLinkedinUrlImport = async () => {
+    if (!importUrl.trim()) { setImportMsg("Paste your LinkedIn profile URL first."); return; }
+    setImportMsg(""); setImporting(true); setImportDone(false);
+    try {
+      const res = await mentorAPI.linkedinAutofill(importUrl.trim());
+      const d = res?.data?.fields || res?.fields || {};
+      const merged = {
+        ...form,
+        name:            form.name            || d.username || "",
+        college:         form.college         || d.college  || "",
+        branch:          form.branch          || d.branch   || "",
+        year:            form.year            || d.year     || "",
+        bio:             form.bio             || d.bio      || "",
+        city:            form.city            || d.city     || "",
+        linkedinProfile: form.linkedinProfile || d.linkedinProfile || importUrl.trim(),
+        topCompanies:    form.topCompanies.length ? form.topCompanies : (d.topCompanies || []),
+        expertise:       form.expertise.length    ? form.expertise    : (d.expertise   || []),
+        primaryDomain:   form.primaryDomain   || d.primaryDomain || "",
+        companyDomain:   form.companyDomain   || d.companyDomain || "",
+        story:           form.story           || d.story    || "",
+      };
+      setForm(merged);
+      const payload = {
+        username: merged.name, bio: merged.bio, college: merged.college, branch: merged.branch,
+        year: merged.year, city: merged.city, linkedinProfile: merged.linkedinProfile,
+        expertise: merged.expertise, topCompanies: merged.topCompanies,
+        primaryDomain: merged.primaryDomain, companyDomain: merged.companyDomain,
+        servicesOffered: merged.servicesOffered, price: Number(merged.price) || 0,
+        yearsOfExperience: Number(merged.yearsOfExperience) || 0,
+      };
+      await profileAPI.update(payload);
+      setImportDone(true);
+    } catch (e) {
+      setImportMsg(e.message || "Couldn't fetch LinkedIn profile — check the URL and try again.");
+    } finally { setImporting(false); }
+  };
+
   const edu = user?.education?.[0] || {};
 
   // ── Completion checklist (weights sum to 100 per role) ──
@@ -824,25 +954,61 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* ════════ IMPORT FROM LINKEDIN (mentors) ════════ */}
-      {isMentor && (
-        <div className="pf-card pf-anim pf-anim-1" style={{ background: "linear-gradient(120deg, rgba(10,102,194,0.10), rgba(117,103,201,0.10))", border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1rem 1.2rem", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(10,102,194,0.15)", border: "1px solid rgba(10,102,194,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Link2 size={18} style={{ color: "#0A66C2" }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: ".92rem", fontWeight: 700, color: C.text }}>Auto-fill from LinkedIn</div>
-              <div style={{ fontSize: ".75rem", color: C.textSub, marginTop: 2, lineHeight: 1.5 }}>
-                Upload your LinkedIn PDF — we fill your profile and open your answer card. <span style={{ color: C.textMuted }}>(LinkedIn → More → Save to PDF)</span>
-              </div>
-              {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 6 }}>{importMsg}</div>}
-            </div>
+      {/* ════════ IMPORT — LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
+      {isMentor && pct < 60 && (
+        <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, overflow: "hidden" }}>
+          {/* Tab header */}
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.cardBorder}` }}>
+            {[
+              { id: "url", icon: <Link2 size={13} />, label: "LinkedIn URL" },
+              { id: "pdf", icon: <FileText size={13} />, label: "Resume PDF" },
+            ].map(tab => (
+              <button key={tab.id} type="button" onClick={() => { setImportTab(tab.id); setImportMsg(""); setImportDone(false); }}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", border: "none", borderBottom: importTab === tab.id ? `2px solid ${C.accent}` : "2px solid transparent", background: "transparent", color: importTab === tab.id ? C.accentText : C.textMuted, fontSize: ".78rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
+                {tab.icon}{tab.label}
+              </button>
+            ))}
           </div>
-          <label style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 7, background: importing ? C.active : C.accent, border: "none", borderRadius: 10, padding: "9px 17px", color: importing ? C.textSub : "#fff", fontSize: ".82rem", fontWeight: 700, cursor: importing ? "default" : "pointer", boxShadow: importing ? "none" : "0 3px 12px rgba(117,103,201,0.28)" }}>
-            <input type="file" accept="application/pdf" hidden disabled={importing} onChange={e => handleLinkedinImport(e.target.files?.[0])} />
-            {importing ? <><Spin size={14} /> Reading…</> : <><Upload size={14} /> Upload PDF</>}
-          </label>
+
+          <div style={{ padding: "14px 16px" }}>
+            {importTab === "url" ? (
+              <>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    style={{ flex: 1, background: C.active, border: `1.5px solid ${importUrl.trim() ? C.accent : C.cardBorder}`, borderRadius: 9, padding: "9px 12px", color: C.text, fontSize: ".86rem", outline: "none", fontFamily: "inherit", transition: "border-color .15s" }}
+                    type="url" placeholder="https://linkedin.com/in/yourname"
+                    value={importUrl} onChange={e => { setImportUrl(e.target.value); setImportMsg(""); setImportDone(false); }}
+                    onKeyDown={e => { if (e.key === "Enter") handleLinkedinUrlImport(); }}
+                  />
+                  <button onClick={handleLinkedinUrlImport} disabled={importing || !importUrl.trim()}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: importUrl.trim() ? C.accent : C.active, border: "none", borderRadius: 9, padding: "9px 16px", color: importUrl.trim() ? "#fff" : C.textMuted, fontSize: ".82rem", fontWeight: 700, cursor: importUrl.trim() && !importing ? "pointer" : "not-allowed", fontFamily: "inherit", flexShrink: 0, transition: "all .15s" }}>
+                    {importing ? <><Spin size={13} /> Importing…</> : "Import"}
+                  </button>
+                </div>
+                {importDone && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8244", borderRadius: 8, padding: "8px 12px" }}>
+                    <Check size={13} color={C.green} /><span style={{ fontSize: ".78rem", color: C.green, fontWeight: 600 }}>Profile auto-filled from LinkedIn — review and save</span>
+                  </div>
+                )}
+                {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 8 }}>{importMsg}</div>}
+                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7 }}>We extract name, college, companies, skills — you just review</div>
+              </>
+            ) : (
+              <>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, border: `2px dashed ${C.cardBorder}`, borderRadius: 10, padding: "18px 16px", cursor: importing ? "default" : "pointer", background: C.active }}>
+                  <input type="file" accept="application/pdf" hidden disabled={importing} onChange={e => { const f = e.target.files?.[0]; if (f) handleLinkedinImport(f); e.target.value = ""; }} />
+                  {importing
+                    ? <><Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: C.accentText }} /><span style={{ fontSize: ".82rem", color: C.accentText, fontWeight: 600 }}>Reading resume…</span></>
+                    : importDone
+                      ? <><Check size={20} color={C.green} /><span style={{ fontSize: ".82rem", color: C.green, fontWeight: 600 }}>Imported — review your fields above</span></>
+                      : <><Upload size={20} color={C.textMuted} /><span style={{ fontSize: ".82rem", color: C.textSub, fontWeight: 600 }}>Click to upload your Resume PDF</span></>
+                  }
+                </label>
+                {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 8 }}>{importMsg}</div>}
+                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7, textAlign: "center" }}>Any resume PDF works — LinkedIn: Profile → More → Save to PDF</div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -886,7 +1052,28 @@ export default function ProfilePage() {
                 ? <span key={it.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(61,190,130,0.1)", border: `1px solid ${C.green}44`, borderRadius: 999, padding: "4px 12px", color: C.green, fontSize: ".72rem", fontWeight: 600 }}>
                   <Check size={11} /> {it.label}
                 </span>
-                : <button key={it.key} className="pf-chipbtn" onClick={startEdit} title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
+                : <button key={it.key} className="pf-chipbtn"
+                  onClick={() => {
+                    if (it.key === "services") {
+                      document.getElementById("services-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    } else {
+                      // map chip keys → section ids
+                      const SECTION = {
+                        bio: "field-bio", photo: "field-bio", city: "field-bio",
+                        college: "field-college", branch: "field-college", year: "field-college",
+                        exp: "field-exp", companies: "field-exp", linkedin: "field-exp",
+                        expertise: "field-expertise",
+                        tags: "field-tags",
+                        domain: "field-domain",
+                      };
+                      startEdit();
+                      setTimeout(() => {
+                        const el = document.getElementById(SECTION[it.key] || `field-${it.key}`);
+                        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }, 120);
+                    }
+                  }}
+                  title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
                   style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
                   <Plus size={11} /> {it.label} <span style={{ color: C.accentText, fontWeight: 700 }}>+{it.pts}%</span>
                 </button>
@@ -897,7 +1084,34 @@ export default function ProfilePage() {
 
       {/* ════════ MENTOR MONETIZATION BLOCK (full-width, above everything) ════════ */}
       {isMentor && (
-        <div className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
+        <div id="services-section" className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
+
+          {/* 🔴 Red incomplete-setup reminder — shows until both services + availability are done */}
+          {(form.servicesOffered.length === 0 || (user?.availability?.weekly?.length || 0) === 0) && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "rgba(248,113,113,0.08)", border: "1.5px solid rgba(248,113,113,0.45)", borderRadius: 14, padding: "13px 16px", marginBottom: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                <span style={{ fontSize: "1rem" }}>⚠️</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: ".84rem", fontWeight: 800, color: "#f87171", marginBottom: 4 }}>Students can't book you yet</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {form.servicesOffered.length === 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".76rem", color: "#fca5a5" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", flexShrink: 0 }} />
+                      Turn on at least one service below (Text Q&A, Audio Call, or Video Call)
+                    </div>
+                  )}
+                  {(user?.availability?.weekly?.length || 0) === 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".76rem", color: "#fca5a5" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", flexShrink: 0 }} />
+                      Add your available hours using "Edit schedule" on the right
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top earnings banner — light, soft surface */}
           <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
@@ -946,17 +1160,20 @@ export default function ProfilePage() {
           </div>
 
           {/* Services + Availability side by side */}
-          <div className="pf-mono-inner" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)" }}>
+          <div className="pf-mono-inner" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)", position: "relative" }}>
 
             {/* Left: Services */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, rgba(117,103,201,0.22), rgba(117,103,201,0.08))", border: "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <CalendarCheck size={14} style={{ color: C.accentText }} />
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: form.servicesOffered.length === 0 ? "rgba(248,113,113,0.15)" : "linear-gradient(135deg, rgba(117,103,201,0.22), rgba(117,103,201,0.08))", border: form.servicesOffered.length === 0 ? "1.5px solid rgba(248,113,113,0.5)" : "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}>
+                    <CalendarCheck size={14} style={{ color: form.servicesOffered.length === 0 ? "#f87171" : C.accentText }} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Services you offer</div>
+                    <div style={{ fontWeight: 700, fontSize: ".9rem", color: form.servicesOffered.length === 0 ? "#f87171" : C.text, display: "flex", alignItems: "center", gap: 7 }}>
+                      Services you offer
+                      {form.servicesOffered.length === 0 && <span style={{ fontSize: ".66rem", fontWeight: 700, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 999, padding: "2px 8px", color: "#f87171", letterSpacing: ".04em" }}>ACTION NEEDED</span>}
+                    </div>
                     <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>Tap to turn a service on or off</div>
                   </div>
                 </div>
@@ -1008,11 +1225,14 @@ export default function ProfilePage() {
             {/* Right: Availability */}
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <CalendarClock size={14} style={{ color: C.green }} />
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: (user?.availability?.weekly?.length || 0) === 0 ? "rgba(248,113,113,0.15)" : "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: (user?.availability?.weekly?.length || 0) === 0 ? "1.5px solid rgba(248,113,113,0.5)" : "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}>
+                  <CalendarClock size={14} style={{ color: (user?.availability?.weekly?.length || 0) === 0 ? "#f87171" : C.green }} />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Your availability</div>
+                  <div style={{ fontWeight: 700, fontSize: ".9rem", color: (user?.availability?.weekly?.length || 0) === 0 ? "#f87171" : C.text, display: "flex", alignItems: "center", gap: 7 }}>
+                    Your availability
+                    {(user?.availability?.weekly?.length || 0) === 0 && <span style={{ fontSize: ".66rem", fontWeight: 700, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 999, padding: "2px 8px", color: "#f87171", letterSpacing: ".04em" }}>ACTION NEEDED</span>}
+                  </div>
                   <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>When students can book you</div>
                 </div>
               </div>
@@ -1023,9 +1243,9 @@ export default function ProfilePage() {
       )}
 
       {/* ════════ SECTION GRID ════════ */}
-      <div className="pf-grid">
+      <div id="profile-fields-section" className="pf-grid">
         {/* About */}
-        <Section Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={2}>
+        <Section id="field-bio" Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={2}>
           <FieldRow label="DISPLAY NAME" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} editing={editing} placeholder="Your name" />
           <FieldRow label="MOBILE NUMBER" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} editing={editing} placeholder="9876543210" error={phoneError} />
           <div style={{ marginBottom: 0 }}>
@@ -1038,7 +1258,7 @@ export default function ProfilePage() {
         </Section>
 
         {/* Education */}
-        <Section Icon={GraduationCap} title="Education" subtitle="Your academic background" onEdit={startEdit} editing={editing} delay={2}>
+        <Section id="field-college" Icon={GraduationCap} title="Education" subtitle="Your academic background" onEdit={startEdit} editing={editing} delay={2}>
           <FieldRow label="COLLEGE" value={form.college} onChange={v => setForm(f => ({ ...f, college: v }))} editing={editing} placeholder="e.g. VNIT Nagpur" />
           <FieldRow label="BRANCH" value={form.branch} onChange={v => setForm(f => ({ ...f, branch: v }))} editing={editing} placeholder="e.g. Metallurgy" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1049,7 +1269,7 @@ export default function ProfilePage() {
 
         {isMentor ? <>
           {/* Professional Experience */}
-          <Section Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={3}>
+          <Section id="field-exp" Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={3}>
             <FieldRow label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f => ({ ...f, yearsOfExperience: v }))} editing={editing} placeholder="2" />
             <div>
               <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 8 }}>TOP COMPANIES</label>
@@ -1059,19 +1279,19 @@ export default function ProfilePage() {
           </Section>
 
           {/* Skills & Expertise */}
-          <Section Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={3}>
+          <Section id="field-expertise" Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={3}>
             <ChipEditor items={form.expertise} editing={editing} onChange={v => setForm(f => ({ ...f, expertise: v }))}
               placeholder="Add an expertise, e.g. System Design" emptyText="No expertise added yet — this is what students get matched on." />
           </Section>
 
           {/* Achievements */}
-          <Section Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={3}>
+          <Section id="field-tags" Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={3}>
             <ChipEditor items={form.specialTags} editing={editing} onChange={v => setForm(f => ({ ...f, specialTags: v }))}
               placeholder="Add a tag, e.g. FAANG, PPO, GATE" emptyText="No achievements yet — FAANG, PPO, GATE, research… add what you cracked." />
           </Section>
 
           {/* Mentoring Preferences */}
-          <Section Icon={Compass} title="Mentoring Preferences" subtitle="What & who you want to mentor" onEdit={startEdit} editing={editing} delay={3}>
+          <Section id="field-domain" Icon={Compass} title="Mentoring Preferences" subtitle="What & who you want to mentor" onEdit={startEdit} editing={editing} delay={3}>
             {editing ? <>
               <SelectRow label="MENTORING DOMAIN" value={form.primaryDomain} onChange={v => setForm(f => ({ ...f, primaryDomain: v }))} editing={editing}
                 options={[{ value: "internship", label: "Internships" }, { value: "placement", label: "Placements" }, { value: "both", label: "Both" }]} />
@@ -1216,23 +1436,43 @@ export default function ProfilePage() {
           </Section>
 
           {/* Verification Status */}
-          <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={4}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, background: user?.isVerified ? "rgba(61,190,130,0.08)" : C.active, border: `1px solid ${user?.isVerified ? C.green + "44" : C.cardBorder}`, borderRadius: 12, padding: "13px 15px" }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: user?.isVerified ? "rgba(61,190,130,0.15)" : C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {user?.isVerified ? <BadgeCheck size={18} style={{ color: C.green }} /> : <ShieldCheck size={18} style={{ color: C.accentText }} />}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: ".85rem", fontWeight: 600, color: C.text }}>
-                  {user?.isVerified ? "Verified mentor" : "Verification in progress"}
+          {(() => {
+            const isVerified = user?.isVerified || pct >= 80;
+            return (
+              <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={4}>
+                {/* Progress bar — only shown when not yet verified */}
+                {!isVerified && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                      <span style={{ fontSize: ".68rem", color: C.textMuted, fontWeight: 600 }}>Profile completion</span>
+                      <span style={{ fontSize: ".68rem", fontWeight: 700, color: pct >= 60 ? C.accentText : C.textMuted }}>{pct}% / 80% needed</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: C.active, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min(pct / 80 * 100, 100)}%`, borderRadius: 999, background: pct >= 60 ? "linear-gradient(90deg,#7567C9,#8E80DB)" : C.cardBorder, transition: "width .6s ease" }} />
+                    </div>
+                    <div style={{ fontSize: ".66rem", color: C.textMuted, marginTop: 5 }}>
+                      {pct < 80 ? `${80 - pct}% more to unlock your verified badge` : "Unlocking…"}
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, background: isVerified ? "rgba(61,190,130,0.08)" : C.active, border: `1px solid ${isVerified ? C.green + "44" : C.cardBorder}`, borderRadius: 12, padding: "13px 15px" }}>
+                  <div style={{ width: 38, height: 38, borderRadius: "50%", background: isVerified ? "rgba(61,190,130,0.15)" : C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {isVerified ? <BadgeCheck size={18} style={{ color: C.green }} /> : <ShieldCheck size={18} style={{ color: C.accentText }} />}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: ".85rem", fontWeight: 700, color: isVerified ? C.green : C.text }}>
+                      {isVerified ? "✓ Verified mentor" : "Verification locked"}
+                    </div>
+                    <div style={{ fontSize: ".74rem", color: C.textMuted, marginTop: 2, lineHeight: 1.5 }}>
+                      {isVerified
+                        ? "Students see the verified badge on your profile — builds instant trust."
+                        : "Reach 80% profile completion to unlock your verified badge."}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: ".74rem", color: C.textMuted, marginTop: 2, lineHeight: 1.5 }}>
-                  {user?.isVerified
-                    ? "Your journey is verified — students see the green badge on your profile."
-                    : "Complete your profile and answer card — verification follows automatically."}
-                </div>
-              </div>
-            </div>
-          </Section>
+              </Section>
+            );
+          })()}
         </> : <>
           {/* Student: Goals */}
           <Section Icon={Target} title="Current Goals" subtitle="What you're working towards" onEdit={startEdit} editing={editing} delay={3}>

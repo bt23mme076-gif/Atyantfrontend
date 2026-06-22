@@ -84,9 +84,12 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
       outcome: cm.topCompanies?.[0] ? `${cm.expertise?.[0] || "Role"} @ ${cm.topCompanies[0]}` : "Active mentor on Atyant",
       tags: cm.specialTags || [],
       matchPct: 0,
-      rating: cm.rating ? `${cm.rating}★` : "4.8★",
+      rating: cm.rating ? `${Number(cm.rating).toFixed(1)}★` : "4.8★",
       studentsHelped: String(cm.successfulMatches || 0),
       timeline: "Active",
+      primaryDomain: cm.primaryDomain || null,
+      companyDomain: cm.companyDomain || null,
+      linkedinProfile: cm.linkedinProfile || null,
     };
   };
 
@@ -232,14 +235,22 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                               <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
                                 {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
                               </div>
+                              {(mentor.primaryDomain || mentor.companyDomain) && (
+                                <div style={{ display: "flex", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
+                                  {mentor.primaryDomain && (
+                                    <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "rgba(117,103,201,0.14)", color: "var(--c-accentText)", border: "1px solid rgba(117,103,201,0.3)" }}>
+                                      {{ internship: "Internship", placement: "Placement", both: "Intern+Placement" }[mentor.primaryDomain]}
+                                    </span>
+                                  )}
+                                  {mentor.companyDomain && (
+                                    <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "rgba(61,190,130,0.12)", color: "#3DBE82", border: "1px solid rgba(61,190,130,0.3)" }}>
+                                      {mentor.companyDomain}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            {mentor.matchPct > 0 && (
-                              <div style={{ textAlign: "center", flexShrink: 0 }}>
-                                <div style={{ fontSize: 15, fontWeight: 800, color: "#7567C9", fontFamily: "Fraunces, serif", lineHeight: 1 }}>{mentor.matchPct}%</div>
-                                <div style={{ fontSize: 9, color: "var(--c-textMuted)", letterSpacing: "0.06em", marginTop: 2 }}>MATCH</div>
-                              </div>
-                            )}
-                            <span style={{ fontSize: 12, color: "var(--c-activeBorder)", marginLeft: 6 }}>→</span>
+                            <span style={{ fontSize: 12, color: "var(--c-accentText)", marginLeft: 6, fontWeight: 600 }}>→</span>
                           </button>
                         )}
                         {/* Answer card */}

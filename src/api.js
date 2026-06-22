@@ -114,6 +114,7 @@ async function uploadFile(path, field, file) {
 // Mentor onboarding
 export const mentorAPI = {
   onboard: (payload) => api.post('/api/mentor/onboard', payload),
+  linkedinAutofill: (linkedinUrl) => api.post('/api/mentor/linkedin-autofill', { linkedinUrl }),
   // The mentor's own answer cards (what students see on the Clarity page).
   answerCards: ()           => api.get('/api/mentor/answer-cards'),
   // AI-draft a full card from one paragraph (returns a draft, does not save).
@@ -148,6 +149,7 @@ export const sessionAPI = {
   my:       ()                                  => api.get('/api/sessions/my'),
   book:     (date, time, mentorId, topic)       => api.post('/api/sessions/book', { date, time, mentorId, topic }),
   cancel:   (id)                                => api.patch(`/api/sessions/${id}/cancel`),
+  review:   (id, rating, comment)               => api.post(`/api/sessions/${id}/review`, { rating, comment }),
 };
 
 // Payments (Razorpay) — book a paid session + auto Meet link

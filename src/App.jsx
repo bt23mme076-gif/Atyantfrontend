@@ -4,7 +4,7 @@ import {
   TrendingUp, Bookmark,
   Plus, Clock, Lock, ChevronRight, Search,
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
-  Copy, ExternalLink, Hash, Check,
+  Copy, ExternalLink, Hash, Check, Star,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -81,7 +81,12 @@ function Detail({ icon, label, value, valueColor, span }) {
 }
 
 function SessionDetailCard({ s, isUpcoming }) {
-  const [copied, setCopied] = useState(false);
+  const [copied,       setCopied]       = useState(false);
+  const [hoverRating,  setHoverRating]  = useState(0);
+  const [chosenRating, setChosenRating] = useState(s.review?.rating || 0);
+  const [comment,      setComment]      = useState(s.review?.comment || "");
+  const [reviewing,    setReviewing]    = useState(false);
+  const [reviewed,     setReviewed]     = useState(!!s.review?.submittedAt);
   const date    = new Date(s.scheduledAt);
   const dateStr = date.toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
   const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
@@ -153,6 +158,68 @@ function SessionDetailCard({ s, isUpcoming }) {
         {/* raw link (selectable) */}
         {hasMeet && (
           <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{meetUrl}</div>
+        )}
+
+        {/* Review section — only for past student sessions */}
+        {!isUpcoming && !isMentorView && (
+          <div style={{ marginTop:"1.1rem", padding:"1rem 1.1rem", background:C.bg, borderRadius:12, border:`1px solid ${C.cardBorder}` }}>
+            {reviewed ? (
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ display:"flex", gap:3 }}>
+                  {[1,2,3,4,5].map(n => (
+                    <Star key={n} size={14} fill={n <= chosenRating ? "#F59E0B" : "none"} stroke={n <= chosenRating ? "#F59E0B" : C.textMuted} />
+                  ))}
+                </div>
+                <span style={{ fontSize:"0.75rem", color:C.textSub }}>
+                  {comment ? `"${comment}"` : "Thanks for your review!"}
+                </span>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize:"0.72rem", fontWeight:600, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"0.6rem" }}>Rate this session</p>
+                <div style={{ display:"flex", gap:6, marginBottom:"0.7rem" }}>
+                  {[1,2,3,4,5].map(n => (
+                    <Star
+                      key={n}
+                      size={22}
+                      fill={n <= (hoverRating || chosenRating) ? "#F59E0B" : "none"}
+                      stroke={n <= (hoverRating || chosenRating) ? "#F59E0B" : C.textMuted}
+                      style={{ cursor:"pointer", transition:"transform 0.1s", transform: n <= (hoverRating || chosenRating) ? "scale(1.15)" : "scale(1)" }}
+                      onMouseEnter={() => setHoverRating(n)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setChosenRating(n)}
+                    />
+                  ))}
+                </div>
+                {chosenRating > 0 && (
+                  <>
+                    <textarea
+                      value={comment}
+                      onChange={e => setComment(e.target.value)}
+                      placeholder="What did you take away? (optional)"
+                      maxLength={300}
+                      rows={2}
+                      style={{ width:"100%", padding:"0.55rem 0.75rem", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:C.text, fontSize:"0.8rem", resize:"none", fontFamily:"Inter, sans-serif", marginBottom:"0.6rem", outline:"none", boxSizing:"border-box" }}
+                    />
+                    <button
+                      disabled={reviewing}
+                      onClick={async () => {
+                        setReviewing(true);
+                        try {
+                          await sessionAPI.review(s._id, chosenRating, comment);
+                          setReviewed(true);
+                        } catch { /* silent */ }
+                        setReviewing(false);
+                      }}
+                      style={{ padding:"0.5rem 1.2rem", borderRadius:8, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:600, fontSize:"0.8rem", border:"none", cursor:"pointer", opacity: reviewing ? 0.7 : 1 }}
+                    >
+                      {reviewing ? "Saving…" : "Submit Review"}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -789,8 +856,11 @@ function RequirePhoneGate() {
     <div style={{ position:"fixed", inset:0, zIndex:100000, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.25rem" }}>
       <div style={{ width:"100%", maxWidth:380, background:C.bg, border:`1px solid ${C.cardBorder}`, borderRadius:16, padding:"1.75rem" }}>
         <h2 style={{ margin:"0 0 6px", color:C.text, fontSize:"1.2rem", fontWeight:700 }}>One last step</h2>
-        <p style={{ margin:"0 0 18px", color:C.textSub, fontSize:"0.9rem", lineHeight:1.5 }}>
-          Add your mobile number so mentors can reach you for sessions.
+        <p style={{ margin:"0 0 6px", color:C.textSub, fontSize:"0.9rem", lineHeight:1.5 }}>
+          Add your number so we can reach you when you have a session.
+        </p>
+        <p style={{ margin:"0 0 18px", color:C.textMuted, fontSize:"0.78rem", lineHeight:1.5, display:"flex", alignItems:"center", gap:5 }}>
+          🔒 We will never spam you. Only session-related messages, promise.
         </p>
         <input
           type="tel"
@@ -819,9 +889,16 @@ export default function App() {
   const { user, loading, logout } = useAuth();
   // After Google OAuth the backend redirects back with ?token=… — land such
   // users on their profile (matches the email/password login behaviour).
-  const [activePage,   setActivePage]   = useState(
-    () => new URLSearchParams(window.location.search).get("token") ? "profile" : "ask"
-  );
+  const [activePage,   setActivePage]   = useState(() => {
+    const hasToken = new URLSearchParams(window.location.search).get("token");
+    if (hasToken) {
+      // If mentor intent was set before Google OAuth redirect, resume onboarding
+      const mentorIntent = sessionStorage.getItem("mentor_intent");
+      if (mentorIntent) { sessionStorage.removeItem("mentor_intent"); return "mentor-onboard"; }
+      return "profile";
+    }
+    return "ask";
+  });
   const [prevPage,     setPrevPage]     = useState("ask");  // page to return to from Upgrade
   const [showAuth,     setShowAuth]     = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
@@ -886,7 +963,7 @@ export default function App() {
     // Devanagari + Latin face for the अत्यanT wordmark.
     const devFont = document.createElement("link");
     devFont.rel  = "stylesheet";
-    devFont.href = "https://fonts.googleapis.com/css2?family=Mukta:wght@600;700&display=swap";
+    devFont.href = "https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@600;700&display=swap";
     document.head.appendChild(devFont);
     document.body.style.margin  = "0";
     document.body.style.padding = "0";
@@ -921,7 +998,7 @@ export default function App() {
   ];
 
   const pages = {
-    ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} />,
+    ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} />,
     clarity:  <ClarityView    key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} onOpenChat={handleOpenChat} />,
     chat:     <ChatPage       key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
@@ -979,7 +1056,7 @@ export default function App() {
             <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
               <Sparkles size={17} color="#fff" strokeWidth={2.2} />
             </div>
-            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Mukta','Noto Sans Devanagari',sans-serif" }}>अत्यanT</span>
+            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
           </div>
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"

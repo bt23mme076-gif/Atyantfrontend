@@ -1,13 +1,23 @@
 import { useState } from "react";
-import { Upload, Check, Loader2, ArrowRight, ArrowLeft, Camera, Sparkles } from "lucide-react";
+import { Check, Loader2, ArrowRight, ArrowLeft, Camera, Sparkles, Link2, Upload, FileText } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { profileAPI, mentorAPI } from "../api";
 import Avatar from "../components/Avatar";
 
 const C = {
-  bg: "#13121A", card: "#1A1823", cardHover: "#211E2C", cardBorder: "#322E40",
-  active: "#221E33", activeBorder: "#443A6B", accent: "#7567C9", accentSoft: "#7567C922",
-  accentText: "#8E80DB", text: "#ECEAF3", textSub: "#978FAB", textMuted: "#5F576F", green: "#3DBE82",
+  bg:          "var(--c-bg)",
+  card:        "var(--c-card)",
+  cardHover:   "var(--c-cardHover)",
+  cardBorder:  "var(--c-cardBorder)",
+  active:      "var(--c-active)",
+  activeBorder:"var(--c-activeBorder)",
+  accent:      "#7567C9",
+  accentSoft:  "var(--c-accentSoft)",
+  accentText:  "var(--c-accentText)",
+  text:        "var(--c-text)",
+  textSub:     "var(--c-textSub)",
+  textMuted:   "var(--c-textMuted)",
+  green:       "#3DBE82",
 };
 
 const SPECIAL_TAGS = [
@@ -34,56 +44,138 @@ export default function MentorOnboard({ onDone }) {
   // signup fields
   const [su, setSu] = useState({ username: "", email: "", password: "", phone: "" });
 
+  // linkedin import
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [linkedinImported, setLinkedinImported] = useState(false);
+  const [linkedinBusy, setLinkedinBusy] = useState(false);
+  const [importTab, setImportTab] = useState("url"); // "url" | "pdf"
+  const [resumeFile, setResumeFile] = useState(null); // PDF file staged before signup
+
   // wizard form
   const [f, setF] = useState({
     name: "", college: "", branch: "", year: "", cgpa: "",
-    topCompanies: "", expertise: "", bio: "", city: "", linkedinProfile: "",
+    topCompanies: "", expertise: [], bio: "", city: "", linkedinProfile: "",
     primaryDomain: "internship", companyDomain: "", specialTags: [], story: "",
   });
+  const [importedSkills, setImportedSkills] = useState([]); // chips from LinkedIn
+  const [importTimer, setImportTimer] = useState(0);
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
 
   const handleSignup = async () => {
     setErr(""); setBusy(true);
     try {
-      // Normalize phone → bare 10-digit Indian number (strip +91 / spaces / leading 0).
       const phone = su.phone.replace(/\D/g, "").slice(-10);
       if (!/^[6-9]\d{9}$/.test(phone)) {
         setErr("Enter a valid 10-digit Indian mobile number");
         setBusy(false);
         return;
       }
-      await signup(su.username, su.email, su.password, phone, "mentor");
+      // If name is blank but LinkedIn URL is provided, use email prefix temporarily —
+      // the LinkedIn import right below will overwrite it with the real name.
+      const nameToUse = su.username.trim() || su.email.split("@")[0];
+      await signup(nameToUse, su.email, su.password, phone, "mentor");
+      // Auto-import after signup — resume PDF takes priority over LinkedIn URL
+      if (resumeFile) {
+        try {
+          setLinkedinBusy(true);
+          const res = await profileAPI.parseLinkedin(resumeFile);
+          applyResumeData(res?.data || {});
+        } catch { /* non-fatal */ }
+        finally { setLinkedinBusy(false); }
+      } else if (linkedinUrl.trim()) {
+        try {
+          setLinkedinBusy(true);
+          const res = await mentorAPI.linkedinAutofill(linkedinUrl.trim());
+          const d = res?.data?.fields || res?.fields || {};
+          const skills = d.expertise || [];
+          setImportedSkills(skills);
+          setF(prev => ({
+            ...prev,
+            name:            d.username        || su.username || prev.name,
+            college:         d.college         || prev.college,
+            branch:          d.branch          || prev.branch,
+            year:            d.year            || prev.year,
+            bio:             d.bio             || prev.bio,
+            city:            d.city            || prev.city,
+            linkedinProfile: d.linkedinProfile || linkedinUrl.trim(),
+            topCompanies:    (d.topCompanies || []).join(", ") || prev.topCompanies,
+            expertise:       skills,
+            story:           d.story           || prev.story,
+          }));
+          setLinkedinImported(true);
+        } catch { /* non-fatal */ }
+        finally { setLinkedinBusy(false); }
+      }
       setStep(1);
     } catch (e) { setErr(e.message || "Signup failed"); }
     finally { setBusy(false); }
   };
 
-  const handleParse = async (file) => {
-    if (!file) return;
-    if (file.type !== "application/pdf") { setErr("Please upload a PDF (LinkedIn → More → Save to PDF)."); return; }
-    setErr(""); setBusy(true);
+  const handleLinkedInImport = async () => {
+    if (!linkedinUrl.trim()) { setErr("Paste your LinkedIn profile URL first."); return; }
+    setErr(""); setLinkedinBusy(true); setImportTimer(0);
+    const timerRef = setInterval(() => setImportTimer(t => t + 1), 1000);
     try {
-      const res = await profileAPI.parseLinkedin(file);
-      const d = res?.data || {};
-      const edu = d.education?.[0] || {};
+      const res = await mentorAPI.linkedinAutofill(linkedinUrl.trim());
+      const d = res?.data?.fields || res?.fields || {};
+      const skills = d.expertise || [];
+      setImportedSkills(skills);
       setF(prev => ({
         ...prev,
-        name: d.name || prev.name,
-        college: edu.institution || prev.college,
-        branch: edu.field || prev.branch,
-        year: edu.year || prev.year,
-        bio: d.bio || prev.bio,
-        city: d.city || prev.city,
-        linkedinProfile: d.linkedinProfile || prev.linkedinProfile,
-        topCompanies: (d.topCompanies || []).join(", ") || prev.topCompanies,
-        expertise: (d.expertise || []).join(", ") || prev.expertise,
-        specialTags: Array.from(new Set([...(prev.specialTags || []), ...(d.specialTags || [])])).filter(t => SPECIAL_TAGS.includes(t)),
-        primaryDomain: d.primaryDomain || prev.primaryDomain,
-        companyDomain: d.companyDomain || prev.companyDomain,
+        name:            d.username         || prev.name,
+        college:         d.college          || prev.college,
+        branch:          d.branch           || prev.branch,
+        year:            d.year             || prev.year,
+        bio:             d.bio              || prev.bio,
+        city:            d.city             || prev.city,
+        linkedinProfile: d.linkedinProfile  || linkedinUrl.trim() || prev.linkedinProfile,
+        topCompanies:    (d.topCompanies || []).join(", ") || prev.topCompanies,
+        expertise:       skills,
+        story:           d.story            || prev.story,
       }));
-      setStep(1);
-    } catch (e) { setErr(e.message || "Couldn't read that PDF — fill it manually."); }
-    finally { setBusy(false); }
+      setLinkedinImported(true);
+    } catch (e) { setErr(e.message || "Couldn't import — fill the fields manually."); }
+    finally { setLinkedinBusy(false); clearInterval(timerRef); }
+  };
+
+  const applyResumeData = (d) => {
+    const edu = d.education?.[0] || {};
+    const skills = Array.isArray(d.expertise) ? d.expertise.slice(0, 5) : [];
+    setImportedSkills(skills);
+    setF(prev => ({
+      ...prev,
+      name:            d.name            || prev.name,
+      college:         edu.institution   || prev.college,
+      branch:          edu.field         || prev.branch,
+      year:            edu.year          || prev.year,
+      bio:             d.bio             || prev.bio,
+      city:            d.city            || prev.city,
+      linkedinProfile: d.linkedinProfile || prev.linkedinProfile,
+      topCompanies:    (d.topCompanies || []).join(", ") || prev.topCompanies,
+      expertise:       skills,
+      primaryDomain:   d.primaryDomain   || prev.primaryDomain,
+      companyDomain:   d.companyDomain   || prev.companyDomain,
+    }));
+    setLinkedinImported(true);
+  };
+
+  const handleResumePDF = async (file) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") { setErr("Please upload a PDF file."); return; }
+    setErr("");
+    // On Step 0 (before signup) we can't call the protected endpoint yet — stage the file
+    if (step === 0) {
+      setResumeFile(file);
+      setLinkedinImported(true); // show "staged" green state
+      return;
+    }
+    // On Step 1 (already signed in via Google or after email signup) — parse immediately
+    setLinkedinBusy(true);
+    try {
+      const res = await profileAPI.parseLinkedin(file);
+      applyResumeData(res?.data || {});
+    } catch (e) { setErr(e.message || "Couldn't read PDF — fill the fields manually."); }
+    finally { setLinkedinBusy(false); }
   };
 
   const handlePhoto = async (e) => {
@@ -107,7 +199,7 @@ export default function MentorOnboard({ onDone }) {
         username: f.name || undefined,
         college: f.college, branch: f.branch, year: f.year, cgpa: f.cgpa,
         topCompanies: f.topCompanies.split(",").map(s => s.trim()).filter(Boolean),
-        expertise: f.expertise.split(",").map(s => s.trim()).filter(Boolean),
+        expertise: Array.isArray(f.expertise) ? f.expertise : f.expertise.split(",").map(s => s.trim()).filter(Boolean),
         specialTags: f.specialTags,
         bio: f.bio, city: f.city, linkedinProfile: f.linkedinProfile,
         primaryDomain: f.primaryDomain, companyDomain: f.companyDomain || null,
@@ -163,16 +255,118 @@ export default function MentorOnboard({ onDone }) {
       <Wrap>
         <Header step={0} />
         <h2 style={{ color: C.text, fontSize: "1.5rem", fontWeight: 600, marginBottom: 6 }}>Become an Atyant mentor</h2>
-        <p style={{ color: C.textSub, fontSize: "0.9rem", marginBottom: 22 }}>Help juniors from a background like yours. Create your mentor account to start.</p>
+        <p style={{ color: C.textSub, fontSize: "0.9rem", marginBottom: 18 }}>Help juniors from a background like yours. Create your mentor account to start.</p>
+
+        {/* Google one-click signup — fastest path */}
+        <button
+          onClick={() => {
+            sessionStorage.setItem("mentor_intent", "1");
+            const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+            window.location.href = `${apiBase}/api/auth/google`;
+          }}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "11px 16px", fontSize: "0.9rem", fontWeight: 600, color: C.text, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+          Continue with Google
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+          <span style={{ fontSize: "0.74rem", color: C.textMuted, fontWeight: 600 }}>OR</span>
+          <div style={{ flex: 1, height: 1, background: C.cardBorder }} />
+        </div>
+
         {err && <Err msg={err} />}
+
+        {/* Auto-import block — LinkedIn URL or Resume PDF */}
+        <div style={{ background: C.card, border: `1px solid ${C.activeBorder}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
+          {/* Tab header */}
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.cardBorder}` }}>
+            {[
+              { id: "url",  icon: <Link2 size={13}/>,     label: "LinkedIn URL" },
+              { id: "pdf",  icon: <FileText size={13}/>,  label: "Resume PDF" },
+            ].map(tab => (
+              <button key={tab.id} type="button" onClick={() => setImportTab(tab.id)}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 12px", border: "none", borderBottom: importTab === tab.id ? `2px solid ${C.accent}` : "2px solid transparent", background: "transparent", color: importTab === tab.id ? C.accentText : C.textMuted, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                {tab.icon}{tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ padding: "14px 16px" }}>
+            {importTab === "url" ? (
+              <>
+                <input
+                  style={{ ...inp, width: "100%", boxSizing: "border-box" }}
+                  type="url"
+                  placeholder="https://linkedin.com/in/yourname"
+                  value={linkedinUrl}
+                  onChange={e => setLinkedinUrl(e.target.value)}
+                />
+                {linkedinUrl.trim() ? (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8233", borderRadius: 8, padding: "10px 12px" }}>
+                    <Check size={14} color={C.green} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span style={{ color: C.green, fontSize: "0.8rem", lineHeight: 1.5 }}>
+                      LinkedIn URL added — your name, college, companies and skills will be auto-imported after signup.
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ color: C.textMuted, fontSize: "0.74rem", marginTop: 6 }}>
+                    Paste your LinkedIn URL — we'll auto-fill everything. You just review.
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 10, border: `2px dashed ${C.cardBorder}`, borderRadius: 10, padding: "20px 16px", cursor: linkedinBusy ? "default" : "pointer", background: C.active }}>
+                  <input type="file" accept="application/pdf" hidden disabled={linkedinBusy}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleResumePDF(f); e.target.value = ""; }} />
+                  {linkedinBusy ? (
+                    <><Loader2 size={22} style={{ animation: "spin 1s linear infinite", color: C.accentText }} /><span style={{ fontSize: "0.82rem", color: C.accentText, fontWeight: 600 }}>Reading resume…</span></>
+                  ) : resumeFile ? (
+                    <><Check size={22} color={C.green} /><span style={{ fontSize: "0.82rem", color: C.green, fontWeight: 600 }}>{resumeFile.name} — will be parsed after signup</span><span style={{ fontSize: "0.72rem", color: C.textMuted }}>Tap to change file</span></>
+                  ) : (
+                    <><Upload size={22} color={C.textMuted} /><span style={{ fontSize: "0.82rem", color: C.textSub, fontWeight: 600 }}>Click to upload your Resume PDF</span><span style={{ fontSize: "0.72rem", color: C.textMuted }}>We extract your name, college, companies, skills automatically</span></>
+                  )}
+                </label>
+                <div style={{ color: C.textMuted, fontSize: "0.72rem", marginTop: 8, textAlign: "center" }}>
+                  Works with any resume PDF — no LinkedIn required
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         <div style={{ display: "grid", gap: 14 }}>
           <Field label="Name"><input style={inp} value={su.username} onChange={e => setSu({ ...su, username: e.target.value })} placeholder="Your name" /></Field>
           <Field label="Email"><input style={inp} type="email" value={su.email} onChange={e => setSu({ ...su, email: e.target.value })} placeholder="you@email.com" /></Field>
           <Field label="Password"><input style={inp} type="password" value={su.password} onChange={e => setSu({ ...su, password: e.target.value })} placeholder="Min 8 characters" /></Field>
           <Field label="Phone"><input style={inp} type="tel" value={su.phone} onChange={e => setSu({ ...su, phone: e.target.value })} placeholder="10-digit mobile number" /></Field>
         </div>
-        <Nav onNext={handleSignup} nextLabel="Create account & continue" busy={busy}
-          nextDisabled={!su.username || !su.email || su.password.length < 8 || su.phone.replace(/\D/g, "").length < 10} />
+        {/* Show what's still missing so the mentor isn't confused by a gray button */}
+        {(() => {
+          const missing = [];
+          if (!su.username && !linkedinUrl.trim() && !resumeFile) missing.push("name");
+          if (!su.email) missing.push("email");
+          if (su.password.length < 8) missing.push("password (8+ chars)");
+          if (su.phone.replace(/\D/g, "").length < 10) missing.push("phone");
+          return missing.length > 0 ? (
+            <div style={{ fontSize: "0.75rem", color: C.textMuted, marginTop: 14, textAlign: "right" }}>
+              Still needed: {missing.join(" · ")}
+            </div>
+          ) : null;
+        })()}
+        <Nav
+          onNext={handleSignup}
+          nextLabel={linkedinBusy ? "Importing…" : resumeFile ? "Create account & import resume" : linkedinUrl.trim() ? "Create account & import LinkedIn" : "Create account & continue"}
+          busy={busy || linkedinBusy}
+          nextDisabled={
+            (!su.username && !linkedinUrl.trim() && !resumeFile) ||
+            !su.email ||
+            su.password.length < 8 ||
+            su.phone.replace(/\D/g, "").length < 10
+          }
+        />
       </Wrap>
     );
   }
@@ -184,17 +378,39 @@ export default function MentorOnboard({ onDone }) {
         <Header step={1} />
         <h2 style={{ color: C.text, fontSize: "1.35rem", fontWeight: 600, marginBottom: 6 }}>Import from LinkedIn</h2>
         <p style={{ color: C.textSub, fontSize: "0.88rem", marginBottom: 18 }}>
-          On LinkedIn: <b style={{ color: C.text }}>Profile → More → Save to PDF</b>, then drop it here. We'll auto-fill everything — you just review.
+          Paste your LinkedIn profile URL — we'll fill everything automatically. Review and edit, then move forward.
         </p>
         {err && <Err msg={err} />}
 
-        <label style={{ display: "block", border: `1.5px dashed ${C.activeBorder}`, borderRadius: 14, padding: "1.6rem", textAlign: "center", cursor: "pointer", background: C.card, marginBottom: 20 }}>
-          <input type="file" accept="application/pdf" hidden onChange={e => handleParse(e.target.files?.[0])} disabled={busy} />
-          {busy ? <Loader2 size={22} color={C.accentText} style={{ animation: "spin 1s linear infinite" }} />
-            : <Upload size={22} color={C.accentText} />}
-          <div style={{ color: C.text, fontWeight: 500, marginTop: 8, fontSize: "0.92rem" }}>{busy ? "Reading your profile…" : "Upload LinkedIn PDF"}</div>
-          <div style={{ color: C.textMuted, fontSize: "0.78rem", marginTop: 3 }}>PDF only · we never post anything</div>
-        </label>
+        {/* LinkedIn URL import */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <Link2 size={15} color={C.accentText} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            <input
+              style={{ ...inp, paddingLeft: 32 }}
+              type="url"
+              placeholder="https://linkedin.com/in/yourname"
+              value={linkedinUrl}
+              onChange={e => { setLinkedinUrl(e.target.value); setLinkedinImported(false); }}
+              disabled={linkedinBusy}
+            />
+          </div>
+          <button
+            onClick={handleLinkedInImport}
+            disabled={linkedinBusy || !linkedinUrl.trim()}
+            style={{ ...btn(true), whiteSpace: "nowrap", opacity: (linkedinBusy || !linkedinUrl.trim()) ? 0.5 : 1, display: "flex", alignItems: "center", gap: 6, padding: "10px 16px" }}
+          >
+            {linkedinBusy ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : null}
+            {linkedinBusy ? `Importing… ${importTimer}s` : "Auto-fill"}
+          </button>
+        </div>
+
+        {linkedinImported && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8244", borderRadius: 9, padding: "9px 12px", marginBottom: 16 }}>
+            <Check size={14} color={C.green} />
+            <span style={{ color: C.green, fontSize: "0.82rem", fontWeight: 500 }}>Imported from LinkedIn — review your details below</span>
+          </div>
+        )}
 
         {/* Photo + basics (pre-filled after parse) */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
@@ -218,10 +434,30 @@ export default function MentorOnboard({ onDone }) {
           <Field label="Companies / institutes (comma separated)"><input style={inp} value={f.topCompanies} onChange={e => set("topCompanies", e.target.value)} placeholder="Amazon, IIM Ahmedabad" /></Field>
         </div>
         <div style={{ marginTop: 14 }}>
-          <Field label="Skills / expertise (comma separated)"><input style={inp} value={f.expertise} onChange={e => set("expertise", e.target.value)} placeholder="Python, DSA, Guesstimates" /></Field>
+          <span style={{ fontSize: "0.74rem", fontWeight: 600, color: C.textSub, marginBottom: 8, display: "block", letterSpacing: "0.02em" }}>
+            TOP SKILLS {importedSkills.length > 0 ? `— tap to remove` : ""}
+          </span>
+          {importedSkills.length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {importedSkills.map(skill => {
+                const selected = f.expertise.includes(skill);
+                return (
+                  <button key={skill} type="button"
+                    onClick={() => set("expertise", selected ? f.expertise.filter(s => s !== skill) : [...f.expertise, skill])}
+                    style={{ background: selected ? C.accentSoft : C.active, border: `1px solid ${selected ? C.accent : C.cardBorder}`, color: selected ? C.accentText : C.textMuted, borderRadius: 999, padding: "6px 14px", fontSize: "0.82rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                    {selected ? "✓ " : ""}{skill}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <input style={inp} value={Array.isArray(f.expertise) ? f.expertise.join(", ") : f.expertise}
+              onChange={e => set("expertise", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="Python, DSA, Guesstimates" />
+          )}
         </div>
 
-        <Nav onBack={() => setStep(user ? 1 : 0)} onNext={() => setStep(2)} nextLabel="Next" busy={busy}
+        <Nav onBack={user ? undefined : () => setStep(0)} onNext={() => setStep(2)} nextLabel="Next" busy={busy || linkedinBusy}
           nextDisabled={!f.college || !f.branch} />
       </Wrap>
     );
@@ -299,18 +535,71 @@ const chip = (on) => ({
   fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
 });
 const Field = ({ label, children }) => (<div><span style={lbl}>{label}</span>{children}</div>);
-const Err = ({ msg }) => (<div style={{ background: "#3a1a1f", border: "1px solid #f8717155", color: "#fca5a5", borderRadius: 9, padding: "9px 12px", fontSize: "0.82rem", marginBottom: 14 }}>{msg}</div>);
+const Err = ({ msg }) => (<div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid #f8717155", color: "#e05555", borderRadius: 9, padding: "9px 12px", fontSize: "0.82rem", marginBottom: 14 }}>{msg}</div>);
 
 function Header({ step }) {
-  const steps = ["Account", "Profile", "Mentoring"];
+  const steps = [
+    { label: "Account",   hint: "Basic info"      },
+    { label: "Profile",   hint: "Your background" },
+    { label: "Mentoring", hint: "What you teach"  },
+  ];
+  const total    = steps.length;         // 3
+  const done     = step;                 // steps completed so far
+  const left     = total - step - 1;    // steps still ahead
+  const pct      = Math.round(((step) / (total - 1)) * 100);
+
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-      {steps.map((s, i) => (
-        <div key={i} style={{ flex: 1 }}>
-          <div style={{ height: 3, borderRadius: 2, background: i <= step ? C.accent : C.cardBorder }} />
-          <div style={{ fontSize: "0.68rem", color: i <= step ? C.accentText : C.textMuted, marginTop: 5, fontWeight: 600 }}>{s}</div>
-        </div>
-      ))}
+    <div style={{ marginBottom: 28 }}>
+      {/* Progress bar + "X steps left" */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: "0.7rem", fontWeight: 700, color: C.accentText, letterSpacing: "0.05em" }}>
+          STEP {step + 1} OF {total}
+        </span>
+        {left > 0 ? (
+          <span style={{ fontSize: "0.7rem", color: C.textMuted, fontWeight: 600 }}>
+            {left} step{left > 1 ? "s" : ""} left
+          </span>
+        ) : (
+          <span style={{ fontSize: "0.7rem", color: C.green, fontWeight: 700 }}>Last step 🎉</span>
+        )}
+      </div>
+
+      {/* Thin progress bar */}
+      <div style={{ height: 4, borderRadius: 99, background: C.cardBorder, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ height: "100%", borderRadius: 99, background: C.accent, width: `${pct}%`, transition: "width 0.4s ease" }} />
+      </div>
+
+      {/* Step circles */}
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {steps.map((s, i) => {
+          const isDone    = i < step;
+          const isCurrent = i === step;
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", flex: i < steps.length - 1 ? 1 : "none" }}>
+              {/* Circle */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0,
+                  background: isDone ? C.green : isCurrent ? C.accent : C.active,
+                  border: `2px solid ${isDone ? C.green : isCurrent ? C.accent : C.cardBorder}`,
+                  color: isDone || isCurrent ? "#fff" : C.textMuted,
+                  transition: "all 0.3s",
+                }}>
+                  {isDone ? <Check size={13} /> : i + 1}
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 700, color: isCurrent ? C.accentText : isDone ? C.green : C.textMuted, whiteSpace: "nowrap" }}>{s.label}</div>
+                  {isCurrent && <div style={{ fontSize: "0.58rem", color: C.textMuted, whiteSpace: "nowrap" }}>{s.hint}</div>}
+                </div>
+              </div>
+              {/* Connector line */}
+              {i < steps.length - 1 && (
+                <div style={{ flex: 1, height: 2, background: i < step ? C.green : C.cardBorder, margin: "0 6px", marginBottom: 20, transition: "background 0.3s" }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
