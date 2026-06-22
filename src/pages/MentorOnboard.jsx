@@ -59,6 +59,7 @@ export default function MentorOnboard({ onDone }) {
   });
   const [importedSkills, setImportedSkills] = useState([]); // chips from LinkedIn
   const [importTimer, setImportTimer] = useState(0);
+  const [alreadyMentor, setAlreadyMentor] = useState(false);
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
 
   const handleSignup = async () => {
@@ -107,7 +108,15 @@ export default function MentorOnboard({ onDone }) {
         finally { setLinkedinBusy(false); }
       }
       setStep(1);
-    } catch (e) { setErr(e.message || "Signup failed"); }
+    } catch (e) {
+      const msg = (e.message || "").toLowerCase();
+      if (msg.includes("already") || e.status === 409) {
+        setAlreadyMentor(true);
+        setTimeout(() => onDone?.(), 3000);
+      } else {
+        setErr(e.message || "Signup failed");
+      }
+    }
     finally { setBusy(false); }
   };
 
@@ -212,6 +221,36 @@ export default function MentorOnboard({ onDone }) {
     } catch (e) { setErr(e.message || "Could not save. Try again."); }
     finally { setBusy(false); }
   };
+
+  // ── Already a mentor popup ──
+  if (alreadyMentor) {
+    return (
+      <Wrap>
+        <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
+          <div style={{
+            width: 68, height: 68, borderRadius: "50%",
+            background: `${C.green}20`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 1.25rem",
+          }}>
+            <Check size={32} color={C.green} />
+          </div>
+          <h2 style={{ color: C.text, fontSize: "1.4rem", fontWeight: 700, marginBottom: 10, fontFamily: "Fraunces, serif" }}>
+            You're already a mentor! 🎉
+          </h2>
+          <p style={{ color: C.textSub, fontSize: "0.9rem", lineHeight: 1.7, maxWidth: 380, margin: "0 auto 6px" }}>
+            This email is already registered as a mentor on Atyant.
+          </p>
+          <p style={{ color: C.textMuted, fontSize: "0.82rem", marginBottom: 24 }}>
+            Redirecting you to your profile…
+          </p>
+          <button onClick={() => onDone?.()} style={{ ...btn(true) }}>
+            Go to my profile →
+          </button>
+        </div>
+      </Wrap>
+    );
+  }
 
   // ── Result screen ──
   if (result) {
