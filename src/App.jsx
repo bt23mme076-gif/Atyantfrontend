@@ -914,11 +914,18 @@ export default function App() {
     servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => { });
   }, []);
 
-  // Global trigger: any component can call window.openBooking({ mentorId, mentorName, mentorPic })
+  // Global trigger used by the marketing site: window.openBooking({ mentorId, mentorName, mentorPic })
+  // Input is validated so an injected script cannot forge arbitrary booking targets.
   useEffect(() => {
     window.openBooking = (target) => {
+      if (!target || typeof target !== "object" || Array.isArray(target)) return;
+      const mentorId = typeof target.mentorId === "string" ? target.mentorId.slice(0, 64) : null;
+      if (!mentorId) return;
+      const mentorName = typeof target.mentorName === "string" ? target.mentorName.slice(0, 128) : "";
+      const mentorPic  = typeof target.mentorPic  === "string" && /^https:\/\//.test(target.mentorPic)
+        ? target.mentorPic : "";
       if (!user) { setShowAuth(true); return; }
-      setBookingTarget({ services: serviceCatalog, ...target });
+      setBookingTarget({ services: serviceCatalog, mentorId, mentorName, mentorPic });
     };
     return () => { delete window.openBooking; };
   }, [user, serviceCatalog]);
