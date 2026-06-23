@@ -4,6 +4,7 @@ import { Send, Sparkles, ArrowRight } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI } from "../../api";
 import useIsMobile from "../../hooks/useIsMobile";
+import { VoiceOverlay } from "./VoiceOverlay";
 
 const CHAT_SID_KEY = "atyant_chat_sid";
 
@@ -49,9 +50,9 @@ function mapEngineContext(ec) {
 const GREETING_OPENER = "What's confusing you right now?";
 const GREETING_CHIPS = [
   { label: "🎯  I want an internship but don't know where to start", value: "I want an internship but I don't know where to start" },
-  { label: "🏢  Placement season is coming and I'm not prepared",    value: "Placement season is coming and I'm not prepared" },
-  { label: "🤔  Career confused — don't know what path to take",     value: "I'm career confused and don't know what path to take" },
-  { label: "📚  Thinking about higher studies (MS / MBA / GATE)",    value: "I'm thinking about higher studies — MS, MBA or GATE" },
+  { label: "🏢  Placement season is coming and I'm not prepared", value: "Placement season is coming and I'm not prepared" },
+  { label: "🤔  Career confused — don't know what path to take", value: "I'm career confused and don't know what path to take" },
+  { label: "📚  Thinking about higher studies (MS / MBA / GATE)", value: "I'm thinking about higher studies — MS, MBA or GATE" },
 ];
 
 // "VNIT Nagpur" ? "VNIT" ; "iit bombay" ? "IIT" ; "Manipal" ? "Manipal"
@@ -155,6 +156,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const heroInputRef = useRef(null);
   const sessionIdRef = useRef(getStoredSessionId());
 
+  const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
+  const [selectedLang, setSelectedLang] = useState("en-IN");
+
   // Auto-grow a textarea up to a max height, then scroll internally.
   // Cap lower on mobile so the box never swallows the screen (ChatGPT-style).
   const autoGrow = (el) => {
@@ -214,8 +218,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     { label: "Get Roadmap" },
 
     ...(!user
-    ? [{ label: "Become Mentor", isSpecial: true }]
-    : []),
+      ? [{ label: "Become Mentor", isSpecial: true }]
+      : []),
 
     { label: "Find My Match" },
   ];
@@ -273,10 +277,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         const mapped = mapEngineContext(s.context);
         if (mapped) setContext(prev => ({
           college: mapped.college || prev.college,
-          branch:  mapped.branch  || prev.branch,
-          year:    mapped.year    || prev.year,
-          cgpa:    mapped.cgpa    || prev.cgpa,
-          goal:    mapped.goal    || prev.goal,
+          branch: mapped.branch || prev.branch,
+          year: mapped.year || prev.year,
+          cgpa: mapped.cgpa || prev.cgpa,
+          goal: mapped.goal || prev.goal,
         }));
         if (s.problemStatement) setProblemStatement(s.problemStatement);
       } catch {
@@ -442,8 +446,22 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                   {badgeText}
                 </span>
               )}
-              <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                title="Voice input">
+              <button
+                onClick={() => setShowVoiceOverlay(true)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: C.textMuted,
+                  cursor: "pointer",
+                  padding: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  transition: "all 0.2s"
+                }}
+                title="Voice input"
+              >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -787,10 +805,24 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                     <span style={{ fontWeight: 500 }}>Atyant</span>
                   </button>
                 )}
-                <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, transition: "color 0.2s" }}
-                  onMouseEnter={e => e.currentTarget.style.color = C.text}
-                  onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
-                  title="Voice input">
+                <button
+                  onClick={() => setShowVoiceOverlay(true)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: C.textMuted,
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    transition: "all 0.2s"
+                  }}
+                  title="Voice input"
+                >
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -809,6 +841,29 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           </div>
         </div>
       )}
+      <VoiceOverlay
+        isOpen={showVoiceOverlay}
+        selectedLang={selectedLang}
+        setSelectedLang={setSelectedLang}
+        onClose={() => setShowVoiceOverlay(false)}
+        onTranscript={(text) => {
+          setQuery(text);
+          // Focus input and resize it after speech recognition finishes
+          setTimeout(() => {
+            if (messages.length === 0) {
+              if (heroInputRef.current) {
+                heroInputRef.current.focus();
+                autoGrow(heroInputRef.current);
+              }
+            } else {
+              if (chatInputRef.current) {
+                chatInputRef.current.focus();
+                autoGrow(chatInputRef.current);
+              }
+            }
+          }, 100);
+        }}
+      />
     </div>
   );
 }
