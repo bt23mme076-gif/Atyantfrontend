@@ -25,7 +25,7 @@ const FAQS = [
   },
   {
     q: "Which colleges and branches does Atyant cover?",
-    a: "NITs, IITs, IIITs, BITS and Tier-2/3 engineering colleges across India — with seniors from CSE, ECE, Mechanical, Metallurgy, Civil, Chemical and more who moved into software, data, product, core and higher studies.",
+    a: "NITs, IITs, IIITs, BITS and engineering colleges across India — with seniors from CSE, ECE, Mechanical, Metallurgy, Civil, Chemical and more who moved into software, data, product, core and higher studies.",
   },
 ];
 
@@ -73,7 +73,7 @@ export default function HomeSEOContent() {
           paths from people one step ahead of you.
         </p>
         <p style={{ fontSize: "1.05rem", lineHeight: 1.6, color: "var(--c-textSub)", margin: "0 0 8px", maxWidth: 720 }}>
-          Built for students at NITs, IITs, IIITs, BITS and Tier-2/3 colleges
+          Built for students at NITs, IITs, IIITs, BITS and engineering colleges
           across India — from CSE and ECE to Mechanical, Metallurgy and Civil —
           chasing software, data, product, core roles, MS, MBA or GATE.
         </p>

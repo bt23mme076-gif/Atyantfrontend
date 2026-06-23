@@ -565,7 +565,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
             </div>
           ) : (
             <p style={{ position: "relative", zIndex: 1, fontSize: "0.78rem", color: C.textMuted, marginBottom: "1.5rem", textAlign: "center" }}>
-              Matched to 800+ verified journeys from Tier-2 colleges across India
+              Matched to 800+ verified journeys from engineering colleges across India
             </p>
           )}
 
