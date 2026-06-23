@@ -56,7 +56,15 @@ export default function SEOHead({
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(s) }}
+          dangerouslySetInnerHTML={{
+            // JSON.stringify does not escape < or > — a string containing
+            // </script> in user-supplied schema data would break out of the
+            // tag. Unicode-escape the three dangerous characters to be safe.
+            __html: JSON.stringify(s)
+              .replace(/</g, "\\u003c")
+              .replace(/>/g, "\\u003e")
+              .replace(/&/g, "\\u0026"),
+          }}
         />
       ))}
     </>
