@@ -1,4 +1,5 @@
 import { Star, Briefcase, Video, BadgeCheck, MessageCircle, TrendingUp, GraduationCap, Target, Cpu, Code2, BarChart2, Users, Layers } from "lucide-react";
+import DOMPurify from "dompurify";
 
 function LinkedinIcon({ size = 9 }) {
   return (
@@ -287,7 +288,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                   fontSize: 13.5, lineHeight: 1.9, color: T.textSub,
                   fontFamily: "Inter, sans-serif", fontWeight: 400,
                 }}
-                dangerouslySetInnerHTML={{ __html: mentor.story }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(mentor.story) }}
               />
             </div>
           )}
