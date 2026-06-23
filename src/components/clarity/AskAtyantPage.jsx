@@ -9,7 +9,9 @@ import { VoiceOverlay } from "./VoiceOverlay";
 const CHAT_SID_KEY = "atyant_chat_sid";
 
 function freshSid() {
-  return "sess_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return "sess_" + Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
 
 // Persistent session id — the SAME conversation survives a page refresh.
