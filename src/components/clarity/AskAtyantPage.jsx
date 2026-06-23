@@ -42,7 +42,7 @@ function mapEngineContext(ec) {
     college: id.college || "",
     branch: id.branch || "",
     year: id.year || "",
-    cgpa: id.cgpa || "",
+    cgpa: id.cgpa && parseFloat(String(id.cgpa)) > 0 ? String(id.cgpa) : "",
     goal: ec.target || "",
   };
 }
@@ -236,7 +236,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         college: edu.institutionName || edu.institution || "",
         branch: edu.field || "",
         year: edu.year || "",
-        cgpa: edu.cgpa ? String(edu.cgpa) : "",
+        cgpa: edu.cgpa && parseFloat(String(edu.cgpa)) > 0 ? String(edu.cgpa) : "",
         goal: user.interests?.[0] || "",
       });
     } else {

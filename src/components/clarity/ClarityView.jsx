@@ -109,7 +109,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     initialContext?.college || edu.institutionName || edu.institution || null,
     initialContext?.branch || edu.field || null,
     initialContext?.year || edu.year || null,
-    initialContext?.cgpa ? `CGPA ${initialContext.cgpa}` : (edu.cgpa ? `CGPA ${edu.cgpa}` : null),
+    (() => { const v = initialContext?.cgpa || edu.cgpa; return v && parseFloat(v) > 0 ? `CGPA ${v}` : null; })(),
     goalText ? `Goal: ${goalText}` : null,
   ]
     .filter(Boolean)

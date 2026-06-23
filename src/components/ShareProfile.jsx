@@ -82,7 +82,7 @@ const PLATFORMS = [
   },
 ];
 
-export default function ShareProfile() {
+export default function ShareProfile({ publicUrl }) {
   const [open,    setOpen]    = useState(false);
   const [kit,     setKit]     = useState(null);
   const [loading, setLoading] = useState(false);
@@ -126,8 +126,9 @@ export default function ShareProfile() {
   };
 
   const copyLink = async () => {
-    if (!kit) return;
-    await navigator.clipboard.writeText(kit.trackedUrl);
+    const urlToCopy = publicUrl || kit?.trackedUrl;
+    if (!urlToCopy) return;
+    await navigator.clipboard.writeText(urlToCopy);
     track("copy");
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
@@ -213,18 +214,24 @@ export default function ShareProfile() {
                 </div>
 
                 {/* Copy link row */}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    readOnly
-                    value={kit.trackedUrl}
-                    onFocus={e => e.target.select()}
-                    style={{ flex: 1, background: T.active, border: `1px solid ${T.cardBorder}`, borderRadius: 9, padding: "9px 12px", color: T.textSub, fontSize: 12, outline: "none", fontFamily: "inherit", minWidth: 0 }}
-                  />
-                  <button onClick={copyLink}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", background: copied ? "#3DBE82" : T.accent, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s", flexShrink: 0, whiteSpace: "nowrap" }}>
-                    {copied ? <><Check size={13} /> Copied!</> : <><Link2 size={13} /> Copy link</>}
-                  </button>
-                </div>
+                {publicUrl ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      readOnly
+                      value={publicUrl}
+                      onFocus={e => e.target.select()}
+                      style={{ flex: 1, background: T.active, border: `1px solid ${T.cardBorder}`, borderRadius: 9, padding: "9px 12px", color: T.textSub, fontSize: 12, outline: "none", fontFamily: "inherit", minWidth: 0 }}
+                    />
+                    <button onClick={copyLink}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 9, border: "none", background: copied ? "#3DBE82" : T.accent, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s", flexShrink: 0, whiteSpace: "nowrap" }}>
+                      {copied ? <><Check size={13} /> Copied!</> : <><Link2 size={13} /> Copy link</>}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ background: T.active, border: `1px solid ${T.cardBorder}`, borderRadius: 9, padding: "10px 14px", fontSize: 12, color: T.textMuted, lineHeight: 1.5 }}>
+                    Set a custom slug in <strong style={{ color: T.accentText }}>Profile → Public Profile URL</strong> to get your shareable link.
+                  </div>
+                )}
 
                 {/* Native share (mobile) */}
                 {typeof navigator !== "undefined" && navigator.share && (
