@@ -81,7 +81,7 @@ export default function PublicMentorProfile() {
         if (res.ok) setMentor(res.mentor);
         else setError(res.error || 'Mentor not found');
       })
-      .catch(() => setError('Failed to load mentor profile'))
+      .catch(e => setError(e?.message || 'Failed to load mentor profile'))
       .finally(() => setLoading(false));
   }, [slug]);
 
