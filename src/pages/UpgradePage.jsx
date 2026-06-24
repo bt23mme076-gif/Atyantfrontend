@@ -155,7 +155,7 @@ function SessionPricingNote() {
 }
 
 export default function UpgradePage({ onBack }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [tab, setTab] = useState("student");
   const [billing, setBilling] = useState("monthly");
   const btnMonthlyRef = useRef(null);
@@ -322,12 +322,18 @@ export default function UpgradePage({ onBack }) {
                           purchaseSubscription({
                             plan: plan.key,
                             billing: billing,
+                            prefill: {
+                              name: user?.name || user?.username || "",
+                              email: user?.email || "",
+                              contact: user?.phone || "",
+                            },
                             onSuccess: (subscription) => {
                               toast.success(`${plan.name} plan activated! ${subscription.credits} session credits added.`);
+                              refreshUser();
                               onBack?.();
                             },
                             onError: (err) => {
-                              toast.error(err.message || "Payment failed. Please try again.");
+                              toast.error(typeof err === "string" ? err : err?.message || "Payment failed. Please try again.");
                             },
                           });
                         }
