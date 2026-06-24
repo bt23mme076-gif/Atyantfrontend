@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Share2, BadgeCheck, Star,
   MapPin, Briefcase, Video, MessageCircle, Copy, Check,
-  TrendingUp, Zap, Users, Mail,
+  TrendingUp, Zap, Users, Mail, ExternalLink
 } from 'lucide-react';
 
 function LinkedinSVG() {
@@ -75,15 +75,24 @@ export default function PublicMentorProfile() {
   const [copied,  setCopied]  = useState(false);
 
   useEffect(() => {
-    if (!slug) return;
-    api.get(`/api/mentor/${slug}`)
-      .then(res => {
-        if (res.ok) setMentor(res.mentor);
-        else setError(res.error || 'Mentor not found');
-      })
-      .catch(() => setError('Failed to load mentor profile'))
-      .finally(() => setLoading(false));
-  }, [slug]);
+  if (!slug) return;
+
+  api.get(`/api/profile/${slug}`)
+  .then(res => {
+    console.log("PROFILE RESPONSE =", res);
+
+    if (res.mentor) {
+      setMentor(res.mentor);
+    } else {
+      setMentor(res);
+    }
+  })
+  .catch(err => {
+    console.log("PROFILE ERROR =", err);
+    setError('Failed to load mentor profile');
+  })
+  .finally(() => setLoading(false));
+}, [slug]);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -144,8 +153,8 @@ export default function PublicMentorProfile() {
   return (
     <div style={{ minHeight: '100vh', background: T.bg, fontFamily: 'Inter, sans-serif' }}>
       <SEOHead
-        title={`${mentor.name} – Mentor | Atyant`}
-        description={`${mentor.name} mentors engineering students at ${college || 'top colleges'}. ${mentor.bio || ''}`}
+        title={`${mentor.name || mentor.username} – Mentor | Atyant`}
+        description={`${mentor.name || mentor.username} mentors engineering students at ${college || 'top colleges'}. ${mentor.bio || ''}`}
         canonical={window.location.href}
       />
 
