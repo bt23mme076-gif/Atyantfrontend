@@ -621,7 +621,8 @@ export default function ProfilePage() {
     setSlugError("");
   };
 
-  const publicUrl = user?.slug ? `${window.location.origin}/${user.slug}` : "";
+  const APP_BASE = import.meta.env.VITE_APP_URL || window.location.origin;
+  const publicUrl = user?.slug ? `${APP_BASE}/${user.slug}` : "";
 
   // Load the platform service catalog once (mentors pick from it)
   useEffect(() => {
