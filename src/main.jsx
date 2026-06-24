@@ -30,7 +30,11 @@ createRoot(document.getElementById('root')).render(
           <BrowserRouter>
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
-              <Route path="/:slug" element={<PublicMentorProfile />} />
+              <Route path="/profile/:slug" element={<PublicMentorProfile />} />
+              <Route
+  path="/test-profile"
+  element={<h1 style={{ color: "red" }}>PROFILE ROUTE WORKING</h1>}
+/>
               <Route path="/*" element={<RootOrMeet />} />
             </Routes>
           </BrowserRouter>
