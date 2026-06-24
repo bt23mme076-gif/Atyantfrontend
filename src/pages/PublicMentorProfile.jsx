@@ -75,24 +75,15 @@ export default function PublicMentorProfile() {
   const [copied,  setCopied]  = useState(false);
 
   useEffect(() => {
-  if (!slug) return;
-
-  api.get(`/api/profile/${slug}`)
-  .then(res => {
-    console.log("PROFILE RESPONSE =", res);
-
-    if (res.mentor) {
-      setMentor(res.mentor);
-    } else {
-      setMentor(res);
-    }
-  })
-  .catch(err => {
-    console.log("PROFILE ERROR =", err);
-    setError('Failed to load mentor profile');
-  })
-  .finally(() => setLoading(false));
-}, [slug]);
+    if (!slug) return;
+    api.get(`/api/mentor/${slug}`)
+      .then(res => {
+        if (res.ok) setMentor(res.mentor);
+        else setError(res.error || 'Mentor not found');
+      })
+      .catch(e => setError(e?.message || 'Failed to load mentor profile'))
+      .finally(() => setLoading(false));
+  }, [slug]);
 
   const handleShare = async () => {
     const url = window.location.href;
