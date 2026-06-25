@@ -178,9 +178,11 @@ const ChatPage = ({ mentor = null, onBack }) => {
   const currentUserRef = useRef(null);
   const selectedContactRef = useRef(null);
   const contactListRef = useRef([]);
+  const socketRef = useRef(null);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
   useEffect(() => { selectedContactRef.current = selectedContact; }, [selectedContact]);
   useEffect(() => { contactListRef.current = contactList; }, [contactList]);
+  useEffect(() => { socketRef.current = socket; }, [socket]);
 
   const mentorTargetId = mentor?.id || mentor?._id || null;
   const isStudent = currentUser?.role !== 'mentor';
@@ -366,16 +368,23 @@ const ChatPage = ({ mentor = null, onBack }) => {
       const data = res.ok ? await res.json() : [];
       const list = Array.isArray(data) ? data : [];
       setContactList(list);
-      if (socket && socketStatus === 'connected') s_emitPresence(list);
+      s_emitPresence(list);
       return list;
     } catch {
       return [];
     }
-  }, [socket, socketStatus]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const s_emitPresence = (list) => {
-    try { socket?.emit('get_presence', list.map((c) => String(c._id))); } catch { /* noop */ }
+    try { socketRef.current?.emit('get_presence', list.map((c) => String(c._id))); } catch { /* noop */ }
   };
+
+  // Re-emit presence when socket connects after contacts are already loaded
+  useEffect(() => {
+    if (socket && socketStatus === 'connected' && contactListRef.current.length > 0) {
+      s_emitPresence(contactListRef.current);
+    }
+  }, [socket, socketStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Initial load + auto-open the mentor (from "Talk to Senior" / deep link) ──
   useEffect(() => {
