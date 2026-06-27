@@ -537,6 +537,7 @@ export default function PublicMentorProfile() {
           >
             <MessageCircle size={15} /> Chat
           </button>
+          
         </div>
       </div>
 
