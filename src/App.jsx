@@ -21,6 +21,7 @@ import Avatar from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth } from "./context/AuthContext";
+import useIsMobile from "./hooks/useIsMobile";
 import { ThemeToggle } from "./context/ThemeContext";
 import {
   sessionAPI,
