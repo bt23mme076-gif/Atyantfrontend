@@ -431,12 +431,67 @@ export default function PublicMentorProfile() {
             </div>
           )}
 
-          {/* Footer */}
-          <div style={{ borderTop: '1px solid rgba(0,0,0,0.10)', paddingTop: 16, display: 'flex', gap: 16 }}>
-            <span style={{ fontSize: 12, color: '#aaa', cursor: 'pointer' }}>Terms</span>
-            <span style={{ fontSize: 12, color: '#aaa', cursor: 'pointer' }}>Privacy</span>
-          </div>
+
+        {/* ── Public URL copy ── */}
+        <div style={{
+          background: T.card, borderRadius: 14, padding: '14px 18px',
+          border: `1px solid ${T.cardBorder}`,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <p style={{ fontSize: 12, color: T.textMuted, margin: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {window.location.href}
+          </p>
+          <button onClick={handleShare} style={{
+            display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+            background: T.accentSoft, border: `1px solid ${T.accent}30`,
+            borderRadius: 8, padding: '6px 12px',
+            color: copied ? T.green : T.accentText, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>
+            {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy link</>}
+          </button>
+        </div>
+      </main>
+
+      {/* ── Sticky CTA ── */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+        background: 'rgba(248,247,255,0.95)', backdropFilter: 'blur(14px)',
+        borderTop: `1px solid ${T.cardBorder}`,
+        padding: '12px 16px',
+      }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              flex: 1, padding: '13px 0', borderRadius: 12,
+              background: `linear-gradient(135deg, ${T.accent} 0%, #5a52a8 100%)`,
+              color: '#fff', fontWeight: 700, fontSize: 15,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              border: 'none', cursor: 'pointer',
+              boxShadow: `0 4px 20px ${T.accent}35`,
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            <Video size={16} /> Book 1:1 session — starting ₹49
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              padding: '13px 18px', borderRadius: 12,
+              background: T.accentSoft, border: `1px solid ${T.accent}35`,
+              color: T.accentText, fontWeight: 600, fontSize: 14,
+              display: 'flex', alignItems: 'center', gap: 7,
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            <MessageCircle size={15} /> Chat
+          </button>
+          
+        </div>
+=======
+         
         </main>
+
       </div>
     </div>
   );

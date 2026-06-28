@@ -8,6 +8,7 @@ import PublicMentorProfile from './pages/PublicMentorProfile.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import MentorTrackPage from './pages/MentorTrackPage'
 
 // The marketing site (atyant.in) only proxies "/" and "/product-assets/*" to
 // this product app — a real path like /session/meet/<id> falls through to the
@@ -31,7 +32,20 @@ createRoot(document.getElementById('root')).render(
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
               <Route path="/profile/:slug" element={<PublicMentorProfile />} />
-              <Route path="/:slug" element={<PublicMentorProfile />} />
+<Route
+  path="/test-profile"
+  element={<h1 style={{ color: "red" }}>PROFILE ROUTE WORKING</h1>}
+/>
+
+<Route
+  path="/mentor/:mentorId/track"
+  element={<MentorTrackPage />}
+/>
+
+<Route
+  path="/:slug"
+  element={<PublicMentorProfile />}
+/>
               <Route path="/*" element={<RootOrMeet />} />
             </Routes>
           </BrowserRouter>
