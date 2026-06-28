@@ -7,14 +7,27 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);   // true while verifying stored token
 
-  // On mount: verify stored token is still valid
+  // On mount: verify stored token is still valid.
+  // OAuth redirects arrive with ?token=<jwt>. Strip it from the URL
+  // immediately (before any async work) so it never sits in history or
+  // leaks via Referer. Sanity-check length to reject obviously malformed
+  // values. TODO(backend): replace ?token= with a short-lived one-time
+  // code exchanged server-side so the JWT never travels in the URL at all.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     if (urlToken) {
-      localStorage.setItem('atyant_token', urlToken);
+      // Remove from URL synchronously — must happen before the browser
+      // records this navigation in history or sends a Referer.
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
+      // Accept only plausible JWT-shaped values (3 dot-separated base64url
+      // segments, total length 50–2048 chars).
+      const isPlausibleJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(urlToken)
+        && urlToken.length >= 50 && urlToken.length <= 2048;
+      if (isPlausibleJwt) {
+        localStorage.setItem('atyant_token', urlToken);
+      }
     }
 
     const token = localStorage.getItem('atyant_token');

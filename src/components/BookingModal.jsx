@@ -395,7 +395,7 @@ function SuccessStep({ service, date, slot }) {
 }
 
 // ─── Main BookingModal ───────────────────────────────────────────────────────
-export default function BookingModal({ mentorId, mentorName, mentorPic, services = [], onClose, onBooked }) {
+export default function BookingModal({ mentorId, mentorName, mentorPic, services = [], preselectServiceId, onClose, onBooked }) {
   const [step, setStep]         = useState(0); // 0=svc, 1=schedule, 2=confirm, 3=success
   const [service, setService]   = useState(null);
   const [availability, setAvail] = useState(null);
@@ -404,10 +404,16 @@ export default function BookingModal({ mentorId, mentorName, mentorPic, services
   const [booking, setBooking]   = useState(false);
   const [error, setError]       = useState("");
 
-  // Pre-select the only service if there's exactly one
+  // Pre-select: an explicit serviceId (e.g. "Book Session" from the chat unlock
+  // card → Text Q&A) jumps straight to scheduling; otherwise auto-pick the only
+  // service when a mentor offers exactly one.
   useEffect(() => {
+    if (preselectServiceId) {
+      const match = services.find(s => s.id === preselectServiceId);
+      if (match) { setService(match); setStep(1); return; }
+    }
     if (services.length === 1) setService(services[0]);
-  }, [services]);
+  }, [services, preselectServiceId]);
 
   // Load mentor's weekly availability template
   useEffect(() => {

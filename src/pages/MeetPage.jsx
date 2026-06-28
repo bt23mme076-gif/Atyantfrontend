@@ -78,7 +78,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
             serverUrl={roomData.livekitUrl}
             connect={true}
             audio={true}
-            video={true}
+            video={roomData.callType !== 'audio'}
             data-lk-theme="default"
             style={{ height: '100vh' }}
             onDisconnected={(reason) => {

@@ -32,13 +32,19 @@ createRoot(document.getElementById('root')).render(
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
               <Route path="/profile/:slug" element={<PublicMentorProfile />} />
-              <Route
+<Route
   path="/test-profile"
   element={<h1 style={{ color: "red" }}>PROFILE ROUTE WORKING</h1>}
 />
+
 <Route
   path="/mentor/:mentorId/track"
   element={<MentorTrackPage />}
+/>
+
+<Route
+  path="/:slug"
+  element={<PublicMentorProfile />}
 />
               <Route path="/*" element={<RootOrMeet />} />
             </Routes>

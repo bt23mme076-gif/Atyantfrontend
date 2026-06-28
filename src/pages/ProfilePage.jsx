@@ -555,12 +555,29 @@ export default function ProfilePage() {
     primaryDomain: "", companyDomain: "", servicesOffered: []
   });
 
-  // Initialize slug value when user changes
+  // Initialize slug value when user changes.
+  // If no slug is set yet, derive one from username and auto-save it silently.
   useEffect(() => {
     if (user?.slug) {
       setSlugValue(user.slug);
+      return;
     }
-  }, [user]);
+    if (!isMentor || !user?.username) return;
+    const derived = user.username
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 100);
+    if (derived.length < 3) return;
+    setSlugValue(derived);
+    mentorAPI.updateSlug(derived)
+      .then(res => {
+        if (res?.ok || res?.slug) {
+          setUser(prev => ({ ...prev, slug: res.slug || derived }));
+        }
+      })
+      .catch(() => {});
+  }, [user?.slug, user?.username, isMentor]);
 
   // Handle slug update
   const handleSlugUpdate = async () => {
@@ -604,7 +621,8 @@ export default function ProfilePage() {
     setSlugError("");
   };
 
-  const publicUrl = user?.slug ? `${window.location.origin}/${user.slug}` : "";
+  const APP_BASE = import.meta.env.VITE_APP_URL || window.location.origin;
+  const publicUrl = user?.slug ? `${APP_BASE}/${user.slug}` : "";
 
   // Load the platform service catalog once (mentors pick from it)
   useEffect(() => {
@@ -861,7 +879,7 @@ export default function ProfilePage() {
             </label>
 
             <div className="pf-hero-actions">
-              {!editing && <ShareProfile />}
+              {!editing && <ShareProfile publicUrl={publicUrl} />}
               {isMentor && !editing && (
                 <button onClick={() => setShowAnswerCards(true)}
                   style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, transition: "all .15s" }}>
@@ -1418,10 +1436,44 @@ export default function ProfilePage() {
                         <Copy size={13} />
                       </button>
                     </div>
-                  ) : (
-                    <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set yet</div>
+                  ) : null}
+                  {publicUrl && (
+                    <a
+                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        marginTop: 10, display: "inline-flex", alignItems: "center", gap: 7,
+                        background: "rgba(10,102,194,0.10)", border: "1px solid rgba(10,102,194,0.25)",
+                        borderRadius: 10, padding: "9px 16px",
+                        color: "#0A66C2", fontSize: ".82rem", fontWeight: 600, textDecoration: "none",
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      </svg>
+                      Share on LinkedIn
+                    </a>
+                  )}
+                  {!publicUrl && (
+                    <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set yet — set a slug above to get your link</div>
                   )}
                 </div>
+                {publicUrl && (
+                  <a
+                    href={publicUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      background: "transparent", border: `1px solid ${C.cardBorder}`,
+                      borderRadius: 10, padding: "8px 15px",
+                      color: C.textSub, fontSize: ".8rem", fontWeight: 500, textDecoration: "none",
+                    }}
+                  >
+                    <Eye size={13} /> View your public profile
+                  </a>
+                )}
                 <button
                   onClick={() => setSlugEditing(true)}
                   style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}
