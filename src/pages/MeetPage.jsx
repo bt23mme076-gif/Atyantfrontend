@@ -16,6 +16,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
     const [loading, setLoading] = useState(true);
 
     const [needsAuth, setNeedsAuth] = useState(false);
+    const [ended, setEnded] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -52,6 +53,18 @@ export default function MeetPage({ sessionId: propSessionId }) {
         return () => { cancelled = true; };
     }, [sessionId]);
 
+    if (ended) return (
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', justifyContent: 'center', background: '#111', color: '#fff', fontSize: 18, padding: 24, textAlign: 'center' }}>
+            The session has ended or the connection was lost.
+            <button
+                onClick={() => navigate('/')}
+                style={{ background: '#7567C9', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+            >
+                Back to home
+            </button>
+        </div>
+    );
+
     if (loading) return (
         <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', color: '#fff', fontSize: 18 }}>
             Joining session...
@@ -82,7 +95,11 @@ export default function MeetPage({ sessionId: propSessionId }) {
             data-lk-theme="default"
             style={{ height: '100vh' }}
             onDisconnected={(reason) => {
+                // CLIENT_INITIATED = the user pressed Leave → straight home.
+                // Any other reason (lost/failed connection) → show a clear exit
+                // screen instead of stranding them on a dead "Disconnected" overlay.
                 if (reason === DisconnectReason.CLIENT_INITIATED) navigate('/');
+                else setEnded(true);
             }}
             options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
         >
