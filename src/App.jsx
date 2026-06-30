@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useIsMobile from "./hooks/useIsMobile";
+import ClarityView from "./components/clarity/ClarityView";
+import Footer from "./components/Footer";
+import MentorTrackPage from "./pages/MentorTrackPage";
 
 
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
