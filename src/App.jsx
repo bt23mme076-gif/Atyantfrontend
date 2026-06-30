@@ -9,10 +9,6 @@ import {
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import useIsMobile  from "./hooks/useIsMobile";
-import ClarityView    from "./components/clarity/ClarityView";
-import Footer         from "./components/Footer";
-
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 // Heavy, rarely-first pages are code-split so the initial bundle stays lean.
 const BookingPage   = lazy(() => import("./pages/user"));
