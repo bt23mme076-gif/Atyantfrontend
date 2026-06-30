@@ -468,6 +468,7 @@ export default function ProfilePage() {
   const [slugValue,   setSlugValue]   = useState("");
   const [slugSaving,  setSlugSaving]  = useState(false);
   const [slugError,   setSlugError]   = useState("");
+  const [activeSection, setActiveSection] = useState('overview');
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {
@@ -805,8 +806,37 @@ export default function ProfilePage() {
 
   const domainLabel = { internship: "Internships", placement: "Placements", both: "Internships & Placements" }[form.primaryDomain];
 
+  const MENTOR_NAV = [
+    { key: 'overview',     Icon: Activity,      label: 'Overview' },
+    { key: 'services',     Icon: IndianRupee,   label: 'Services' },
+    { key: 'availability', Icon: CalendarClock, label: 'Availability' },
+    { key: 'basic',        Icon: UserRound,     label: 'Basic Information' },
+    { key: 'education',    Icon: GraduationCap, label: 'Education' },
+    { key: 'experience',   Icon: Briefcase,     label: 'Experience' },
+    { key: 'expertise',    Icon: Zap,           label: 'Skills & Expertise' },
+    { key: 'achievements', Icon: Trophy,        label: 'Achievements' },
+    { key: 'preferences',  Icon: Compass,       label: 'Mentoring Prefs' },
+    { key: 'social',       Icon: Link2,         label: 'Social Links' },
+  ];
+  const STUDENT_NAV = [
+    { key: 'overview',  Icon: Activity,      label: 'Overview' },
+    { key: 'basic',     Icon: UserRound,     label: 'Basic Information' },
+    { key: 'education', Icon: GraduationCap, label: 'Education' },
+    { key: 'goals',     Icon: Target,        label: 'Goals & Skills' },
+  ];
+  const navItems = isMentor ? MENTOR_NAV : STUDENT_NAV;
+
+  // Maps completion chip keys → sidebar section keys
+  const CHIP_TO_SECTION = {
+    services: 'services', bio: 'basic', photo: 'basic', city: 'basic',
+    college: 'education', branch: 'education', year: 'education', cgpa: 'education',
+    exp: 'experience', companies: 'experience', linkedin: 'experience',
+    expertise: 'expertise', tags: 'achievements', domain: 'preferences',
+    goals: 'goals', skills: 'goals',
+  };
+
   return (
-    <div style={{ padding: isMobileView ? "1.1rem 1rem 2.5rem" : "1.75rem 2rem 3rem", maxWidth: 1020, margin: "0 auto" }}>
+    <div style={{ padding: isMobileView ? "1rem 0.75rem 3rem" : "1.5rem 2rem 3rem", maxWidth: 1140, margin: "0 auto" }}>
       <PageStyles />
 
       {showAnswerCards && (
@@ -928,6 +958,42 @@ export default function ProfilePage() {
         </div>
       </header>
 
+      {/* ════════ MOBILE TABS ════════ */}
+      {isMobileView && (
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14, scrollbarWidth: "none" }}>
+          {navItems.map(({ key, label }) => (
+            <button key={key} onClick={() => setActiveSection(key)}
+              style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, border: activeSection === key ? "none" : `1px solid ${C.cardBorder}`, background: activeSection === key ? C.accent : C.card, color: activeSection === key ? "#fff" : C.textSub, fontSize: ".74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ════════ SIDEBAR + CONTENT ════════ */}
+      <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+
+        {/* LEFT NAV SIDEBAR */}
+        {!isMobileView && (
+          <aside style={{ width: 210, flexShrink: 0, position: "sticky", top: 20 }}>
+            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow)", padding: "6px 0" }}>
+              {navItems.map(({ key, Icon, label }) => (
+                <button key={key} onClick={() => setActiveSection(key)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 16px", border: "none", background: activeSection === key ? C.accentSoft : "transparent", color: activeSection === key ? C.accentText : C.textSub, fontSize: ".83rem", fontWeight: activeSection === key ? 700 : 500, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all .15s", borderLeft: activeSection === key ? `3px solid ${C.accent}` : "3px solid transparent" }}>
+                  <Icon size={15} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
+
+        {/* RIGHT CONTENT PANEL */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+        {/* ── OVERVIEW ── */}
+        {activeSection === 'overview' && (<>
+
       {/* ════════ IMPORT — LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
       {isMentor && pct < 60 && (
         <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, overflow: "hidden" }}>
@@ -1028,24 +1094,9 @@ export default function ProfilePage() {
                 </span>
                 : <button key={it.key} className="pf-chipbtn"
                   onClick={() => {
-                    if (it.key === "services") {
-                      document.getElementById("services-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    } else {
-                      // map chip keys → section ids
-                      const SECTION = {
-                        bio: "field-bio", photo: "field-bio", city: "field-bio",
-                        college: "field-college", branch: "field-college", year: "field-college",
-                        exp: "field-exp", companies: "field-exp", linkedin: "field-exp",
-                        expertise: "field-expertise",
-                        tags: "field-tags",
-                        domain: "field-domain",
-                      };
-                      startEdit();
-                      setTimeout(() => {
-                        const el = document.getElementById(SECTION[it.key] || `field-${it.key}`);
-                        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-                      }, 120);
-                    }
+                    const sec = CHIP_TO_SECTION[it.key] || 'basic';
+                    setActiveSection(sec);
+                    if (sec !== 'services') startEdit();
                   }}
                   title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
                   style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1056,8 +1107,11 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ════════ MENTOR MONETIZATION BLOCK (full-width, above everything) ════════ */}
-      {isMentor && (
+        </>)}
+        {/* end overview */}
+
+        {/* ── SERVICES ── */}
+        {activeSection === 'services' && isMentor && (
         <div id="services-section" className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
 
           {/* 🔴 Red incomplete-setup reminder — shows until both services + availability are done */}
@@ -1196,30 +1250,29 @@ export default function ProfilePage() {
               ) : null}
             </div>
 
-            {/* Right: Availability */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: (user?.availability?.weekly?.length || 0) === 0 ? "rgba(248,113,113,0.15)" : "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: (user?.availability?.weekly?.length || 0) === 0 ? "1.5px solid rgba(248,113,113,0.5)" : "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}>
-                  <CalendarClock size={14} style={{ color: (user?.availability?.weekly?.length || 0) === 0 ? "#f87171" : C.green }} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: ".9rem", color: (user?.availability?.weekly?.length || 0) === 0 ? "#f87171" : C.text, display: "flex", alignItems: "center", gap: 7 }}>
-                    Your availability
-                    {(user?.availability?.weekly?.length || 0) === 0 && <span style={{ fontSize: ".66rem", fontWeight: 700, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 999, padding: "2px 8px", color: "#f87171", letterSpacing: ".04em" }}>ACTION NEEDED</span>}
-                  </div>
-                  <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>When students can book you</div>
-                </div>
-              </div>
-              <AvailabilityEditor userId={user._id} />
-            </div>
           </div>
         </div>
-      )}
+        )} {/* end services */}
 
-      {/* ════════ SECTION GRID ════════ */}
-      <div id="profile-fields-section" className="pf-grid">
-        {/* About */}
-        <Section id="field-bio" Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={2}>
+        {/* ── AVAILABILITY ── */}
+        {activeSection === 'availability' && isMentor && (
+          <div className="pf-card pf-anim" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "20px 22px", boxShadow: "var(--shadow)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 18 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CalendarClock size={15} style={{ color: C.green }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Your Availability</div>
+                <div style={{ fontSize: ".72rem", color: C.textMuted, marginTop: 1 }}>Set when students can book sessions with you</div>
+              </div>
+            </div>
+            <AvailabilityEditor userId={user._id} />
+          </div>
+        )}
+
+        {/* ── BASIC INFORMATION ── */}
+        {activeSection === 'basic' && (
+        <Section id="field-bio" Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={1}>
           <FieldRow label="DISPLAY NAME" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} editing={editing} placeholder="Your name" />
           <FieldRow label="MOBILE NUMBER" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} editing={editing} placeholder="9876543210" error={phoneError} />
           <div style={{ marginBottom: 0 }}>
@@ -1230,9 +1283,11 @@ export default function ProfilePage() {
               : <div style={{ fontSize: ".88rem", color: form.bio ? C.textSub : C.textMuted, lineHeight: 1.65 }}>{form.bio || "No bio yet — a 2-line story makes your profile far more memorable."}</div>}
           </div>
         </Section>
+        )} {/* end basic */}
 
-        {/* Education */}
-        <Section id="field-college" Icon={GraduationCap} title="Education" subtitle="Your academic background" onEdit={startEdit} editing={editing} delay={2}>
+        {/* ── EDUCATION ── */}
+        {activeSection === 'education' && (
+        <Section id="field-college" Icon={GraduationCap} title="Education" subtitle="Your academic background" onEdit={startEdit} editing={editing} delay={1}>
           <FieldRow label="COLLEGE" value={form.college} onChange={v => setForm(f => ({ ...f, college: v }))} editing={editing} placeholder="e.g. VNIT Nagpur" />
           <FieldRow label="BRANCH" value={form.branch} onChange={v => setForm(f => ({ ...f, branch: v }))} editing={editing} placeholder="e.g. Metallurgy" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1240,10 +1295,11 @@ export default function ProfilePage() {
             <FieldRow label="CGPA" value={form.cgpa} onChange={v => setForm(f => ({ ...f, cgpa: v }))} editing={editing} placeholder="8.2" error={cgpaError} />
           </div>
         </Section>
+        )} {/* end education */}
 
-        {isMentor ? <>
-          {/* Professional Experience */}
-          <Section id="field-exp" Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── EXPERIENCE (mentor) ── */}
+        {activeSection === 'experience' && isMentor && (
+          <Section id="field-exp" Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={1}>
             <FieldRow label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f => ({ ...f, yearsOfExperience: v }))} editing={editing} placeholder="2" />
             <div>
               <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 8 }}>TOP COMPANIES</label>
@@ -1251,21 +1307,27 @@ export default function ProfilePage() {
                 placeholder="Add a company, e.g. Amazon" emptyText="No companies yet — add where you worked or interned." />
             </div>
           </Section>
+        )}
 
-          {/* Skills & Expertise */}
-          <Section id="field-expertise" Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── EXPERTISE (mentor) ── */}
+        {activeSection === 'expertise' && isMentor && (
+          <Section id="field-expertise" Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.expertise} editing={editing} onChange={v => setForm(f => ({ ...f, expertise: v }))}
               placeholder="Add an expertise, e.g. System Design" emptyText="No expertise added yet — this is what students get matched on." />
           </Section>
+        )}
 
-          {/* Achievements */}
-          <Section id="field-tags" Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── ACHIEVEMENTS (mentor) ── */}
+        {activeSection === 'achievements' && isMentor && (
+          <Section id="field-tags" Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.specialTags} editing={editing} onChange={v => setForm(f => ({ ...f, specialTags: v }))}
               placeholder="Add a tag, e.g. FAANG, PPO, GATE" emptyText="No achievements yet — FAANG, PPO, GATE, research… add what you cracked." />
           </Section>
+        )}
 
-          {/* Mentoring Preferences */}
-          <Section id="field-domain" Icon={Compass} title="Mentoring Preferences" subtitle="What & who you want to mentor" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── MENTORING PREFERENCES (mentor) ── */}
+        {activeSection === 'preferences' && isMentor && (
+          <Section id="field-domain" Icon={Compass} title="Mentoring Preferences" subtitle="What & who you want to mentor" onEdit={startEdit} editing={editing} delay={1}>
             {editing ? <>
               <SelectRow label="MENTORING DOMAIN" value={form.primaryDomain} onChange={v => setForm(f => ({ ...f, primaryDomain: v }))} editing={editing}
                 options={[{ value: "internship", label: "Internships" }, { value: "placement", label: "Placements" }, { value: "both", label: "Both" }]} />
@@ -1299,9 +1361,11 @@ export default function ProfilePage() {
               )}
             </>}
           </Section>
+        )}
 
-          {/* Social Links */}
-          <Section Icon={Link2} title="Social Links & Location" subtitle="Where students can verify you" onEdit={startEdit} editing={editing} delay={4}>
+        {/* ── SOCIAL LINKS (mentor) ── */}
+        {activeSection === 'social' && isMentor && (<>
+          <Section Icon={Link2} title="Social Links & Location" subtitle="Where students can verify you" onEdit={startEdit} editing={editing} delay={1}>
             {editing ? <>
               <FieldRow label="LINKEDIN" value={form.linkedinProfile} onChange={v => setForm(f => ({ ...f, linkedinProfile: v }))} editing={editing}
                 placeholder="https://linkedin.com/in/you" error={linkedinError} />
@@ -1335,8 +1399,7 @@ export default function ProfilePage() {
             </>}
           </Section>
 
-          {/* Public Profile URL */}
-          <Section Icon={Globe} title="Public Profile URL" subtitle="Shareable link for your mentor profile" delay={4}>
+          <Section Icon={Globe} title="Public Profile URL" subtitle="Shareable link for your mentor profile" delay={2}>
             {slugEditing ? (
               <div>
                 <div style={{ marginBottom: 12 }}>
@@ -1443,11 +1506,10 @@ export default function ProfilePage() {
             )}
           </Section>
 
-          {/* Verification Status */}
           {(() => {
             const isVerified = user?.isVerified || pct >= 80;
             return (
-              <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={4}>
+              <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={3}>
                 {/* Progress bar — only shown when not yet verified */}
                 {!isVerified && (
                   <div style={{ marginBottom: 12 }}>
@@ -1481,20 +1543,23 @@ export default function ProfilePage() {
               </Section>
             );
           })()}
-        </> : <>
-          {/* Student: Goals */}
-          <Section Icon={Target} title="Current Goals" subtitle="What you're working towards" onEdit={startEdit} editing={editing} delay={3}>
+        </>)}
+        {/* end social */}
+
+        {/* ── GOALS & SKILLS (student) ── */}
+        {activeSection === 'goals' && !isMentor && (<>
+          <Section Icon={Target} title="Current Goals" subtitle="What you're working towards" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.goals} editing={editing} onChange={v => setForm(f => ({ ...f, goals: v }))} highlightFirst
               placeholder="Add a goal, e.g. AI/ML Internship" emptyText="No goals yet — your first goal powers your mentor matches." />
           </Section>
-
-          {/* Student: Skills */}
-          <Section Icon={Zap} title="Skills" subtitle="What you already know" onEdit={startEdit} editing={editing} delay={3}>
+          <Section Icon={Zap} title="Skills" subtitle="What you already know" onEdit={startEdit} editing={editing} delay={2}>
             <ChipEditor items={form.skills} editing={editing} onChange={v => setForm(f => ({ ...f, skills: v }))}
               placeholder="Add a skill, e.g. Python" emptyText="No skills added yet — list what you've learned so far." />
           </Section>
-        </>}
-      </div>
+        </>)}
+
+        </div> {/* end content panel */}
+      </div> {/* end sidebar+content row */}
 
       {/* Sticky save bar in edit mode (mobile-friendly) */}
       {editing && (
