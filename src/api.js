@@ -55,6 +55,20 @@ export const authAPI = {
   login: (email, password) =>
     api.post('/api/auth/login', { email, password }),
 
+  // ── OTP-based signup (2-step) ──────────────────────────────────────────
+  // Step 1: send OTP to email
+  signupInitiate: (username, email, password, phone, role) =>
+    api.post('/api/auth/signup-initiate', { username, email, password, phone, role }),
+
+  // Step 2: verify OTP → get JWT
+  signupVerify: (email, otp) =>
+    api.post('/api/auth/signup-verify', { email, otp }),
+
+  // Resend OTP during signup
+  signupResendOtp: (email) =>
+    api.post('/api/auth/signup-resend-otp', { email }),
+
+  // Legacy signup kept for Google-authed paths (not used for email/password)
   signup: (username, email, password, phone, role) =>
     api.post('/api/auth/signup', {
       username,
