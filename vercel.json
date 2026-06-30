@@ -27,6 +27,7 @@
           "value": "camera=(self), microphone=(self), geolocation=()"
         }
       ]
+    
     }
   ]
 }
