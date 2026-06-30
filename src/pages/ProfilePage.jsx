@@ -5,6 +5,7 @@ import {
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
   CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
+  Mic, Video, Heart, Settings,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -95,6 +96,12 @@ const PageStyles = () => (
     .pf-svc-row { transition: all .15s ease; cursor:pointer; }
     .pf-svc-row:hover { border-color:#7567C9 !important; transform:translateY(-1px); box-shadow:0 4px 14px rgba(117,103,201,0.18); }
     .pf-svc-row.on { border-color:#7567C9 !important; background:rgba(117,103,201,0.09) !important; }
+    .pf-svc-card { transition: border-color .15s, transform .15s, box-shadow .15s; cursor:pointer; }
+    .pf-svc-card:hover { border-color:#7567C9 !important; transform:translateY(-2px); box-shadow:0 6px 18px rgba(117,103,201,0.2); }
+    .pf-svc-card.on { border-color:#7567C9 !important; }
+    .pf-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    @media (max-width:880px) { .pf-svc-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:480px) { .pf-svc-grid { grid-template-columns:1fr; } }
     .pf-mono-inner { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
     @media (max-width:880px) { .pf-mono-inner { grid-template-columns:1fr; } }
     .pf-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
@@ -109,6 +116,15 @@ const PageStyles = () => (
     }
   `}</style>
 );
+
+/* ─── Service card icon map ─────────────────────────────────────────────────── */
+const SVC_ICONS = {
+  'text-qa':       { Icon: MessageSquareText, color: '#3B82F6', bg: 'rgba(59,130,246,0.12)'  },
+  'audio-call':    { Icon: Mic,               color: '#10B981', bg: 'rgba(16,185,129,0.12)'  },
+  'video-call':    { Icon: Video,             color: '#7567C9', bg: 'rgba(117,103,201,0.12)' },
+  'resume-review': { Icon: FileText,          color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'  },
+  'free-help':     { Icon: Heart,             color: '#EF4444', bg: 'rgba(239,68,68,0.12)'   },
+};
 
 /* ─── Completion ring (SVG) ─────────────────────────────────────────────────── */
 function Ring({ pct, size = 76, stroke = 7 }) {
@@ -514,7 +530,8 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   const [form, setForm] = useState({
     name: "", phone: "", college: "", branch: "", year: "", cgpa: "", bio: "", goals: [], skills: [],
     expertise: [], topCompanies: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
-    primaryDomain: "", companyDomain: "", servicesOffered: []
+    primaryDomain: "", companyDomain: "", servicesOffered: [],
+    customService: { enabled: false, label: "", description: "", price: "", durationMin: "30" },
   });
 
   // Initialize slug value when user changes.
@@ -614,6 +631,13 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       primaryDomain: user.primaryDomain || "",
       companyDomain: user.companyDomain || "",
       servicesOffered: user.servicesOffered || [],
+      customService: user.customService ? {
+        enabled:     user.customService.enabled     || false,
+        label:       user.customService.label       || "",
+        description: user.customService.description || "",
+        price:       user.customService.price != null ? String(user.customService.price) : "",
+        durationMin: user.customService.durationMin ? String(user.customService.durationMin) : "30",
+      } : { enabled: false, label: "", description: "", price: "", durationMin: "30" },
     });
   }, [user]);
 
@@ -641,10 +665,32 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   const servicesDirty =
     [...form.servicesOffered].sort().join(",") !== [...(user?.servicesOffered || [])].sort().join(",");
 
+  const customServiceDirty = (() => {
+    const cs  = form.customService;
+    const ucs = user?.customService || {};
+    return cs.enabled     !== (ucs.enabled     || false)
+        || cs.label       !== (ucs.label        || "")
+        || cs.description !== (ucs.description  || "")
+        || cs.price       !== (ucs.price != null ? String(ucs.price) : "")
+        || cs.durationMin !== (ucs.durationMin  ? String(ucs.durationMin) : "30");
+  })();
+
+  const anySvcDirty = servicesDirty || customServiceDirty;
+
   const saveServices = async () => {
     setSavingServices(true);
     try {
-      const res = await profileAPI.update({ servicesOffered: form.servicesOffered });
+      const payload = { servicesOffered: form.servicesOffered };
+      if (customServiceDirty) {
+        payload.customService = {
+          enabled:     form.customService.enabled,
+          label:       form.customService.label.trim(),
+          description: form.customService.description.trim(),
+          price:       Number(form.customService.price) || 0,
+          durationMin: Number(form.customService.durationMin) || 30,
+        };
+      }
+      const res = await profileAPI.update(payload);
       setUser(res.user || res);
       setServicesSaved(true);
       setTimeout(() => setServicesSaved(false), 1800);
@@ -1100,142 +1146,172 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         {activeSection === 'services' && isMentor && (
         <div id="services-section" className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
 
-          {/* 🔴 Red incomplete-setup reminder — shows until both services + availability are done */}
-          {(form.servicesOffered.length === 0 || (user?.availability?.weekly?.length || 0) === 0) && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "rgba(248,113,113,0.08)", border: "1.5px solid rgba(248,113,113,0.45)", borderRadius: 14, padding: "13px 16px", marginBottom: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                <span style={{ fontSize: "1rem" }}>⚠️</span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: ".84rem", fontWeight: 800, color: "#f87171", marginBottom: 4 }}>Students can't book you yet</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {form.servicesOffered.length === 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".76rem", color: "#fca5a5" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", flexShrink: 0 }} />
-                      Turn on at least one service below (Text Q&A, Audio Call, or Video Call)
-                    </div>
-                  )}
-                  {(user?.availability?.weekly?.length || 0) === 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".76rem", color: "#fca5a5" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", flexShrink: 0 }} />
-                      Add your available hours using "Edit schedule" on the right
-                    </div>
-                  )}
-                </div>
+          {/* Setup reminder — shows when nothing is selected yet */}
+          {form.servicesOffered.length === 0 && !form.customService.enabled && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(248,113,113,0.08)", border: "1.5px solid rgba(248,113,113,0.4)", borderRadius: 14, padding: "12px 16px", marginBottom: 10 }}>
+              <span style={{ fontSize: "1.1rem" }}>⚠️</span>
+              <div>
+                <div style={{ fontSize: ".84rem", fontWeight: 800, color: "#f87171" }}>Students can't book you yet</div>
+                <div style={{ fontSize: ".73rem", color: "#fca5a5", marginTop: 2 }}>Select at least one service below · then set your availability to go live</div>
               </div>
             </div>
           )}
 
-          {/* Top earnings banner — light, soft surface */}
-          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          {/* Earnings banner */}
+          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 11, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 3px 10px rgba(117,103,201,0.3)" }}>
                   <IndianRupee size={20} style={{ color: "#fff" }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: "1rem", fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>
-                    Earn ₹49 – ₹299 per session
-                  </div>
-                  <div style={{ fontSize: ".75rem", color: C.textSub, marginTop: 2 }}>
-                    {form.servicesOffered.length === 0
-                      ? "Select your services & set availability — students can't book you yet"
-                      : form.servicesOffered.length === 1
-                        ? "1 service active · add your available hours to go live"
-                        : `${form.servicesOffered.length} services active · ${(user?.availability?.weekly?.length || 0) === 0 ? "set your availability to go live" : "you're bookable by students"}`}
+                  {(() => {
+                    const prices = (serviceCatalog || []).filter(s => form.servicesOffered.includes(s.id) && s.price > 0).map(s => s.price);
+                    const csPrice = form.customService.enabled && Number(form.customService.price) > 0 ? Number(form.customService.price) : null;
+                    if (csPrice) prices.push(csPrice);
+                    const lo = prices.length ? Math.min(...prices) : null;
+                    const hi = prices.length ? Math.max(...prices) : null;
+                    const hasFree = form.servicesOffered.includes('free-help');
+                    const headline = lo
+                      ? `Earn ₹${lo}${lo !== hi ? ` – ₹${hi}` : ''} per session${hasFree ? ' · + free sessions' : ''}`
+                      : hasFree ? "Offering free help to students" : "Select your services below";
+                    return <div style={{ fontSize: "1rem", fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>{headline}</div>;
+                  })()}
+                  <div style={{ fontSize: ".73rem", color: C.textSub, marginTop: 3 }}>
+                    Atyant keeps 25% on paid sessions · you keep 75%
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                {form.servicesOffered.length > 0 && (user?.availability?.weekly?.length || 0) > 0 ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.14)", border: `1px solid ${C.green}55`, borderRadius: 999, padding: "6px 14px", color: C.green, fontSize: ".76rem", fontWeight: 700 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Live & Bookable
-                  </span>
-                ) : (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "6px 14px", color: C.accentText, fontSize: ".76rem", fontWeight: 700 }}>
-                    <Rocket size={12} /> Setup required
-                  </span>
-                )}
-              </div>
-            </div>
-            {/* Quick earnings math */}
-            <div style={{ position: "relative", display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-              {[
-                { label: "Text Q&A", price: "₹49", icon: "💬" },
-                { label: "Audio Call", price: "₹99", icon: "🎙️" },
-                { label: "Video Call", price: "₹299", icon: "📹" },
-              ].map(s => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 7, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px" }}>
-                  <span style={{ fontSize: ".82rem" }}>{s.icon}</span>
-                  <span style={{ fontSize: ".72rem", color: C.textSub, fontWeight: 600 }}>{s.label} · {s.price}</span>
-                </div>
-              ))}
+              {(form.servicesOffered.length > 0 || form.customService.enabled) && (user?.availability?.weekly?.length || 0) > 0 ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.14)", border: `1px solid ${C.green}55`, borderRadius: 999, padding: "6px 14px", color: C.green, fontSize: ".76rem", fontWeight: 700, flexShrink: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Live & Bookable
+                </span>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "6px 14px", color: C.accentText, fontSize: ".76rem", fontWeight: 700, flexShrink: 0 }}>
+                  <Rocket size={12} /> Setup required
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Services + Availability side by side */}
-          <div className="pf-mono-inner" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)", position: "relative" }}>
+          {/* Service type grid — Topmate style */}
+          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)" }}>
+            <div style={{ fontSize: ".65rem", fontWeight: 700, letterSpacing: ".1em", color: C.textMuted, marginBottom: 14, textTransform: "uppercase" }}>Select type</div>
 
-            {/* Left: Services */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: form.servicesOffered.length === 0 ? "rgba(248,113,113,0.15)" : "linear-gradient(135deg, rgba(117,103,201,0.22), rgba(117,103,201,0.08))", border: form.servicesOffered.length === 0 ? "1.5px solid rgba(248,113,113,0.5)" : "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}>
-                    <CalendarCheck size={14} style={{ color: form.servicesOffered.length === 0 ? "#f87171" : C.accentText }} />
+            {serviceCatalog === null ? (
+              <div className="pf-svc-grid">
+                {[0,1,2,3,4,5].map(i => <div key={i} className="pf-skel" style={{ height: 118, borderRadius: 14 }} />)}
+              </div>
+            ) : (
+              <div className="pf-svc-grid">
+                {/* Platform catalog cards */}
+                {serviceCatalog.map(s => {
+                  const on = form.servicesOffered.includes(s.id);
+                  const { Icon: SvcIcon, color, bg } = SVC_ICONS[s.id] || { Icon: Star, color: C.accent, bg: C.accentSoft };
+                  return (
+                    <div key={s.id} role="button" tabIndex={0} aria-pressed={on}
+                      className={`pf-svc-card${on ? " on" : ""}`}
+                      onClick={() => toggleService(s.id)}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleService(s.id); } }}
+                      style={{ position: "relative", background: on ? "rgba(117,103,201,0.06)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 14, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 118, userSelect: "none" }}>
+                      {/* Check badge */}
+                      {on && (
+                        <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(117,103,201,0.4)" }}>
+                          <Check size={11} style={{ color: "#fff" }} />
+                        </div>
+                      )}
+                      {/* Icon */}
+                      <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? `${color}22` : bg, border: `1px solid ${color}33`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <SvcIcon size={18} style={{ color: on ? color : C.textSub }} />
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: ".88rem", color: on ? C.text : C.textSub }}>{s.label}</div>
+                        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 3, lineHeight: 1.45 }}>{s.description}</div>
+                      </div>
+                      {/* Price + duration */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                        <span style={{ fontWeight: 800, fontSize: ".86rem", color: s.price === 0 ? C.green : on ? C.accentText : C.textSub }}>
+                          {s.price === 0 ? "Free" : `₹${s.price}`}
+                        </span>
+                        <span style={{ fontSize: ".64rem", color: C.textMuted }}>{s.duration}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Custom Service card */}
+                {(() => {
+                  const on = form.customService.enabled;
+                  return (
+                    <div role="button" tabIndex={0} aria-pressed={on}
+                      className={`pf-svc-card${on ? " on" : ""}`}
+                      onClick={() => setForm(f => ({ ...f, customService: { ...f.customService, enabled: !f.customService.enabled } }))}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setForm(f => ({ ...f, customService: { ...f.customService, enabled: !f.customService.enabled } })); } }}
+                      style={{ position: "relative", background: on ? "rgba(117,103,201,0.06)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 14, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 118, userSelect: "none" }}>
+                      {on && (
+                        <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(117,103,201,0.4)" }}>
+                          <Check size={11} style={{ color: "#fff" }} />
+                        </div>
+                      )}
+                      <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? "rgba(117,103,201,0.18)" : C.accentSoft, border: "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Settings size={18} style={{ color: on ? C.accentText : C.textSub }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: ".88rem", color: on ? C.text : C.textSub }}>Custom</div>
+                        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 3, lineHeight: 1.45 }}>Your own service & price</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                        <span style={{ fontWeight: 800, fontSize: ".86rem", color: on && form.customService.price ? C.accentText : C.textMuted }}>
+                          {on && form.customService.price ? `₹${form.customService.price}` : "Set price"}
+                        </span>
+                        <span style={{ fontSize: ".64rem", color: C.textMuted }}>
+                          {on && form.customService.durationMin ? `${form.customService.durationMin} min` : "custom"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Custom service inline editor */}
+            {form.customService.enabled && (
+              <div style={{ marginTop: 16, background: C.active, border: `1.5px solid ${C.accent}33`, borderRadius: 14, padding: "16px 18px" }}>
+                <div style={{ fontSize: ".65rem", fontWeight: 700, letterSpacing: ".1em", color: C.accentText, marginBottom: 12 }}>CONFIGURE CUSTOM SERVICE</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>SERVICE NAME</label>
+                    <input className="pf-input" value={form.customService.label} placeholder="e.g. Career Chat" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, label: e.target.value } }))} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: ".9rem", color: form.servicesOffered.length === 0 ? "#f87171" : C.text, display: "flex", alignItems: "center", gap: 7 }}>
-                      Services you offer
-                      {form.servicesOffered.length === 0 && <span style={{ fontSize: ".66rem", fontWeight: 700, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 999, padding: "2px 8px", color: "#f87171", letterSpacing: ".04em" }}>ACTION NEEDED</span>}
-                    </div>
-                    <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>Tap to turn a service on or off</div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>SHORT DESCRIPTION</label>
+                    <input className="pf-input" value={form.customService.description} placeholder="What will you help with?" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, description: e.target.value } }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>PRICE (₹)</label>
+                    <input className="pf-input" type="number" min="0" value={form.customService.price} placeholder="e.g. 199" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, price: e.target.value } }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>DURATION (min)</label>
+                    <input className="pf-input" type="number" min="5" max="180" value={form.customService.durationMin} placeholder="30" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, durationMin: e.target.value } }))} />
                   </div>
                 </div>
+                <div style={{ fontSize: ".68rem", color: C.textMuted }}>Atyant keeps 25% commission on your custom service · you keep 75%</div>
               </div>
-              {serviceCatalog === null ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {[0, 1, 2].map(i => <div key={i} className="pf-skel" style={{ height: 52, borderRadius: 10 }} />)}
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {serviceCatalog.map(s => {
-                    const on = form.servicesOffered.includes(s.id);
-                    return (
-                      <div key={s.id} role="button" tabIndex={0} aria-pressed={on}
-                        className={`pf-svc-row${on ? " on" : ""}`}
-                        onClick={() => toggleService(s.id)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleService(s.id); } }}
-                        style={{ display: "flex", alignItems: "center", gap: 12, background: on ? "rgba(117,103,201,0.16)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 12, padding: "11px 14px", cursor: "pointer", transition: "all .15s" }}>
-                        <span style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${on ? C.accent : C.textMuted}`, background: on ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", transition: "all .15s" }}>
-                          {on ? <Check size={12} /> : null}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "block", color: on ? C.text : C.textSub, fontSize: ".86rem", fontWeight: on ? 700 : 500 }}>{s.label}</span>
-                          <span style={{ display: "block", color: C.textMuted, fontSize: ".7rem", marginTop: 1 }}>{s.description} · {s.durationMin} min</span>
-                        </span>
-                        <span style={{ background: on ? C.accentSoft : C.active, border: `1px solid ${on ? C.accent + "44" : C.cardBorder}`, borderRadius: 999, padding: "4px 11px", color: on ? C.accentText : C.textMuted, fontWeight: 700, fontSize: ".84rem", flexShrink: 0 }}>₹{s.price}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {/* Dedicated Save for services — appears only when there are unsaved changes */}
-              {servicesDirty ? (
-                <button onClick={saveServices} disabled={savingServices}
-                  style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 11, padding: "11px 0", color: "#fff", fontSize: ".86rem", fontWeight: 700, cursor: savingServices ? "default" : "pointer", fontFamily: "inherit", opacity: savingServices ? 0.7 : 1, boxShadow: "0 4px 12px rgba(117,103,201,0.3)" }}>
-                  {savingServices ? <><Spin size={14} /> Saving…</> : <><Check size={15} /> Save services</>}
-                </button>
-              ) : servicesSaved ? (
-                <div style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(61,190,130,0.12)", border: `1px solid ${C.green}55`, borderRadius: 11, padding: "10px 0", color: C.green, fontSize: ".82rem", fontWeight: 700 }}>
-                  <Check size={14} /> Services saved
-                </div>
-              ) : form.servicesOffered.length === 0 ? (
-                <div style={{ marginTop: 12, width: "100%", textAlign: "center", background: C.accentSoft, border: `1.5px dashed ${C.accent}55`, borderRadius: 11, padding: "10px 0", color: C.accentText, fontSize: ".8rem", fontWeight: 700 }}>
-                  <Plus size={13} style={{ verticalAlign: "-2px" }} /> Tap a service above to get booked
-                </div>
-              ) : null}
-            </div>
+            )}
 
+            {/* Save button */}
+            {anySvcDirty ? (
+              <button onClick={saveServices} disabled={savingServices}
+                style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 11, padding: "11px 0", color: "#fff", fontSize: ".86rem", fontWeight: 700, cursor: savingServices ? "default" : "pointer", fontFamily: "inherit", opacity: savingServices ? 0.7 : 1, boxShadow: "0 4px 12px rgba(117,103,201,0.3)" }}>
+                {savingServices ? <><Spin size={14} /> Saving…</> : <><Check size={15} /> Save services</>}
+              </button>
+            ) : servicesSaved ? (
+              <div style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(61,190,130,0.12)", border: `1px solid ${C.green}55`, borderRadius: 11, padding: "10px 0", color: C.green, fontSize: ".82rem", fontWeight: 700 }}>
+                <Check size={14} /> Services saved
+              </div>
+            ) : null}
           </div>
         </div>
         )} {/* end services */}
