@@ -4,7 +4,7 @@ import {
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
-  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy, ChevronLeft, ChevronRight,
+  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -270,21 +270,43 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
   );
 }
 
-/* ─── Availability Editor — calendar-grid style (same as student booking) ───── */
-const CAL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const CAL_DAY_H  = ["Su","Mo","Tu","We","Th","Fr","Sa"];
-const TIME_SLOTS  = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
-const fmtSlot = (s) => { const [h] = s.split(':').map(Number); const p = h >= 12 ? 'PM' : 'AM'; const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${h12} ${p}`; };
+/* ─── Availability Editor — Topmate-style weekly list (day toggle + time ranges) ───── */
+const DOW_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const SLOT_INTERVAL_MIN = 30; // a saved range expands into discrete bookable slots on this grid
+
+const fmtSlot = (s) => { const [h,m] = s.split(':').map(Number); const p = h >= 12 ? 'PM' : 'AM'; const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${h12}:${String(m).padStart(2,'0')} ${p}`; };
+const toMin   = (hhmm) => { const [h,m] = hhmm.split(':').map(Number); return h*60+m; };
+const toHHMM  = (min)  => `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
+
+// Expand a start/end range into discrete "HH:MM" slots at SLOT_INTERVAL_MIN steps.
+// End is exclusive of the final partial step (so "09:00–10:00" → ["09:00","09:30"]).
+function expandRange(start, end) {
+  const startMin = toMin(start), endMin = toMin(end);
+  const out = [];
+  for (let m = startMin; m + SLOT_INTERVAL_MIN <= endMin; m += SLOT_INTERVAL_MIN) out.push(toHHMM(m));
+  return out;
+}
+
+// Collapse a sorted list of discrete slots back into contiguous [start,end] ranges,
+// so ranges saved earlier still display as ranges instead of a flat slot list.
+function collapseToRanges(slots) {
+  if (!slots.length) return [];
+  const sorted = [...new Set(slots)].sort();
+  const ranges = [];
+  let rangeStart = sorted[0], prev = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (toMin(sorted[i]) - toMin(prev) === SLOT_INTERVAL_MIN) { prev = sorted[i]; continue; }
+    ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + SLOT_INTERVAL_MIN) });
+    rangeStart = prev = sorted[i];
+  }
+  ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + SLOT_INTERVAL_MIN) });
+  return ranges;
+}
 
 function AvailabilityEditor({ userId }) {
-  const today = new Date();
-  const [weekly, setWeekly]   = useState(null);
-  const [saving, setSaving]   = useState(false);
-  const [saved,  setSaved]    = useState(false);
-  const [calYear,  setCalYear]  = useState(today.getFullYear());
-  const [calMonth, setCalMonth] = useState(today.getMonth());
-  const [selDay,   setSelDay]   = useState(null); // JS day-of-week 0-6 currently editing slots
-  const [customTime, setCustomTime] = useState(""); // HH:MM input for custom slot
+  const [weekly, setWeekly] = useState(null); // [{ day, slots: ["HH:MM",...] }]
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
 
   useEffect(() => {
     availabilityAPI.getSchedule(userId)
@@ -292,23 +314,38 @@ function AvailabilityEditor({ userId }) {
       .catch(() => setWeekly([]));
   }, [userId]);
 
-  const toggleDow = (dow) => {
+  const dayEntry  = (dow) => (weekly||[]).find(d => d.day === dow);
+  const dayRanges = (dow) => collapseToRanges(dayEntry(dow)?.slots || []);
+
+  const toggleDay = (dow) => {
     setWeekly(prev => {
-      if (prev.some(d => d.day === dow)) {
-        setSelDay(s => s === dow ? null : s);
-        return prev.filter(d => d.day !== dow);
-      }
-      setSelDay(dow);
-      return [...prev, { day: dow, slots: ["09:00","10:00","14:00","15:00"] }];
+      if (prev.some(d => d.day === dow)) return prev.filter(d => d.day !== dow);
+      return [...prev, { day: dow, slots: expandRange("09:00", "18:00") }];
     });
   };
 
-  const toggleSlot = (dow, slot) => {
-    setWeekly(prev => prev.map(d => {
-      if (d.day !== dow) return d;
-      const slots = d.slots.includes(slot) ? d.slots.filter(s => s !== slot) : [...d.slots, slot].sort();
-      return { ...d, slots };
-    }));
+  const setDaySlots = (dow, slots) => {
+    setWeekly(prev => prev.map(d => d.day === dow ? { ...d, slots } : d));
+  };
+
+  const addRange = (dow) => {
+    const existing = dayEntry(dow)?.slots || [];
+    setDaySlots(dow, [...new Set([...existing, ...expandRange("09:00","10:00")])].sort());
+  };
+
+  const removeRange = (dow, idx) => {
+    const ranges = dayRanges(dow);
+    const next = ranges.filter((_, i) => i !== idx).flatMap(r => expandRange(r.start, r.end));
+    setDaySlots(dow, next);
+  };
+
+  const updateRange = (dow, idx, field, value) => {
+    const ranges = dayRanges(dow);
+    const updated = ranges.map((r, i) => i === idx ? { ...r, [field]: value } : r);
+    const next = updated
+      .filter(r => toMin(r.end) > toMin(r.start))
+      .flatMap(r => expandRange(r.start, r.end));
+    setDaySlots(dow, next);
   };
 
   const handleSave = async () => {
@@ -321,171 +358,93 @@ function AvailabilityEditor({ userId }) {
     finally { setSaving(false); }
   };
 
-  // Calendar grid helpers
-  const firstDay    = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const canPrev = calYear > today.getFullYear() || calMonth > today.getMonth();
-  const prevM = () => { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); };
-  const nextM = () => { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); };
-
-  const getDow = (d) => new Date(calYear, calMonth, d).getDay();
-  const isPast = (d) => new Date(calYear, calMonth, d) < new Date(today.toDateString());
-
   const totalSlots = (weekly||[]).reduce((s,d)=>s+d.slots.length,0);
-  const selEntry   = selDay != null ? (weekly||[]).find(d=>d.day===selDay) : null;
+  const activeDays  = (weekly||[]).length;
 
   if (weekly === null) return (
     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      {[0,1,2].map(i=><div key={i} className="pf-skel" style={{ height:44, borderRadius:10 }} />)}
+      {[0,1,2,3].map(i=><div key={i} className="pf-skel" style={{ height:52, borderRadius:10 }} />)}
     </div>
   );
 
   return (
     <div>
-      {/* ── Calendar grid ── */}
-      <div style={{ background: C.active, borderRadius:12, padding:"12px 14px", marginBottom:12 }}>
-        {/* Month nav */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-          <button onClick={prevM} disabled={!canPrev}
-            style={{ background:"none", border:"none", cursor:canPrev?"pointer":"default", color:canPrev?C.textSub:C.textMuted, padding:"4px 6px", borderRadius:6, display:"flex" }}>
-            <ChevronLeft size={16} />
-          </button>
-          <span style={{ fontWeight:700, fontSize:".84rem", color:C.text }}>{CAL_MONTHS[calMonth]} {calYear}</span>
-          <button onClick={nextM}
-            style={{ background:"none", border:"none", cursor:"pointer", color:C.textSub, padding:"4px 6px", borderRadius:6, display:"flex" }}>
-            <ChevronRight size={16} />
-          </button>
-        </div>
+      {/* ── Weekly day list ── */}
+      <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:14 }}>
+        {DOW_LABELS.map((label, dow) => {
+          const entry  = dayEntry(dow);
+          const on     = !!entry;
+          const ranges = dayRanges(dow);
+          return (
+            <div key={dow} style={{ background:C.card, border:`1px solid ${on?C.accent+"55":C.cardBorder}`, borderRadius:12, padding:"12px 14px" }}>
+              {/* Day row: toggle + label */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <button type="button" onClick={()=>toggleDay(dow)} role="switch" aria-checked={on}
+                    style={{
+                      width:38, height:22, borderRadius:999, border:"none", cursor:"pointer", position:"relative",
+                      background: on ? C.accent : C.active, transition:"background .15s", flexShrink:0, padding:0,
+                    }}>
+                    <span style={{
+                      position:"absolute", top:2, left: on ? 18 : 2, width:18, height:18, borderRadius:"50%",
+                      background:"#fff", transition:"left .15s", boxShadow:"0 1px 3px rgba(0,0,0,.3)",
+                    }} />
+                  </button>
+                  <span style={{ fontSize:".84rem", fontWeight:700, color: on ? C.text : C.textMuted, minWidth:84 }}>{label}</span>
+                </div>
+                {!on && <span style={{ fontSize:".72rem", color:C.textMuted }}>Unavailable</span>}
+                {on && (
+                  <button type="button" onClick={()=>addRange(dow)}
+                    style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:`1px solid ${C.cardBorder}`, borderRadius:8, padding:"5px 9px", color:C.accentText, fontSize:".7rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    <Plus size={12} /> Add range
+                  </button>
+                )}
+              </div>
 
-        {/* Day headers */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3, marginBottom:4 }}>
-          {CAL_DAY_H.map(h=>(
-            <div key={h} style={{ textAlign:"center", fontSize:".62rem", fontWeight:700, color:C.textMuted, padding:"3px 0" }}>{h}</div>
-          ))}
-        </div>
-
-        {/* Date cells */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3 }}>
-          {cells.map((d,i) => {
-            if (!d) return <div key={`e${i}`} />;
-            const dow = getDow(d);
-            const past = isPast(d);
-            const entry = (weekly||[]).find(w=>w.day===dow);
-            const active = !past && !!entry;
-            const isSelDay = !past && active && selDay===dow;
-            const slotCount = active ? entry.slots.length : 0;
-            return (
-              <button key={d} type="button" disabled={past}
-                onClick={() => { if (past) return; if (active) setSelDay(s => s===dow ? null : dow); else toggleDow(dow); }}
-                style={{
-                  borderRadius:8, border:`1.5px solid ${isSelDay ? C.accent : active ? C.accent+"55" : "transparent"}`,
-                  background: isSelDay ? C.accent : active ? C.accentSoft : "transparent",
-                  color: isSelDay ? "#fff" : active ? C.accentText : past ? C.textMuted+"44" : C.textSub,
-                  cursor: past ? "default" : "pointer", fontFamily:"inherit", transition:"all .12s",
-                  display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                  padding:"5px 2px", gap:1,
-                }}>
-                <span style={{ fontSize:".78rem", fontWeight: active ? 700 : 400, lineHeight:1 }}>{d}</span>
-                {active && <span style={{ fontSize:".52rem", fontWeight:700, letterSpacing:".02em", opacity:.85, lineHeight:1 }}>
-                  {slotCount} slot{slotCount !== 1 ? "s" : ""}
-                </span>}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ fontSize:".66rem", color:C.textMuted, marginTop:10, textAlign:"center" }}>
-          Tap a date to mark that weekday available — repeats every week
-        </div>
+              {/* Time ranges for this day */}
+              {on && (
+                <div style={{ display:"flex", flexDirection:"column", gap:7, marginTop:10 }}>
+                  {ranges.map((r, idx) => (
+                    <div key={idx} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <input type="time" value={r.start} onChange={e=>updateRange(dow, idx, 'start', e.target.value)}
+                        style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 9px", color:C.text, fontSize:".76rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
+                      <span style={{ color:C.textMuted, fontSize:".75rem" }}>to</span>
+                      <input type="time" value={r.end} onChange={e=>updateRange(dow, idx, 'end', e.target.value)}
+                        style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 9px", color:C.text, fontSize:".76rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
+                      <span style={{ fontSize:".68rem", color:C.textMuted, marginLeft:2 }}>
+                        {fmtSlot(r.start)} – {fmtSlot(r.end)}
+                      </span>
+                      <button type="button" onClick={()=>removeRange(dow, idx)}
+                        style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", color:C.textMuted, padding:4, display:"flex" }}>
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  {ranges.length === 0 && (
+                    <span style={{ fontSize:".72rem", color:C.textMuted }}>No time ranges yet — tap "Add range"</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Time slots for selected weekday ── */}
-      {selDay != null && selEntry && (
-        <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:12, padding:"12px 14px", marginBottom:12 }}>
-          <div style={{ fontSize:".7rem", fontWeight:700, color:C.accentText, letterSpacing:".06em", marginBottom:10 }}>
-            {["SUN","MON","TUE","WED","THU","FRI","SAT"][selDay]} — pick your available hours
-          </div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-            {/* Preset slots */}
-            {TIME_SLOTS.map(slot => {
-              const on = selEntry.slots.includes(slot);
-              return (
-                <button key={slot} type="button" onClick={()=>toggleSlot(selDay,slot)}
-                  style={{ background:on?C.accent:C.active, border:`1.5px solid ${on?C.accent:C.cardBorder}`, borderRadius:8, padding:"7px 12px", color:on?"#fff":C.textMuted, fontSize:".75rem", fontWeight:on?700:400, cursor:"pointer", fontFamily:"inherit", transition:"all .12s" }}>
-                  {fmtSlot(slot)}
-                </button>
-              );
-            })}
-            {/* Custom slots added by mentor */}
-            {selEntry.slots.filter(s => !TIME_SLOTS.includes(s)).map(slot => (
-              <button key={slot} type="button" onClick={()=>toggleSlot(selDay,slot)}
-                style={{ background:C.accent, border:`1.5px solid ${C.accent}`, borderRadius:8, padding:"7px 12px", color:"#fff", fontSize:".75rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all .12s", display:"flex", alignItems:"center", gap:5 }}>
-                {fmtSlot(slot)} <span style={{ opacity:.7, fontSize:".65rem" }}>✕</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Custom time input */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:12, borderTop:`1px solid ${C.cardBorder}`, paddingTop:12 }}>
-            <span style={{ fontSize:".7rem", color:C.textMuted, fontWeight:600, flexShrink:0 }}>Custom time:</span>
-            <input
-              type="time"
-              value={customTime}
-              onChange={e => setCustomTime(e.target.value)}
-              style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 10px", color:C.text, fontSize:".78rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }}
-            />
-            <button type="button"
-              disabled={!customTime}
-              onClick={() => {
-                if (!customTime) return;
-                // normalise to "HH:MM"
-                const norm = customTime.length === 5 ? customTime : customTime.slice(0,5);
-                if (!selEntry.slots.includes(norm)) toggleSlot(selDay, norm);
-                setCustomTime("");
-              }}
-              style={{ background:customTime?C.accent:C.active, border:"none", borderRadius:8, padding:"7px 14px", color:customTime?"#fff":C.textMuted, fontSize:".75rem", fontWeight:700, cursor:customTime?"pointer":"not-allowed", fontFamily:"inherit", transition:"all .15s" }}>
-              + Add
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Summary chips ── */}
-      {(weekly||[]).length > 0 && (
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:12 }}>
-          {[...weekly].sort((a,b)=>(a.day===0?7:a.day)-(b.day===0?7:b.day)).map(({day,slots})=>(
-            <div key={day} style={{ display:"flex", alignItems:"center", gap:6, background:C.active, border:`1px solid ${selDay===day?C.accent:C.cardBorder}`, borderRadius:9, padding:"5px 10px", cursor:"pointer" }}
-              onClick={()=>setSelDay(s=>s===day?null:day)}>
-              <span style={{ fontSize:".7rem", fontWeight:700, color:selDay===day?C.accentText:C.textSub }}>
-                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]}
-              </span>
-              <span style={{ fontSize:".66rem", color:C.textMuted }}>{slots.length} slots</span>
-              <button type="button" onClick={e=>{e.stopPropagation();toggleDow(day);}}
-                style={{ background:"none", border:"none", cursor:"pointer", color:C.textMuted, padding:0, lineHeight:1, fontSize:".7rem" }}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(weekly||[]).length === 0 && (
+      {activeDays === 0 && (
         <div style={{ display:"flex", alignItems:"center", gap:10, background:C.active, borderRadius:10, border:`1px dashed ${C.cardBorder}`, padding:"11px 14px", marginBottom:12 }}>
           <CalendarClock size={14} style={{ color:C.textMuted, flexShrink:0 }} />
-          <span style={{ fontSize:".78rem", color:C.textMuted }}>Tap any date on the calendar to mark that weekday available</span>
+          <span style={{ fontSize:".78rem", color:C.textMuted }}>Turn on the days you're available, then set your hours</span>
         </div>
       )}
 
       {/* ── Save ── */}
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <button type="button" onClick={handleSave} disabled={saving || (weekly||[]).length===0}
-          style={{ display:"flex", alignItems:"center", gap:6, background:(weekly||[]).length>0?C.green:C.active, border:"none", borderRadius:10, padding:"9px 18px", color:(weekly||[]).length>0?"#fff":C.textMuted, fontSize:".8rem", fontWeight:700, cursor:(weekly||[]).length>0?"pointer":"not-allowed", fontFamily:"inherit", opacity:saving?.7:1 }}>
+        <button type="button" onClick={handleSave} disabled={saving || activeDays===0}
+          style={{ display:"flex", alignItems:"center", gap:6, background:activeDays>0?C.green:C.active, border:"none", borderRadius:10, padding:"9px 18px", color:activeDays>0?"#fff":C.textMuted, fontSize:".8rem", fontWeight:700, cursor:activeDays>0?"pointer":"not-allowed", fontFamily:"inherit", opacity:saving?.7:1 }}>
           {saving?<><Spin size={13}/>Saving…</>:<><Check size={12}/>Save schedule</>}
         </button>
         {saved && <span style={{ fontSize:".78rem", color:C.green, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}><Check size={12}/>Saved</span>}
-        {(weekly||[]).length>0 && <span style={{ fontSize:".72rem", color:C.textMuted }}>{totalSlots} slots/week</span>}
+        {activeDays>0 && <span style={{ fontSize:".72rem", color:C.textMuted }}>{totalSlots} slots/week</span>}
       </div>
     </div>
   );
