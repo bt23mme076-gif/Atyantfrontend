@@ -488,9 +488,9 @@ export default function PublicMentorProfile() {
           </button>
           
         </div>
-        </div>
 
       </div>
     </div>
+  </div>
   );
 }

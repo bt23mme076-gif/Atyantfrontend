@@ -7,27 +7,14 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);   // true while verifying stored token
 
-  // On mount: verify stored token is still valid.
-  // OAuth redirects arrive with ?token=<jwt>. Strip it from the URL
-  // immediately (before any async work) so it never sits in history or
-  // leaks via Referer. Sanity-check length to reject obviously malformed
-  // values. TODO(backend): replace ?token= with a short-lived one-time
-  // code exchanged server-side so the JWT never travels in the URL at all.
+  // On mount: verify stored token is still valid
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     if (urlToken) {
-      // Remove from URL synchronously — must happen before the browser
-      // records this navigation in history or sends a Referer.
+      localStorage.setItem('atyant_token', urlToken);
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
-      // Accept only plausible JWT-shaped values (3 dot-separated base64url
-      // segments, total length 50–2048 chars).
-      const isPlausibleJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(urlToken)
-        && urlToken.length >= 50 && urlToken.length <= 2048;
-      if (isPlausibleJwt) {
-        localStorage.setItem('atyant_token', urlToken);
-      }
     }
 
     const token = localStorage.getItem('atyant_token');
@@ -40,10 +27,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Load the FULL profile via /me, retrying briefly. Right after auth the
-  // backend can take a moment before the record is queryable, so a single
-  // attempt may miss and leave us with the trimmed login/signup response
-  // (no education/bio/etc.) until the next page refresh. Retrying rides that
-  // out so every field is present on first render.
+  // backend can take a moment before the record is queryable.
   const loadFullUser = useCallback(async (fallback) => {
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
@@ -63,6 +47,27 @@ export function AuthProvider({ children }) {
     return fullUser;
   }, [loadFullUser]);
 
+  // ── OTP-based signup (2-step) ─────────────────────────────────────────────
+  // Step 1: send OTP — returns { message }. Does NOT log the user in.
+  const signupInitiate = useCallback(async (username, email, password, phone, role) => {
+    return await authAPI.signupInitiate(username, email, password, phone, role);
+  }, []);
+
+  // Step 2: verify OTP → JWT → log user in
+  const signupVerify = useCallback(async (email, otp) => {
+    const data = await authAPI.signupVerify(email, otp);
+    localStorage.setItem('atyant_token', data.token);
+    const fullUser = await loadFullUser(data.user);
+    setUser(fullUser);
+    return fullUser;
+  }, [loadFullUser]);
+
+  // Resend OTP during signup
+  const signupResendOtp = useCallback(async (email) => {
+    return await authAPI.signupResendOtp(email);
+  }, []);
+
+  // Legacy signup (kept for backward compatibility / Google flows)
   const signup = useCallback(async (username, email, password, phone, role) => {
     const data = await authAPI.signup(username, email, password, phone, role);
     localStorage.setItem('atyant_token', data.token);
@@ -81,7 +86,17 @@ export function AuthProvider({ children }) {
   []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser, setUser }}>
+    <AuthContext.Provider value={{
+      user, loading,
+      login,
+      signup,             // legacy
+      signupInitiate,     // NEW — step 1
+      signupVerify,       // NEW — step 2
+      signupResendOtp,    // NEW — resend
+      logout,
+      refreshUser,
+      setUser,
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -92,3 +107,4 @@ export const useAuth = () => {
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
   return ctx;
 };
+
