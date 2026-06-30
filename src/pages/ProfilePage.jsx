@@ -451,7 +451,7 @@ function AvailabilityEditor({ userId }) {
 }
 
 /* ─── Profile page ──────────────────────────────────────────────────────────── */
-export default function ProfilePage() {
+export default function ProfilePage({ activeSection: sectionProp, setActiveSection: setSectionProp } = {}) {
   const { user, setUser } = useAuth();
   const isMobileView = useIsMobile();
   const [editing, setEditing] = useState(false);
@@ -468,7 +468,9 @@ export default function ProfilePage() {
   const [slugValue,   setSlugValue]   = useState("");
   const [slugSaving,  setSlugSaving]  = useState(false);
   const [slugError,   setSlugError]   = useState("");
-  const [activeSection, setActiveSection] = useState('overview');
+  const [_activeSection, _setActiveSection] = useState('overview');
+  const activeSection = sectionProp ?? _activeSection;
+  const setActiveSection = setSectionProp ?? _setActiveSection;
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {
@@ -958,8 +960,8 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* ════════ MOBILE TABS ════════ */}
-      {isMobileView && (
+      {/* ════════ MOBILE TABS (only when used standalone without app sidebar) ════════ */}
+      {isMobileView && !sectionProp && (
         <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14, scrollbarWidth: "none" }}>
           {navItems.map(({ key, label }) => (
             <button key={key} onClick={() => setActiveSection(key)}
@@ -970,24 +972,8 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ════════ SIDEBAR + CONTENT ════════ */}
+      {/* ════════ CONTENT ════════ */}
       <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
-
-        {/* LEFT NAV SIDEBAR */}
-        {!isMobileView && (
-          <aside style={{ width: 210, flexShrink: 0, position: "sticky", top: 20 }}>
-            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow)", padding: "6px 0" }}>
-              {navItems.map(({ key, Icon, label }) => (
-                <button key={key} onClick={() => setActiveSection(key)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 16px", border: "none", background: activeSection === key ? C.accentSoft : "transparent", color: activeSection === key ? C.accentText : C.textSub, fontSize: ".83rem", fontWeight: activeSection === key ? 700 : 500, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all .15s", borderLeft: activeSection === key ? `3px solid ${C.accent}` : "3px solid transparent" }}>
-                  <Icon size={15} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </aside>
-        )}
-
         {/* RIGHT CONTENT PANEL */}
         <div style={{ flex: 1, minWidth: 0 }}>
 

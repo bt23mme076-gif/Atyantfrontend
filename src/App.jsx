@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
-  TrendingUp, Bookmark, BarChart3, 
+  TrendingUp, Bookmark, BarChart3,
   Plus, Clock, Lock, ChevronRight, Search,
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check, Star,
+  Activity, IndianRupee, CalendarClock, UserRound,
+  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -888,6 +890,27 @@ export default function App() {
   const [clarityContext, setClarityContext] = useState(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileSection, setProfileSection] = useState('overview');
+
+  const MENTOR_PROFILE_NAV = [
+    { key: 'overview',     Icon: Activity,      label: 'Overview' },
+    { key: 'services',     Icon: IndianRupee,   label: 'Services' },
+    { key: 'availability', Icon: CalendarClock, label: 'Availability' },
+    { key: 'basic',        Icon: UserRound,     label: 'Basic Information' },
+    { key: 'education',    Icon: GraduationCap, label: 'Education' },
+    { key: 'experience',   Icon: Briefcase,     label: 'Experience' },
+    { key: 'expertise',    Icon: Zap,           label: 'Skills & Expertise' },
+    { key: 'achievements', Icon: Trophy,        label: 'Achievements' },
+    { key: 'preferences',  Icon: Compass,       label: 'Mentoring Prefs' },
+    { key: 'social',       Icon: Link2,         label: 'Social Links' },
+  ];
+  const STUDENT_PROFILE_NAV = [
+    { key: 'overview',  Icon: Activity,      label: 'Overview' },
+    { key: 'basic',     Icon: UserRound,     label: 'Basic Information' },
+    { key: 'education', Icon: GraduationCap, label: 'Education' },
+    { key: 'goals',     Icon: Target,        label: 'Goals & Skills' },
+  ];
+  const profileNavItems = user?.role === 'mentor' ? MENTOR_PROFILE_NAV : STUDENT_PROFILE_NAV;
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -946,14 +969,12 @@ const journeyItems = [
     sessions: <MySessionsPage />,
     roadmap:  <MyRoadmapPage  user={user} />,
     saved:    <SavedAnswersPage />,
-    profile:  <ProfilePage />,
+    profile:  <ProfilePage activeSection={profileSection} setActiveSection={setProfileSection} />,
     upgrade:  <UpgradePage onBack={goToFree} />,
 
 roadmap: <MyRoadmapPage user={user} />,
 saved: <SavedAnswersPage />,
 track: <MentorTrackPage />,
-profile: <ProfilePage />,
-upgrade: <UpgradePage onBack={goToFree} />,
   };
 
   const initials = user ? (user.username||user.name||"?").slice(0,2).toUpperCase() : null;
@@ -996,7 +1017,7 @@ upgrade: <UpgradePage onBack={goToFree} />,
       )}
 
       {/* ── Sidebar ── */}
-      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display: activePage === "profile" && !isMobile ? "none" : "flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
+      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
         <div style={{ height:76, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", flexShrink:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:11 }}>
             <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
@@ -1060,6 +1081,31 @@ upgrade: <UpgradePage onBack={goToFree} />,
             <span>New chat</span>
           </button>
 
+          {activePage === "profile" ? (
+            /* ── Profile section nav ── */
+            <div>
+              <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>
+                {user?.role === "mentor" ? "MENTOR PROFILE" : "MY PROFILE"}
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+                {profileNavItems.map(({ key, Icon, label }) => {
+                  const isActive = profileSection === key;
+                  return (
+                    <button key={key} onClick={() => { setProfileSection(key); if (isMobile) setSidebarOpen(false); }}
+                      style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:isActive ? 600 : 500 }}
+                      onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
+                      onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
+                      <span style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)", width:3, height:18, borderRadius:"0 3px 3px 0", background:C.accent, opacity:isActive ? 1 : 0, transition:"opacity 0.2s ease" }} />
+                      <Icon size={17} strokeWidth={isActive ? 2.2 : 1.8} style={{ color:isActive ? C.accentText : "currentColor", flexShrink:0 }} />
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* ── Regular nav ── */
+            <>
           <div style={{ marginBottom:"1.5rem" }}>
             <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>WORKSPACE</div>
             <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
@@ -1072,6 +1118,8 @@ upgrade: <UpgradePage onBack={goToFree} />,
               {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
             </div>
           </div>
+            </>
+          )}
         </div>
 
         <div style={{ padding:"0.875rem", borderTop:`1px solid ${C.sidebarBorder}` }}>
