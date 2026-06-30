@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
-  TrendingUp, Bookmark,
+  TrendingUp, Bookmark, BarChart3, 
   Plus, Clock, Lock, ChevronRight, Search,
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check, Star,
@@ -12,6 +12,7 @@ import "react-toastify/dist/ReactToastify.css";
 import useIsMobile  from "./hooks/useIsMobile";
 import ClarityView    from "./components/clarity/ClarityView";
 import Footer         from "./components/Footer";
+
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 // Heavy, rarely-first pages are code-split so the initial bundle stays lean.
 const BookingPage   = lazy(() => import("./pages/user"));
@@ -22,7 +23,11 @@ const ProfilePage   = lazy(() => import("./pages/ProfilePage"));
 import Avatar         from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
-import { useAuth }    from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
+import useIsMobile from "./hooks/useIsMobile";
+import ClarityView from "./components/clarity/ClarityView";
+import Footer from "./components/Footer";
+import MentorTrackPage from "./pages/MentorTrackPage";
 import { ThemeToggle } from "./context/ThemeContext";
 import {
   sessionAPI,
@@ -32,6 +37,8 @@ import {
   authAPI
 } from "./api";
 import BookingModal from "./components/BookingModal";
+
+
 
 // Theme palette. Each value maps to a CSS variable defined in index.css for both
 // light (:root) and dark (.dark) modes, so every inline style auto-switches when
@@ -923,10 +930,16 @@ export default function App() {
     { id:"book",     Icon:CalendarDays,  label:"Book a Session"  },
     { id:"sessions", Icon:Video,         label:"My Sessions"     },
   ];
-  const journeyItems = [
-    { id:"roadmap", Icon:TrendingUp, label:"My Roadmap"    },
-    { id:"saved",   Icon:Bookmark,   label:"Saved Answers" },
-  ];
+const isMentor = user?.role === "mentor";
+
+const journeyItems = [
+  { id: "roadmap", Icon: TrendingUp, label: "My Roadmap" },
+  { id: "saved", Icon: Bookmark, label: "Saved Answers" },
+
+  ...(isMentor
+    ? [{ id: "track", Icon: BarChart3, label: "Mentor Dashboard" }]
+    : []),
+];
 
   const pages = {
     ask:      <AskAtyantPage  key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} />,
@@ -939,6 +952,12 @@ export default function App() {
     saved:    <SavedAnswersPage />,
     profile:  <ProfilePage />,
     upgrade:  <UpgradePage onBack={goToFree} />,
+
+roadmap: <MyRoadmapPage user={user} />,
+saved: <SavedAnswersPage />,
+track: <MentorTrackPage />,
+profile: <ProfilePage />,
+upgrade: <UpgradePage onBack={goToFree} />,
   };
 
   const initials = user ? (user.username||user.name||"?").slice(0,2).toUpperCase() : null;
