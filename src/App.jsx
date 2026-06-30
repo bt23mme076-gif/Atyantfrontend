@@ -1019,7 +1019,11 @@ track: <MentorTrackPage />,
       {/* ── Sidebar ── */}
       <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
         <div style={{ height:76, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", flexShrink:0 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:11 }}>
+          <div
+            onClick={() => { window.location.href = "https://atyant.in/"; }}
+            title="Back to atyant.in"
+            style={{ display:"flex", alignItems:"center", gap:11, cursor:"pointer" }}
+          >
             <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
               <Sparkles size={17} color="#fff" strokeWidth={2.2} />
             </div>
