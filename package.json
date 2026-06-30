@@ -13,6 +13,7 @@
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",
     "@zegocloud/zego-uikit-prebuilt": "^2.17.3",
+    "maplibre-gl": "^5.24.0",
     "axios": "^1.16.1",
     "dompurify": "^3.4.11",
     "framer-motion": "^12.40.0",

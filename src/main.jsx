@@ -27,7 +27,7 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename="/atyantEngine">
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
 <Route
