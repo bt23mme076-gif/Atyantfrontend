@@ -30,6 +30,17 @@ const toOptions = (e) =>
         ? { mode: 'background-blur', blurRadius: e.blurRadius ?? 12 }
         : { mode: 'virtual-background', imagePath: e.imagePath };
 
+// The segmenter (WASM runtime + selfie-segmentation model) is fetched by
+// default from cdn.jsdelivr.net and storage.googleapis.com — both blocked by
+// this app's CSP (vercel.json only whitelists our own API + payment origins).
+// Self-hosting under /mediapipe (copied from node_modules/@mediapipe/tasks-vision
+// at build time — see scripts/copyMediapipeAssets.* or the public/ dir directly)
+// keeps every fetch same-origin so no CSP change is needed for connect-src.
+const ASSET_PATHS = {
+    tasksVisionFileSet: '/mediapipe/wasm',
+    modelAssetPath: '/mediapipe/selfie_segmenter.tflite',
+};
+
 const BLUR = { mode: 'background-blur', blurRadius: 14 };
 
 /**
@@ -70,8 +81,12 @@ export default function BackgroundControl({ top = 14, right = 14 }) {
                     return;
                 }
                 // Fresh track (or first enable) → create + attach a processor.
+                // assetPaths only takes effect at construction time (per the
+                // library's own docs it "cannot be updated through the update
+                // method, needs a restart"), so it's merged in here, not in
+                // toOptions (which also feeds switchTo on an already-attached track).
                 if (attachedTrackRef.current !== track || !procRef.current) {
-                    procRef.current = BackgroundProcessor(toOptions(effect));
+                    procRef.current = BackgroundProcessor({ ...toOptions(effect), assetPaths: ASSET_PATHS });
                     await track.setProcessor(procRef.current);
                     attachedTrackRef.current = track;
                 } else {
