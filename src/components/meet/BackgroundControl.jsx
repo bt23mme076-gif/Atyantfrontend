@@ -54,15 +54,29 @@ export default function BackgroundControl({ top = 14, right = 14 }) {
     const [open, setOpen] = useState(false);
     // { mode:'disabled' } | { mode:'background-blur', blurRadius } | { mode:'virtual-background', imagePath, custom? }
     const [effect, setEffect] = useState({ mode: 'disabled' });
+    const [error, setError] = useState(null);
 
     const procRef = useRef(null);
     const attachedTrackRef = useRef(null);
+    const delegateRef = useRef('GPU'); // sticky once a working delegate is found, so we don't re-try GPU every switch
     const customUrlRef = useRef(null); // object URL for an uploaded image (revoked on replace/unmount)
 
     const gradients = useMemo(
         () => GRADIENTS.map((g) => ({ ...g, url: gradientDataURL(g.colors) })),
         [],
     );
+
+    // Build + attach a fresh processor using the given delegate. Throws on failure
+    // so the caller can fall back to a different delegate.
+    const attach = async (track, delegate) => {
+        const proc = BackgroundProcessor({
+            ...toOptions(effect),
+            assetPaths: ASSET_PATHS,
+            segmenterOptions: { delegate },
+        });
+        await track.setProcessor(proc);
+        return proc;
+    };
 
     // Apply the selected effect to the current camera track. Re-runs when the
     // effect changes OR the underlying track is replaced (camera toggled).
@@ -78,28 +92,49 @@ export default function BackgroundControl({ top = 14, right = 14 }) {
                         procRef.current = null;
                         attachedTrackRef.current = null;
                     }
+                    setError(null);
                     return;
                 }
                 // Fresh track (or first enable) → create + attach a processor.
-                // assetPaths only takes effect at construction time (per the
-                // library's own docs it "cannot be updated through the update
-                // method, needs a restart"), so it's merged in here, not in
-                // toOptions (which also feeds switchTo on an already-attached track).
+                // assetPaths/segmenterOptions only take effect at construction time
+                // (per the library's own docs, they "cannot be updated through the
+                // update method, needs a restart"), so they're merged in here, not
+                // in toOptions (which also feeds switchTo on an already-attached track).
                 if (attachedTrackRef.current !== track || !procRef.current) {
-                    procRef.current = BackgroundProcessor({ ...toOptions(effect), assetPaths: ASSET_PATHS });
-                    await track.setProcessor(procRef.current);
+                    // GPU decoding isn't available/stable on every device (integrated
+                    // graphics, some VMs, GPU sandboxing) — when it fails, the whole
+                    // segmenter init throws and the effect must fall back to CPU
+                    // instead of leaving the camera feed silently unprocessed.
+                    try {
+                        procRef.current = await attach(track, delegateRef.current);
+                    } catch (gpuErr) {
+                        if (delegateRef.current === 'GPU') {
+                            console.warn('[background] GPU delegate failed, retrying on CPU:', gpuErr);
+                            delegateRef.current = 'CPU';
+                            procRef.current = await attach(track, 'CPU');
+                        } else {
+                            throw gpuErr;
+                        }
+                    }
                     attachedTrackRef.current = track;
                 } else {
                     // Same track, changing modes → switch in place (no flicker).
                     await procRef.current.switchTo(toOptions(effect));
                 }
+                if (!cancelled) setError(null);
             } catch (err) {
-                if (!cancelled) console.error('[background] apply failed:', err);
+                console.error('[background] apply failed:', err);
+                if (!cancelled) {
+                    setError('Background effects aren\'t supported on this device/browser.');
+                    procRef.current = null;
+                    attachedTrackRef.current = null;
+                }
             }
         })();
         return () => {
             cancelled = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cameraTrack?.track, effect]);
 
     // Release the segmentation worker + any uploaded image URL on unmount.
@@ -188,7 +223,11 @@ export default function BackgroundControl({ top = 14, right = 14 }) {
                             <input type="file" accept="image/*" onChange={onUpload} style={{ display: 'none' }} />
                         </label>
                     </div>
-                    <div style={hint}>Only you can set your own background.</div>
+                    {error ? (
+                        <div style={errorText}>{error}</div>
+                    ) : (
+                        <div style={hint}>Only you can set your own background.</div>
+                    )}
                 </div>
             )}
         </>
@@ -295,3 +334,4 @@ const swatchBox = {
 };
 const swatchActive = { borderColor: '#7567C9', boxShadow: '0 0 0 2px rgba(117,103,201,0.4)' };
 const hint = { color: 'rgba(255,255,255,0.5)', fontSize: 10.5, marginTop: 10, lineHeight: 1.35 };
+const errorText = { color: '#f87171', fontSize: 10.5, marginTop: 10, lineHeight: 1.35 };
