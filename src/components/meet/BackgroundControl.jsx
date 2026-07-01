@@ -33,12 +33,17 @@ const toOptions = (e) =>
 // The segmenter (WASM runtime + selfie-segmentation model) is fetched by
 // default from cdn.jsdelivr.net and storage.googleapis.com — both blocked by
 // this app's CSP (vercel.json only whitelists our own API + payment origins).
-// Self-hosting under /mediapipe (copied from node_modules/@mediapipe/tasks-vision
-// at build time — see scripts/copyMediapipeAssets.* or the public/ dir directly)
-// keeps every fetch same-origin so no CSP change is needed for connect-src.
+// Self-hosted instead, under /product-assets/mediapipe (copied from
+// node_modules/@mediapipe/tasks-vision — see public/product-assets/mediapipe).
+// MUST live under /product-assets: atyant.in's marketing-site proxy only
+// forwards a fixed set of paths to this app (/atyantEngine/* for routes,
+// /product-assets/* for build assets) — a bare /mediapipe/* 404s into the
+// marketing site's own fallback page instead of reaching this app at all,
+// which silently broke every device (both GPU and CPU delegates alike, since
+// the failure was in fetching the runtime itself, before delegate code runs).
 const ASSET_PATHS = {
-    tasksVisionFileSet: '/mediapipe/wasm',
-    modelAssetPath: '/mediapipe/selfie_segmenter.tflite',
+    tasksVisionFileSet: '/product-assets/mediapipe/wasm',
+    modelAssetPath: '/product-assets/mediapipe/selfie_segmenter.tflite',
 };
 
 const BLUR = { mode: 'background-blur', blurRadius: 14 };
