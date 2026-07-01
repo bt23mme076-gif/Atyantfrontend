@@ -227,6 +227,23 @@ function SessionDetailCard({ s, isUpcoming }) {
             )}
           </div>
         )}
+
+        {/* Student's review — read-only, shown on the mentor's side of My Sessions */}
+        {!isUpcoming && isMentorView && s.review?.submittedAt && (
+          <div style={{ marginTop:"1.1rem", padding:"1rem 1.1rem", background:C.bg, borderRadius:12, border:`1px solid ${C.cardBorder}` }}>
+            <p style={{ fontSize:"0.72rem", fontWeight:600, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"0.6rem" }}>
+              {counterpartName}'s review
+            </p>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ display:"flex", gap:3 }}>
+                {[1,2,3,4,5].map(n => (
+                  <Star key={n} size={14} fill={n <= s.review.rating ? "#F59E0B" : "none"} stroke={n <= s.review.rating ? "#F59E0B" : C.textMuted} />
+                ))}
+              </div>
+              {s.review.comment && <span style={{ fontSize:"0.75rem", color:C.textSub }}>"{s.review.comment}"</span>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
