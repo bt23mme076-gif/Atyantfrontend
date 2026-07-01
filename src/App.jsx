@@ -101,12 +101,13 @@ function SessionDetailCard({ s, isUpcoming }) {
   const counterpartName = s.counterpartName || s.mentorName || "Your Mentor";
   const counterpartPic  = s.counterpartPicture || s.mentorProfilePicture;
   const bookingId = (s._id || "").slice(-8).toUpperCase();
-  // The meet opens at /?meet=<id> on the current origin. atyant.in only proxies
-  // "/" to the product app (a /session/meet/<id> path hits the marketing site),
-  // and serving it same-origin keeps the localStorage auth token available.
-  // The backend ensures the LiveKit room idempotently on join, so we build the
-  // link from the id directly rather than relying on a saved meetingLink.
-  const meetUrl   = s._id ? `/?meet=${s._id}` : "";
+  // The meet opens at /atyantEngine/?meet=<id> on the current origin — atyant.in
+  // proxies "/atyantEngine" to this product app (bare "/" is now the marketing
+  // site's own homepage), and serving it same-origin keeps the localStorage auth
+  // token available. The backend ensures the LiveKit room idempotently on join,
+  // so we build the link from the id directly rather than relying on a saved
+  // meetingLink.
+  const meetUrl   = s._id ? `/atyantEngine/?meet=${s._id}` : "";
   const hasMeet   = !!meetUrl;
 
   const copyId = () => {

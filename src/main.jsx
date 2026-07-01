@@ -9,12 +9,12 @@ import { ThemeProvider } from './context/ThemeContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MentorTrackPage from './pages/MentorTrackPage'
 
-// The marketing site (atyant.in) only proxies "/" and "/product-assets/*" to
-// this product app — a real path like /session/meet/<id> falls through to the
-// marketing site. So the meet is served at the already-proxied root with a
-// ?meet=<sessionId> query param, which keeps it on the atyant.in origin (where
-// the auth token lives in localStorage). The /session/meet path route is kept
-// for localhost and direct vercel.app access.
+// atyant.in proxies "/atyantEngine/*" and "/product-assets/*" to this product
+// app (bare "/" is the marketing site's own homepage). Within that prefix, the
+// meet is served at the proxied path with a ?meet=<sessionId> query param,
+// which keeps it on the atyant.in origin (where the auth token lives in
+// localStorage). The /session/meet path route is kept for localhost and direct
+// vercel.app access.
 function RootOrMeet() {
   const [params] = useSearchParams()
   const meetId = params.get('meet')
