@@ -6,7 +6,7 @@ import {
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check, Star,
   Activity, IndianRupee, CalendarClock, UserRound,
-  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2,
+  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, Home,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -1058,50 +1058,93 @@ track: <MentorTrackPage />,
         </div>
 
         <div style={{ flex:1, overflowY:"auto", padding:"4px 12px 1rem" }}>
-          {/* ── New Chat — primary CTA ── */}
-          <button
-            onClick={() => {
-              startNewChatSession();   // rotate to a fresh session id
-              setClarityQuery("");
-              setActivePage("ask");
-              setChatSession(prev => prev + 1);  // remount AskAtyantPage clean
-              if (isMobile) setSidebarOpen(false);
-            }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              height: 46,
-              padding: "0 14px",
-              borderRadius: 13,
-              border: "none",
-              background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
-              color: "#fff",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: "0.92rem",
-              fontWeight: 600,
-              boxShadow: "0 8px 20px -8px #7567C9",
-              transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
-              marginBottom: "1.5rem",
-              boxSizing: "border-box",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.filter = "brightness(1.08)";
-              e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.filter = "none";
-              e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
-              e.currentTarget.style.transform = "none";
-            }}
-          >
-            <Plus size={17} strokeWidth={2.5} />
-            <span>New chat</span>
-          </button>
+          {/* ── New Chat / Home — primary CTA ── */}
+          {activePage === "profile" ? (
+            <button
+              onClick={() => {
+                setActivePage("ask");
+                if (isMobile) setSidebarOpen(false);
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                height: 46,
+                padding: "0 14px",
+                borderRadius: 13,
+                border: "none",
+                background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
+                color: "#fff",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: "0.92rem",
+                fontWeight: 600,
+                boxShadow: "0 8px 20px -8px #7567C9",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
+                marginBottom: "1.5rem",
+                boxSizing: "border-box",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.filter = "brightness(1.08)";
+                e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.filter = "none";
+                e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
+                e.currentTarget.style.transform = "none";
+              }}
+            >
+              <Home size={17} strokeWidth={2.5} />
+              <span>Home</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                startNewChatSession();   // rotate to a fresh session id
+                setClarityQuery("");
+                setActivePage("ask");
+                setChatSession(prev => prev + 1);  // remount AskAtyantPage clean
+                if (isMobile) setSidebarOpen(false);
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                height: 46,
+                padding: "0 14px",
+                borderRadius: 13,
+                border: "none",
+                background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
+                color: "#fff",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: "0.92rem",
+                fontWeight: 600,
+                boxShadow: "0 8px 20px -8px #7567C9",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
+                marginBottom: "1.5rem",
+                boxSizing: "border-box",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.filter = "brightness(1.08)";
+                e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.filter = "none";
+                e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
+                e.currentTarget.style.transform = "none";
+              }}
+            >
+              <Plus size={17} strokeWidth={2.5} />
+              <span>New chat</span>
+            </button>
+          )}
 
           {activePage === "profile" ? (
             /* ── Profile section nav ── */
