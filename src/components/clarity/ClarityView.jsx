@@ -146,6 +146,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     <div>
       {answerCards.map((card, i) => (
         <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid var(--c-sidebar)" : "none" }}>
+          <MentorJourneyFlow card={card} />
           <InstantAnswerCard
             card={card}
             onProfile={() => { const m = resolveMentor(card.mentor); trackView(m); setSelectedMentor(m); }}
@@ -253,7 +254,8 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                             <span style={{ fontSize: 12, color: "var(--c-accentText)", marginLeft: 6, fontWeight: 600 }}>→</span>
                           </button>
                         )}
-                        {/* Answer card */}
+                        {/* Journey flow + answer card */}
+                        <MentorJourneyFlow card={card} />
                         <InstantAnswerCard
                           card={card}
                           onProfile={() => { trackView(mentor); setSelectedMentor(mentor); }}
@@ -437,6 +439,71 @@ function AnswerSection({ label, children }) {
       </p>
       <div className="text-sm leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: "Inter, sans-serif" }}>
         {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Mentor's journey as a visual roadmap, built from the same answer-card fields ──
+function MentorJourneyFlow({ card }) {
+  const c = card?.content || {};
+  const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
+  const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
+
+  const nodes = [];
+  if (c.situation) nodes.push({ icon: "📍", label: "Starting point", text: c.situation, color: "#f87171" });
+  if (mistakes.length) {
+    nodes.push({
+      icon: "⚠️",
+      label: "Mistakes made",
+      text: mistakes.map((m) => (typeof m === "string" ? m : m?.description || m?.mistake)).join(" · "),
+      color: "#f59e0b",
+    });
+  }
+  steps.forEach((s, i) => {
+    nodes.push({ icon: "🔧", label: s.step || `Step ${i + 1}`, text: s.description, color: "#7567C9" });
+  });
+  if (c.whatWorked) nodes.push({ icon: "💡", label: "Turning point", text: c.whatWorked, color: "#3DBE82" });
+  if (c.timeline) nodes.push({ icon: "🏁", label: "Outcome", text: c.timeline, color: "#3DBE82" });
+
+  if (nodes.length < 2) return null;
+
+  return (
+    <div className="px-4 sm:px-6 pt-5 pb-1 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
+      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+        The journey
+      </p>
+      <div className="flex items-start overflow-x-auto hide-scrollbar pb-4" style={{ WebkitOverflowScrolling: "touch" }}>
+        {nodes.map((n, i) => (
+          <div key={i} className="flex flex-col items-center flex-shrink-0" style={{ width: 168 }}>
+            <div className="flex items-center w-full">
+              <div style={{ flex: i === 0 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)" }} />
+              <div
+                className="flex items-center justify-center flex-shrink-0"
+                style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--c-card)", border: `2px solid ${n.color}`, fontSize: 15 }}
+              >
+                {n.icon}
+              </div>
+              <div style={{ flex: i === nodes.length - 1 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)" }} />
+            </div>
+            <p className="text-[11px] font-bold text-center mt-2 px-1" style={{ color: "var(--c-text)", fontFamily: "Inter, sans-serif" }}>
+              {n.label}
+            </p>
+            <p
+              className="text-[11px] text-center mt-1 px-1.5 leading-snug"
+              style={{
+                color: "var(--c-textMuted)",
+                fontFamily: "Inter, sans-serif",
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {n.text}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
