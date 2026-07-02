@@ -4,7 +4,8 @@ import {
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
-  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy, ChevronLeft, ChevronRight,
+  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
+  Mic, Video, Heart, Settings,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
@@ -95,6 +96,12 @@ const PageStyles = () => (
     .pf-svc-row { transition: all .15s ease; cursor:pointer; }
     .pf-svc-row:hover { border-color:#7567C9 !important; transform:translateY(-1px); box-shadow:0 4px 14px rgba(117,103,201,0.18); }
     .pf-svc-row.on { border-color:#7567C9 !important; background:rgba(117,103,201,0.09) !important; }
+    .pf-svc-card { transition: border-color .15s, transform .15s, box-shadow .15s; cursor:pointer; }
+    .pf-svc-card:hover { border-color:#7567C9 !important; transform:translateY(-2px); box-shadow:0 6px 18px rgba(117,103,201,0.2); }
+    .pf-svc-card.on { border-color:#7567C9 !important; }
+    .pf-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    @media (max-width:880px) { .pf-svc-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:480px) { .pf-svc-grid { grid-template-columns:1fr; } }
     .pf-mono-inner { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
     @media (max-width:880px) { .pf-mono-inner { grid-template-columns:1fr; } }
     .pf-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
@@ -109,6 +116,15 @@ const PageStyles = () => (
     }
   `}</style>
 );
+
+/* ─── Service card icon map ─────────────────────────────────────────────────── */
+const SVC_ICONS = {
+  'text-qa':       { Icon: MessageSquareText, color: '#3B82F6', bg: 'rgba(59,130,246,0.12)'  },
+  'audio-call':    { Icon: Mic,               color: '#10B981', bg: 'rgba(16,185,129,0.12)'  },
+  'video-call':    { Icon: Video,             color: '#7567C9', bg: 'rgba(117,103,201,0.12)' },
+  'resume-review': { Icon: FileText,          color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'  },
+  'free-help':     { Icon: Heart,             color: '#EF4444', bg: 'rgba(239,68,68,0.12)'   },
+};
 
 /* ─── Completion ring (SVG) ─────────────────────────────────────────────────── */
 function Ring({ pct, size = 76, stroke = 7 }) {
@@ -270,21 +286,43 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
   );
 }
 
-/* ─── Availability Editor — calendar-grid style (same as student booking) ───── */
-const CAL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const CAL_DAY_H  = ["Su","Mo","Tu","We","Th","Fr","Sa"];
-const TIME_SLOTS  = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00"];
-const fmtSlot = (s) => { const [h] = s.split(':').map(Number); const p = h >= 12 ? 'PM' : 'AM'; const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${h12} ${p}`; };
+/* ─── Availability Editor — Topmate-style weekly list (day toggle + time ranges) ───── */
+const DOW_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const SLOT_INTERVAL_MIN = 30; // a saved range expands into discrete bookable slots on this grid
+
+const fmtSlot = (s) => { const [h,m] = s.split(':').map(Number); const p = h >= 12 ? 'PM' : 'AM'; const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${h12}:${String(m).padStart(2,'0')} ${p}`; };
+const toMin   = (hhmm) => { const [h,m] = hhmm.split(':').map(Number); return h*60+m; };
+const toHHMM  = (min)  => `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
+
+// Expand a start/end range into discrete "HH:MM" slots at SLOT_INTERVAL_MIN steps.
+// End is exclusive of the final partial step (so "09:00–10:00" → ["09:00","09:30"]).
+function expandRange(start, end) {
+  const startMin = toMin(start), endMin = toMin(end);
+  const out = [];
+  for (let m = startMin; m + SLOT_INTERVAL_MIN <= endMin; m += SLOT_INTERVAL_MIN) out.push(toHHMM(m));
+  return out;
+}
+
+// Collapse a sorted list of discrete slots back into contiguous [start,end] ranges,
+// so ranges saved earlier still display as ranges instead of a flat slot list.
+function collapseToRanges(slots) {
+  if (!slots.length) return [];
+  const sorted = [...new Set(slots)].sort();
+  const ranges = [];
+  let rangeStart = sorted[0], prev = sorted[0];
+  for (let i = 1; i < sorted.length; i++) {
+    if (toMin(sorted[i]) - toMin(prev) === SLOT_INTERVAL_MIN) { prev = sorted[i]; continue; }
+    ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + SLOT_INTERVAL_MIN) });
+    rangeStart = prev = sorted[i];
+  }
+  ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + SLOT_INTERVAL_MIN) });
+  return ranges;
+}
 
 function AvailabilityEditor({ userId }) {
-  const today = new Date();
-  const [weekly, setWeekly]   = useState(null);
-  const [saving, setSaving]   = useState(false);
-  const [saved,  setSaved]    = useState(false);
-  const [calYear,  setCalYear]  = useState(today.getFullYear());
-  const [calMonth, setCalMonth] = useState(today.getMonth());
-  const [selDay,   setSelDay]   = useState(null); // JS day-of-week 0-6 currently editing slots
-  const [customTime, setCustomTime] = useState(""); // HH:MM input for custom slot
+  const [weekly, setWeekly] = useState(null); // [{ day, slots: ["HH:MM",...] }]
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
 
   useEffect(() => {
     availabilityAPI.getSchedule(userId)
@@ -292,23 +330,38 @@ function AvailabilityEditor({ userId }) {
       .catch(() => setWeekly([]));
   }, [userId]);
 
-  const toggleDow = (dow) => {
+  const dayEntry  = (dow) => (weekly||[]).find(d => d.day === dow);
+  const dayRanges = (dow) => collapseToRanges(dayEntry(dow)?.slots || []);
+
+  const toggleDay = (dow) => {
     setWeekly(prev => {
-      if (prev.some(d => d.day === dow)) {
-        setSelDay(s => s === dow ? null : s);
-        return prev.filter(d => d.day !== dow);
-      }
-      setSelDay(dow);
-      return [...prev, { day: dow, slots: ["09:00","10:00","14:00","15:00"] }];
+      if (prev.some(d => d.day === dow)) return prev.filter(d => d.day !== dow);
+      return [...prev, { day: dow, slots: expandRange("09:00", "18:00") }];
     });
   };
 
-  const toggleSlot = (dow, slot) => {
-    setWeekly(prev => prev.map(d => {
-      if (d.day !== dow) return d;
-      const slots = d.slots.includes(slot) ? d.slots.filter(s => s !== slot) : [...d.slots, slot].sort();
-      return { ...d, slots };
-    }));
+  const setDaySlots = (dow, slots) => {
+    setWeekly(prev => prev.map(d => d.day === dow ? { ...d, slots } : d));
+  };
+
+  const addRange = (dow) => {
+    const existing = dayEntry(dow)?.slots || [];
+    setDaySlots(dow, [...new Set([...existing, ...expandRange("09:00","10:00")])].sort());
+  };
+
+  const removeRange = (dow, idx) => {
+    const ranges = dayRanges(dow);
+    const next = ranges.filter((_, i) => i !== idx).flatMap(r => expandRange(r.start, r.end));
+    setDaySlots(dow, next);
+  };
+
+  const updateRange = (dow, idx, field, value) => {
+    const ranges = dayRanges(dow);
+    const updated = ranges.map((r, i) => i === idx ? { ...r, [field]: value } : r);
+    const next = updated
+      .filter(r => toMin(r.end) > toMin(r.start))
+      .flatMap(r => expandRange(r.start, r.end));
+    setDaySlots(dow, next);
   };
 
   const handleSave = async () => {
@@ -321,178 +374,100 @@ function AvailabilityEditor({ userId }) {
     finally { setSaving(false); }
   };
 
-  // Calendar grid helpers
-  const firstDay    = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const canPrev = calYear > today.getFullYear() || calMonth > today.getMonth();
-  const prevM = () => { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); };
-  const nextM = () => { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); };
-
-  const getDow = (d) => new Date(calYear, calMonth, d).getDay();
-  const isPast = (d) => new Date(calYear, calMonth, d) < new Date(today.toDateString());
-
   const totalSlots = (weekly||[]).reduce((s,d)=>s+d.slots.length,0);
-  const selEntry   = selDay != null ? (weekly||[]).find(d=>d.day===selDay) : null;
+  const activeDays  = (weekly||[]).length;
 
   if (weekly === null) return (
     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      {[0,1,2].map(i=><div key={i} className="pf-skel" style={{ height:44, borderRadius:10 }} />)}
+      {[0,1,2,3].map(i=><div key={i} className="pf-skel" style={{ height:52, borderRadius:10 }} />)}
     </div>
   );
 
   return (
     <div>
-      {/* ── Calendar grid ── */}
-      <div style={{ background: C.active, borderRadius:12, padding:"12px 14px", marginBottom:12 }}>
-        {/* Month nav */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-          <button onClick={prevM} disabled={!canPrev}
-            style={{ background:"none", border:"none", cursor:canPrev?"pointer":"default", color:canPrev?C.textSub:C.textMuted, padding:"4px 6px", borderRadius:6, display:"flex" }}>
-            <ChevronLeft size={16} />
-          </button>
-          <span style={{ fontWeight:700, fontSize:".84rem", color:C.text }}>{CAL_MONTHS[calMonth]} {calYear}</span>
-          <button onClick={nextM}
-            style={{ background:"none", border:"none", cursor:"pointer", color:C.textSub, padding:"4px 6px", borderRadius:6, display:"flex" }}>
-            <ChevronRight size={16} />
-          </button>
-        </div>
+      {/* ── Weekly day list ── */}
+      <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:14 }}>
+        {DOW_LABELS.map((label, dow) => {
+          const entry  = dayEntry(dow);
+          const on     = !!entry;
+          const ranges = dayRanges(dow);
+          return (
+            <div key={dow} style={{ background:C.card, border:`1px solid ${on?C.accent+"55":C.cardBorder}`, borderRadius:12, padding:"12px 14px" }}>
+              {/* Day row: toggle + label */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <button type="button" onClick={()=>toggleDay(dow)} role="switch" aria-checked={on}
+                    style={{
+                      width:38, height:22, borderRadius:999, border:"none", cursor:"pointer", position:"relative",
+                      background: on ? C.accent : C.active, transition:"background .15s", flexShrink:0, padding:0,
+                    }}>
+                    <span style={{
+                      position:"absolute", top:2, left: on ? 18 : 2, width:18, height:18, borderRadius:"50%",
+                      background:"#fff", transition:"left .15s", boxShadow:"0 1px 3px rgba(0,0,0,.3)",
+                    }} />
+                  </button>
+                  <span style={{ fontSize:".84rem", fontWeight:700, color: on ? C.text : C.textMuted, minWidth:84 }}>{label}</span>
+                </div>
+                {!on && <span style={{ fontSize:".72rem", color:C.textMuted }}>Unavailable</span>}
+                {on && (
+                  <button type="button" onClick={()=>addRange(dow)}
+                    style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:`1px solid ${C.cardBorder}`, borderRadius:8, padding:"5px 9px", color:C.accentText, fontSize:".7rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    <Plus size={12} /> Add range
+                  </button>
+                )}
+              </div>
 
-        {/* Day headers */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3, marginBottom:4 }}>
-          {CAL_DAY_H.map(h=>(
-            <div key={h} style={{ textAlign:"center", fontSize:".62rem", fontWeight:700, color:C.textMuted, padding:"3px 0" }}>{h}</div>
-          ))}
-        </div>
-
-        {/* Date cells */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:3 }}>
-          {cells.map((d,i) => {
-            if (!d) return <div key={`e${i}`} />;
-            const dow = getDow(d);
-            const past = isPast(d);
-            const entry = (weekly||[]).find(w=>w.day===dow);
-            const active = !past && !!entry;
-            const isSelDay = !past && active && selDay===dow;
-            const slotCount = active ? entry.slots.length : 0;
-            return (
-              <button key={d} type="button" disabled={past}
-                onClick={() => { if (past) return; if (active) setSelDay(s => s===dow ? null : dow); else toggleDow(dow); }}
-                style={{
-                  borderRadius:8, border:`1.5px solid ${isSelDay ? C.accent : active ? C.accent+"55" : "transparent"}`,
-                  background: isSelDay ? C.accent : active ? C.accentSoft : "transparent",
-                  color: isSelDay ? "#fff" : active ? C.accentText : past ? C.textMuted+"44" : C.textSub,
-                  cursor: past ? "default" : "pointer", fontFamily:"inherit", transition:"all .12s",
-                  display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                  padding:"5px 2px", gap:1,
-                }}>
-                <span style={{ fontSize:".78rem", fontWeight: active ? 700 : 400, lineHeight:1 }}>{d}</span>
-                {active && <span style={{ fontSize:".52rem", fontWeight:700, letterSpacing:".02em", opacity:.85, lineHeight:1 }}>
-                  {slotCount} slot{slotCount !== 1 ? "s" : ""}
-                </span>}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ fontSize:".66rem", color:C.textMuted, marginTop:10, textAlign:"center" }}>
-          Tap a date to mark that weekday available — repeats every week
-        </div>
+              {/* Time ranges for this day */}
+              {on && (
+                <div style={{ display:"flex", flexDirection:"column", gap:7, marginTop:10 }}>
+                  {ranges.map((r, idx) => (
+                    <div key={idx} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <input type="time" value={r.start} onChange={e=>updateRange(dow, idx, 'start', e.target.value)}
+                        style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 9px", color:C.text, fontSize:".76rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
+                      <span style={{ color:C.textMuted, fontSize:".75rem" }}>to</span>
+                      <input type="time" value={r.end} onChange={e=>updateRange(dow, idx, 'end', e.target.value)}
+                        style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 9px", color:C.text, fontSize:".76rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
+                      <span style={{ fontSize:".68rem", color:C.textMuted, marginLeft:2 }}>
+                        {fmtSlot(r.start)} – {fmtSlot(r.end)}
+                      </span>
+                      <button type="button" onClick={()=>removeRange(dow, idx)}
+                        style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", color:C.textMuted, padding:4, display:"flex" }}>
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  {ranges.length === 0 && (
+                    <span style={{ fontSize:".72rem", color:C.textMuted }}>No time ranges yet — tap "Add range"</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Time slots for selected weekday ── */}
-      {selDay != null && selEntry && (
-        <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:12, padding:"12px 14px", marginBottom:12 }}>
-          <div style={{ fontSize:".7rem", fontWeight:700, color:C.accentText, letterSpacing:".06em", marginBottom:10 }}>
-            {["SUN","MON","TUE","WED","THU","FRI","SAT"][selDay]} — pick your available hours
-          </div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-            {/* Preset slots */}
-            {TIME_SLOTS.map(slot => {
-              const on = selEntry.slots.includes(slot);
-              return (
-                <button key={slot} type="button" onClick={()=>toggleSlot(selDay,slot)}
-                  style={{ background:on?C.accent:C.active, border:`1.5px solid ${on?C.accent:C.cardBorder}`, borderRadius:8, padding:"7px 12px", color:on?"#fff":C.textMuted, fontSize:".75rem", fontWeight:on?700:400, cursor:"pointer", fontFamily:"inherit", transition:"all .12s" }}>
-                  {fmtSlot(slot)}
-                </button>
-              );
-            })}
-            {/* Custom slots added by mentor */}
-            {selEntry.slots.filter(s => !TIME_SLOTS.includes(s)).map(slot => (
-              <button key={slot} type="button" onClick={()=>toggleSlot(selDay,slot)}
-                style={{ background:C.accent, border:`1.5px solid ${C.accent}`, borderRadius:8, padding:"7px 12px", color:"#fff", fontSize:".75rem", fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all .12s", display:"flex", alignItems:"center", gap:5 }}>
-                {fmtSlot(slot)} <span style={{ opacity:.7, fontSize:".65rem" }}>✕</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Custom time input */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:12, borderTop:`1px solid ${C.cardBorder}`, paddingTop:12 }}>
-            <span style={{ fontSize:".7rem", color:C.textMuted, fontWeight:600, flexShrink:0 }}>Custom time:</span>
-            <input
-              type="time"
-              value={customTime}
-              onChange={e => setCustomTime(e.target.value)}
-              style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 10px", color:C.text, fontSize:".78rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }}
-            />
-            <button type="button"
-              disabled={!customTime}
-              onClick={() => {
-                if (!customTime) return;
-                // normalise to "HH:MM"
-                const norm = customTime.length === 5 ? customTime : customTime.slice(0,5);
-                if (!selEntry.slots.includes(norm)) toggleSlot(selDay, norm);
-                setCustomTime("");
-              }}
-              style={{ background:customTime?C.accent:C.active, border:"none", borderRadius:8, padding:"7px 14px", color:customTime?"#fff":C.textMuted, fontSize:".75rem", fontWeight:700, cursor:customTime?"pointer":"not-allowed", fontFamily:"inherit", transition:"all .15s" }}>
-              + Add
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Summary chips ── */}
-      {(weekly||[]).length > 0 && (
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:12 }}>
-          {[...weekly].sort((a,b)=>(a.day===0?7:a.day)-(b.day===0?7:b.day)).map(({day,slots})=>(
-            <div key={day} style={{ display:"flex", alignItems:"center", gap:6, background:C.active, border:`1px solid ${selDay===day?C.accent:C.cardBorder}`, borderRadius:9, padding:"5px 10px", cursor:"pointer" }}
-              onClick={()=>setSelDay(s=>s===day?null:day)}>
-              <span style={{ fontSize:".7rem", fontWeight:700, color:selDay===day?C.accentText:C.textSub }}>
-                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]}
-              </span>
-              <span style={{ fontSize:".66rem", color:C.textMuted }}>{slots.length} slots</span>
-              <button type="button" onClick={e=>{e.stopPropagation();toggleDow(day);}}
-                style={{ background:"none", border:"none", cursor:"pointer", color:C.textMuted, padding:0, lineHeight:1, fontSize:".7rem" }}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(weekly||[]).length === 0 && (
+      {activeDays === 0 && (
         <div style={{ display:"flex", alignItems:"center", gap:10, background:C.active, borderRadius:10, border:`1px dashed ${C.cardBorder}`, padding:"11px 14px", marginBottom:12 }}>
           <CalendarClock size={14} style={{ color:C.textMuted, flexShrink:0 }} />
-          <span style={{ fontSize:".78rem", color:C.textMuted }}>Tap any date on the calendar to mark that weekday available</span>
+          <span style={{ fontSize:".78rem", color:C.textMuted }}>Turn on the days you're available, then set your hours</span>
         </div>
       )}
 
       {/* ── Save ── */}
       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <button type="button" onClick={handleSave} disabled={saving || (weekly||[]).length===0}
-          style={{ display:"flex", alignItems:"center", gap:6, background:(weekly||[]).length>0?C.green:C.active, border:"none", borderRadius:10, padding:"9px 18px", color:(weekly||[]).length>0?"#fff":C.textMuted, fontSize:".8rem", fontWeight:700, cursor:(weekly||[]).length>0?"pointer":"not-allowed", fontFamily:"inherit", opacity:saving?.7:1 }}>
+        <button type="button" onClick={handleSave} disabled={saving || activeDays===0}
+          style={{ display:"flex", alignItems:"center", gap:6, background:activeDays>0?C.green:C.active, border:"none", borderRadius:10, padding:"9px 18px", color:activeDays>0?"#fff":C.textMuted, fontSize:".8rem", fontWeight:700, cursor:activeDays>0?"pointer":"not-allowed", fontFamily:"inherit", opacity:saving?.7:1 }}>
           {saving?<><Spin size={13}/>Saving…</>:<><Check size={12}/>Save schedule</>}
         </button>
         {saved && <span style={{ fontSize:".78rem", color:C.green, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}><Check size={12}/>Saved</span>}
-        {(weekly||[]).length>0 && <span style={{ fontSize:".72rem", color:C.textMuted }}>{totalSlots} slots/week</span>}
+        {activeDays>0 && <span style={{ fontSize:".72rem", color:C.textMuted }}>{totalSlots} slots/week</span>}
       </div>
     </div>
   );
 }
 
 /* ─── Profile page ──────────────────────────────────────────────────────────── */
-export default function ProfilePage() {
+export default function ProfilePage({ activeSection: sectionProp, setActiveSection: setSectionProp } = {}) {
   const { user, setUser } = useAuth();
   const isMobileView = useIsMobile();
   const [editing, setEditing] = useState(false);
@@ -509,6 +484,9 @@ export default function ProfilePage() {
   const [slugValue,   setSlugValue]   = useState("");
   const [slugSaving,  setSlugSaving]  = useState(false);
   const [slugError,   setSlugError]   = useState("");
+  const [_activeSection, _setActiveSection] = useState('overview');
+  const activeSection = sectionProp ?? _activeSection;
+  const setActiveSection = setSectionProp ?? _setActiveSection;
 
   // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
   const justOnboarded = (() => {
@@ -552,7 +530,8 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     name: "", phone: "", college: "", branch: "", year: "", cgpa: "", bio: "", goals: [], skills: [],
     expertise: [], topCompanies: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
-    primaryDomain: "", companyDomain: "", servicesOffered: []
+    primaryDomain: "", companyDomain: "", servicesOffered: [],
+    customService: { enabled: false, label: "", description: "", price: "", durationMin: "30" },
   });
 
   // Initialize slug value when user changes.
@@ -652,6 +631,13 @@ export default function ProfilePage() {
       primaryDomain: user.primaryDomain || "",
       companyDomain: user.companyDomain || "",
       servicesOffered: user.servicesOffered || [],
+      customService: user.customService ? {
+        enabled:     user.customService.enabled     || false,
+        label:       user.customService.label       || "",
+        description: user.customService.description || "",
+        price:       user.customService.price != null ? String(user.customService.price) : "",
+        durationMin: user.customService.durationMin ? String(user.customService.durationMin) : "30",
+      } : { enabled: false, label: "", description: "", price: "", durationMin: "30" },
     });
   }, [user]);
 
@@ -679,10 +665,32 @@ export default function ProfilePage() {
   const servicesDirty =
     [...form.servicesOffered].sort().join(",") !== [...(user?.servicesOffered || [])].sort().join(",");
 
+  const customServiceDirty = (() => {
+    const cs  = form.customService;
+    const ucs = user?.customService || {};
+    return cs.enabled     !== (ucs.enabled     || false)
+        || cs.label       !== (ucs.label        || "")
+        || cs.description !== (ucs.description  || "")
+        || cs.price       !== (ucs.price != null ? String(ucs.price) : "")
+        || cs.durationMin !== (ucs.durationMin  ? String(ucs.durationMin) : "30");
+  })();
+
+  const anySvcDirty = servicesDirty || customServiceDirty;
+
   const saveServices = async () => {
     setSavingServices(true);
     try {
-      const res = await profileAPI.update({ servicesOffered: form.servicesOffered });
+      const payload = { servicesOffered: form.servicesOffered };
+      if (customServiceDirty) {
+        payload.customService = {
+          enabled:     form.customService.enabled,
+          label:       form.customService.label.trim(),
+          description: form.customService.description.trim(),
+          price:       Number(form.customService.price) || 0,
+          durationMin: Number(form.customService.durationMin) || 30,
+        };
+      }
+      const res = await profileAPI.update(payload);
       setUser(res.user || res);
       setServicesSaved(true);
       setTimeout(() => setServicesSaved(false), 1800);
@@ -846,8 +854,37 @@ export default function ProfilePage() {
 
   const domainLabel = { internship: "Internships", placement: "Placements", both: "Internships & Placements" }[form.primaryDomain];
 
+  const MENTOR_NAV = [
+    { key: 'overview',     Icon: Activity,      label: 'Overview' },
+    { key: 'services',     Icon: IndianRupee,   label: 'Services' },
+    { key: 'availability', Icon: CalendarClock, label: 'Availability' },
+    { key: 'basic',        Icon: UserRound,     label: 'Basic Information' },
+    { key: 'education',    Icon: GraduationCap, label: 'Education' },
+    { key: 'experience',   Icon: Briefcase,     label: 'Experience' },
+    { key: 'expertise',    Icon: Zap,           label: 'Skills & Expertise' },
+    { key: 'achievements', Icon: Trophy,        label: 'Achievements' },
+    { key: 'preferences',  Icon: Compass,       label: 'Mentoring Prefs' },
+    { key: 'social',       Icon: Link2,         label: 'Social Links' },
+  ];
+  const STUDENT_NAV = [
+    { key: 'overview',  Icon: Activity,      label: 'Overview' },
+    { key: 'basic',     Icon: UserRound,     label: 'Basic Information' },
+    { key: 'education', Icon: GraduationCap, label: 'Education' },
+    { key: 'goals',     Icon: Target,        label: 'Goals & Skills' },
+  ];
+  const navItems = isMentor ? MENTOR_NAV : STUDENT_NAV;
+
+  // Maps completion chip keys → sidebar section keys
+  const CHIP_TO_SECTION = {
+    services: 'services', bio: 'basic', photo: 'basic', city: 'basic',
+    college: 'education', branch: 'education', year: 'education', cgpa: 'education',
+    exp: 'experience', companies: 'experience', linkedin: 'experience',
+    expertise: 'expertise', tags: 'achievements', domain: 'preferences',
+    goals: 'goals', skills: 'goals',
+  };
+
   return (
-    <div style={{ padding: isMobileView ? "1.1rem 1rem 2.5rem" : "1.75rem 2rem 3rem", maxWidth: 1020, margin: "0 auto" }}>
+    <div style={{ padding: isMobileView ? "1rem 0.75rem 3rem" : "1.5rem 2rem 3rem", maxWidth: 1140, margin: "0 auto" }}>
       <PageStyles />
 
       {showAnswerCards && (
@@ -969,6 +1006,26 @@ export default function ProfilePage() {
         </div>
       </header>
 
+      {/* ════════ MOBILE TABS (only when used standalone without app sidebar) ════════ */}
+      {isMobileView && !sectionProp && (
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14, scrollbarWidth: "none" }}>
+          {navItems.map(({ key, label }) => (
+            <button key={key} onClick={() => setActiveSection(key)}
+              style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, border: activeSection === key ? "none" : `1px solid ${C.cardBorder}`, background: activeSection === key ? C.accent : C.card, color: activeSection === key ? "#fff" : C.textSub, fontSize: ".74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ════════ CONTENT ════════ */}
+      <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+        {/* RIGHT CONTENT PANEL */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+        {/* ── OVERVIEW ── */}
+        {activeSection === 'overview' && (<>
+
       {/* ════════ IMPORT — LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
       {isMentor && pct < 60 && (
         <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, overflow: "hidden" }}>
@@ -1069,24 +1126,9 @@ export default function ProfilePage() {
                 </span>
                 : <button key={it.key} className="pf-chipbtn"
                   onClick={() => {
-                    if (it.key === "services") {
-                      document.getElementById("services-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    } else {
-                      // map chip keys → section ids
-                      const SECTION = {
-                        bio: "field-bio", photo: "field-bio", city: "field-bio",
-                        college: "field-college", branch: "field-college", year: "field-college",
-                        exp: "field-exp", companies: "field-exp", linkedin: "field-exp",
-                        expertise: "field-expertise",
-                        tags: "field-tags",
-                        domain: "field-domain",
-                      };
-                      startEdit();
-                      setTimeout(() => {
-                        const el = document.getElementById(SECTION[it.key] || `field-${it.key}`);
-                        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-                      }, 120);
-                    }
+                    const sec = CHIP_TO_SECTION[it.key] || 'basic';
+                    setActiveSection(sec);
+                    if (sec !== 'services') startEdit();
                   }}
                   title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
                   style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1097,170 +1139,202 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ════════ MENTOR MONETIZATION BLOCK (full-width, above everything) ════════ */}
-      {isMentor && (
+        </>)}
+        {/* end overview */}
+
+        {/* ── SERVICES ── */}
+        {activeSection === 'services' && isMentor && (
         <div id="services-section" className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
 
-          {/* 🔴 Red incomplete-setup reminder — shows until both services + availability are done */}
-          {(form.servicesOffered.length === 0 || (user?.availability?.weekly?.length || 0) === 0) && (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "rgba(248,113,113,0.08)", border: "1.5px solid rgba(248,113,113,0.45)", borderRadius: 14, padding: "13px 16px", marginBottom: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                <span style={{ fontSize: "1rem" }}>⚠️</span>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: ".84rem", fontWeight: 800, color: "#f87171", marginBottom: 4 }}>Students can't book you yet</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {form.servicesOffered.length === 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".76rem", color: "#fca5a5" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", flexShrink: 0 }} />
-                      Turn on at least one service below (Text Q&A, Audio Call, or Video Call)
-                    </div>
-                  )}
-                  {(user?.availability?.weekly?.length || 0) === 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".76rem", color: "#fca5a5" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f87171", flexShrink: 0 }} />
-                      Add your available hours using "Edit schedule" on the right
-                    </div>
-                  )}
-                </div>
+          {/* Setup reminder — shows when nothing is selected yet */}
+          {form.servicesOffered.length === 0 && !form.customService.enabled && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(248,113,113,0.08)", border: "1.5px solid rgba(248,113,113,0.4)", borderRadius: 14, padding: "12px 16px", marginBottom: 10 }}>
+              <span style={{ fontSize: "1.1rem" }}>⚠️</span>
+              <div>
+                <div style={{ fontSize: ".84rem", fontWeight: 800, color: "#f87171" }}>Students can't book you yet</div>
+                <div style={{ fontSize: ".73rem", color: "#fca5a5", marginTop: 2 }}>Select at least one service below · then set your availability to go live</div>
               </div>
             </div>
           )}
 
-          {/* Top earnings banner — light, soft surface */}
-          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          {/* Earnings banner */}
+          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 11, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 3px 10px rgba(117,103,201,0.3)" }}>
                   <IndianRupee size={20} style={{ color: "#fff" }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: "1rem", fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>
-                    Earn ₹49 – ₹299 per session
-                  </div>
-                  <div style={{ fontSize: ".75rem", color: C.textSub, marginTop: 2 }}>
-                    {form.servicesOffered.length === 0
-                      ? "Select your services & set availability — students can't book you yet"
-                      : form.servicesOffered.length === 1
-                        ? "1 service active · add your available hours to go live"
-                        : `${form.servicesOffered.length} services active · ${(user?.availability?.weekly?.length || 0) === 0 ? "set your availability to go live" : "you're bookable by students"}`}
+                  {(() => {
+                    const prices = (serviceCatalog || []).filter(s => form.servicesOffered.includes(s.id) && s.price > 0).map(s => s.price);
+                    const csPrice = form.customService.enabled && Number(form.customService.price) > 0 ? Number(form.customService.price) : null;
+                    if (csPrice) prices.push(csPrice);
+                    const lo = prices.length ? Math.min(...prices) : null;
+                    const hi = prices.length ? Math.max(...prices) : null;
+                    const hasFree = form.servicesOffered.includes('free-help');
+                    const headline = lo
+                      ? `Earn ₹${lo}${lo !== hi ? ` – ₹${hi}` : ''} per session${hasFree ? ' · + free sessions' : ''}`
+                      : hasFree ? "Offering free help to students" : "Select your services below";
+                    return <div style={{ fontSize: "1rem", fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>{headline}</div>;
+                  })()}
+                  <div style={{ fontSize: ".73rem", color: C.textSub, marginTop: 3 }}>
+                    Atyant keeps 25% on paid sessions · you keep 75%
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                {form.servicesOffered.length > 0 && (user?.availability?.weekly?.length || 0) > 0 ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.14)", border: `1px solid ${C.green}55`, borderRadius: 999, padding: "6px 14px", color: C.green, fontSize: ".76rem", fontWeight: 700 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Live & Bookable
-                  </span>
-                ) : (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "6px 14px", color: C.accentText, fontSize: ".76rem", fontWeight: 700 }}>
-                    <Rocket size={12} /> Setup required
-                  </span>
-                )}
-              </div>
-            </div>
-            {/* Quick earnings math */}
-            <div style={{ position: "relative", display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-              {[
-                { label: "Text Q&A", price: "₹49", icon: "💬" },
-                { label: "Audio Call", price: "₹99", icon: "🎙️" },
-                { label: "Video Call", price: "₹299", icon: "📹" },
-              ].map(s => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 7, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "5px 12px" }}>
-                  <span style={{ fontSize: ".82rem" }}>{s.icon}</span>
-                  <span style={{ fontSize: ".72rem", color: C.textSub, fontWeight: 600 }}>{s.label} · {s.price}</span>
-                </div>
-              ))}
+              {(form.servicesOffered.length > 0 || form.customService.enabled) && (user?.availability?.weekly?.length || 0) > 0 ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.14)", border: `1px solid ${C.green}55`, borderRadius: 999, padding: "6px 14px", color: C.green, fontSize: ".76rem", fontWeight: 700, flexShrink: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Live & Bookable
+                </span>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "6px 14px", color: C.accentText, fontSize: ".76rem", fontWeight: 700, flexShrink: 0 }}>
+                  <Rocket size={12} /> Setup required
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Services + Availability side by side */}
-          <div className="pf-mono-inner" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)", position: "relative" }}>
+          {/* Service type grid — Topmate style */}
+          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)" }}>
+            <div style={{ fontSize: ".65rem", fontWeight: 700, letterSpacing: ".1em", color: C.textMuted, marginBottom: 14, textTransform: "uppercase" }}>Select type</div>
 
-            {/* Left: Services */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: form.servicesOffered.length === 0 ? "rgba(248,113,113,0.15)" : "linear-gradient(135deg, rgba(117,103,201,0.22), rgba(117,103,201,0.08))", border: form.servicesOffered.length === 0 ? "1.5px solid rgba(248,113,113,0.5)" : "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}>
-                    <CalendarCheck size={14} style={{ color: form.servicesOffered.length === 0 ? "#f87171" : C.accentText }} />
+            {serviceCatalog === null ? (
+              <div className="pf-svc-grid">
+                {[0,1,2,3,4,5].map(i => <div key={i} className="pf-skel" style={{ height: 118, borderRadius: 14 }} />)}
+              </div>
+            ) : (
+              <div className="pf-svc-grid">
+                {/* Platform catalog cards */}
+                {serviceCatalog.map(s => {
+                  const on = form.servicesOffered.includes(s.id);
+                  const { Icon: SvcIcon, color, bg } = SVC_ICONS[s.id] || { Icon: Star, color: C.accent, bg: C.accentSoft };
+                  return (
+                    <div key={s.id} role="button" tabIndex={0} aria-pressed={on}
+                      className={`pf-svc-card${on ? " on" : ""}`}
+                      onClick={() => toggleService(s.id)}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleService(s.id); } }}
+                      style={{ position: "relative", background: on ? "rgba(117,103,201,0.06)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 14, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 118, userSelect: "none" }}>
+                      {/* Check badge */}
+                      {on && (
+                        <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(117,103,201,0.4)" }}>
+                          <Check size={11} style={{ color: "#fff" }} />
+                        </div>
+                      )}
+                      {/* Icon */}
+                      <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? `${color}22` : bg, border: `1px solid ${color}33`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <SvcIcon size={18} style={{ color: on ? color : C.textSub }} />
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: ".88rem", color: on ? C.text : C.textSub }}>{s.label}</div>
+                        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 3, lineHeight: 1.45 }}>{s.description}</div>
+                      </div>
+                      {/* Price + duration */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                        <span style={{ fontWeight: 800, fontSize: ".86rem", color: s.price === 0 ? C.green : on ? C.accentText : C.textSub }}>
+                          {s.price === 0 ? "Free" : `₹${s.price}`}
+                        </span>
+                        <span style={{ fontSize: ".64rem", color: C.textMuted }}>{s.duration}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Custom Service card */}
+                {(() => {
+                  const on = form.customService.enabled;
+                  return (
+                    <div role="button" tabIndex={0} aria-pressed={on}
+                      className={`pf-svc-card${on ? " on" : ""}`}
+                      onClick={() => setForm(f => ({ ...f, customService: { ...f.customService, enabled: !f.customService.enabled } }))}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setForm(f => ({ ...f, customService: { ...f.customService, enabled: !f.customService.enabled } })); } }}
+                      style={{ position: "relative", background: on ? "rgba(117,103,201,0.06)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 14, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 118, userSelect: "none" }}>
+                      {on && (
+                        <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(117,103,201,0.4)" }}>
+                          <Check size={11} style={{ color: "#fff" }} />
+                        </div>
+                      )}
+                      <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? "rgba(117,103,201,0.18)" : C.accentSoft, border: "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Settings size={18} style={{ color: on ? C.accentText : C.textSub }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: ".88rem", color: on ? C.text : C.textSub }}>Custom</div>
+                        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 3, lineHeight: 1.45 }}>Your own service & price</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
+                        <span style={{ fontWeight: 800, fontSize: ".86rem", color: on && form.customService.price ? C.accentText : C.textMuted }}>
+                          {on && form.customService.price ? `₹${form.customService.price}` : "Set price"}
+                        </span>
+                        <span style={{ fontSize: ".64rem", color: C.textMuted }}>
+                          {on && form.customService.durationMin ? `${form.customService.durationMin} min` : "custom"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Custom service inline editor */}
+            {form.customService.enabled && (
+              <div style={{ marginTop: 16, background: C.active, border: `1.5px solid ${C.accent}33`, borderRadius: 14, padding: "16px 18px" }}>
+                <div style={{ fontSize: ".65rem", fontWeight: 700, letterSpacing: ".1em", color: C.accentText, marginBottom: 12 }}>CONFIGURE CUSTOM SERVICE</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>SERVICE NAME</label>
+                    <input className="pf-input" value={form.customService.label} placeholder="e.g. Career Chat" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, label: e.target.value } }))} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: ".9rem", color: form.servicesOffered.length === 0 ? "#f87171" : C.text, display: "flex", alignItems: "center", gap: 7 }}>
-                      Services you offer
-                      {form.servicesOffered.length === 0 && <span style={{ fontSize: ".66rem", fontWeight: 700, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 999, padding: "2px 8px", color: "#f87171", letterSpacing: ".04em" }}>ACTION NEEDED</span>}
-                    </div>
-                    <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>Tap to turn a service on or off</div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>SHORT DESCRIPTION</label>
+                    <input className="pf-input" value={form.customService.description} placeholder="What will you help with?" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, description: e.target.value } }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>PRICE (₹)</label>
+                    <input className="pf-input" type="number" min="0" value={form.customService.price} placeholder="e.g. 199" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, price: e.target.value } }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>DURATION (min)</label>
+                    <input className="pf-input" type="number" min="5" max="180" value={form.customService.durationMin} placeholder="30" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, durationMin: e.target.value } }))} />
                   </div>
                 </div>
+                <div style={{ fontSize: ".68rem", color: C.textMuted }}>Atyant keeps 25% commission on your custom service · you keep 75%</div>
               </div>
-              {serviceCatalog === null ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {[0, 1, 2].map(i => <div key={i} className="pf-skel" style={{ height: 52, borderRadius: 10 }} />)}
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {serviceCatalog.map(s => {
-                    const on = form.servicesOffered.includes(s.id);
-                    return (
-                      <div key={s.id} role="button" tabIndex={0} aria-pressed={on}
-                        className={`pf-svc-row${on ? " on" : ""}`}
-                        onClick={() => toggleService(s.id)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleService(s.id); } }}
-                        style={{ display: "flex", alignItems: "center", gap: 12, background: on ? "rgba(117,103,201,0.16)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 12, padding: "11px 14px", cursor: "pointer", transition: "all .15s" }}>
-                        <span style={{ width: 20, height: 20, borderRadius: 6, border: `1.5px solid ${on ? C.accent : C.textMuted}`, background: on ? C.accent : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", transition: "all .15s" }}>
-                          {on ? <Check size={12} /> : null}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: "block", color: on ? C.text : C.textSub, fontSize: ".86rem", fontWeight: on ? 700 : 500 }}>{s.label}</span>
-                          <span style={{ display: "block", color: C.textMuted, fontSize: ".7rem", marginTop: 1 }}>{s.description} · {s.durationMin} min</span>
-                        </span>
-                        <span style={{ background: on ? C.accentSoft : C.active, border: `1px solid ${on ? C.accent + "44" : C.cardBorder}`, borderRadius: 999, padding: "4px 11px", color: on ? C.accentText : C.textMuted, fontWeight: 700, fontSize: ".84rem", flexShrink: 0 }}>₹{s.price}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {/* Dedicated Save for services — appears only when there are unsaved changes */}
-              {servicesDirty ? (
-                <button onClick={saveServices} disabled={savingServices}
-                  style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 11, padding: "11px 0", color: "#fff", fontSize: ".86rem", fontWeight: 700, cursor: savingServices ? "default" : "pointer", fontFamily: "inherit", opacity: savingServices ? 0.7 : 1, boxShadow: "0 4px 12px rgba(117,103,201,0.3)" }}>
-                  {savingServices ? <><Spin size={14} /> Saving…</> : <><Check size={15} /> Save services</>}
-                </button>
-              ) : servicesSaved ? (
-                <div style={{ marginTop: 12, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(61,190,130,0.12)", border: `1px solid ${C.green}55`, borderRadius: 11, padding: "10px 0", color: C.green, fontSize: ".82rem", fontWeight: 700 }}>
-                  <Check size={14} /> Services saved
-                </div>
-              ) : form.servicesOffered.length === 0 ? (
-                <div style={{ marginTop: 12, width: "100%", textAlign: "center", background: C.accentSoft, border: `1.5px dashed ${C.accent}55`, borderRadius: 11, padding: "10px 0", color: C.accentText, fontSize: ".8rem", fontWeight: 700 }}>
-                  <Plus size={13} style={{ verticalAlign: "-2px" }} /> Tap a service above to get booked
-                </div>
-              ) : null}
-            </div>
+            )}
 
-            {/* Right: Availability */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: (user?.availability?.weekly?.length || 0) === 0 ? "rgba(248,113,113,0.15)" : "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: (user?.availability?.weekly?.length || 0) === 0 ? "1.5px solid rgba(248,113,113,0.5)" : "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s" }}>
-                  <CalendarClock size={14} style={{ color: (user?.availability?.weekly?.length || 0) === 0 ? "#f87171" : C.green }} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: ".9rem", color: (user?.availability?.weekly?.length || 0) === 0 ? "#f87171" : C.text, display: "flex", alignItems: "center", gap: 7 }}>
-                    Your availability
-                    {(user?.availability?.weekly?.length || 0) === 0 && <span style={{ fontSize: ".66rem", fontWeight: 700, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 999, padding: "2px 8px", color: "#f87171", letterSpacing: ".04em" }}>ACTION NEEDED</span>}
-                  </div>
-                  <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 1 }}>When students can book you</div>
-                </div>
+            {/* Save button */}
+            {anySvcDirty ? (
+              <button onClick={saveServices} disabled={savingServices}
+                style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 11, padding: "11px 0", color: "#fff", fontSize: ".86rem", fontWeight: 700, cursor: savingServices ? "default" : "pointer", fontFamily: "inherit", opacity: savingServices ? 0.7 : 1, boxShadow: "0 4px 12px rgba(117,103,201,0.3)" }}>
+                {savingServices ? <><Spin size={14} /> Saving…</> : <><Check size={15} /> Save services</>}
+              </button>
+            ) : servicesSaved ? (
+              <div style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(61,190,130,0.12)", border: `1px solid ${C.green}55`, borderRadius: 11, padding: "10px 0", color: C.green, fontSize: ".82rem", fontWeight: 700 }}>
+                <Check size={14} /> Services saved
               </div>
-              <AvailabilityEditor userId={user._id} />
-            </div>
+            ) : null}
           </div>
         </div>
-      )}
+        )} {/* end services */}
 
-      {/* ════════ SECTION GRID ════════ */}
-      <div id="profile-fields-section" className="pf-grid">
-        {/* About */}
-        <Section id="field-bio" Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={2}>
+        {/* ── AVAILABILITY ── */}
+        {activeSection === 'availability' && isMentor && (
+          <div className="pf-card pf-anim" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "20px 22px", boxShadow: "var(--shadow)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 18 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CalendarClock size={15} style={{ color: C.green }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Your Availability</div>
+                <div style={{ fontSize: ".72rem", color: C.textMuted, marginTop: 1 }}>Set when students can book sessions with you</div>
+              </div>
+            </div>
+            <AvailabilityEditor userId={user._id} />
+          </div>
+        )}
+
+        {/* ── BASIC INFORMATION ── */}
+        {activeSection === 'basic' && (
+        <Section id="field-bio" Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={1}>
           <FieldRow label="DISPLAY NAME" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} editing={editing} placeholder="Your name" />
           <FieldRow label="MOBILE NUMBER" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} editing={editing} placeholder="9876543210" error={phoneError} />
           <div style={{ marginBottom: 0 }}>
@@ -1271,9 +1345,11 @@ export default function ProfilePage() {
               : <div style={{ fontSize: ".88rem", color: form.bio ? C.textSub : C.textMuted, lineHeight: 1.65 }}>{form.bio || "No bio yet — a 2-line story makes your profile far more memorable."}</div>}
           </div>
         </Section>
+        )} {/* end basic */}
 
-        {/* Education */}
-        <Section id="field-college" Icon={GraduationCap} title="Education" subtitle="Your academic background" onEdit={startEdit} editing={editing} delay={2}>
+        {/* ── EDUCATION ── */}
+        {activeSection === 'education' && (
+        <Section id="field-college" Icon={GraduationCap} title="Education" subtitle="Your academic background" onEdit={startEdit} editing={editing} delay={1}>
           <FieldRow label="COLLEGE" value={form.college} onChange={v => setForm(f => ({ ...f, college: v }))} editing={editing} placeholder="e.g. VNIT Nagpur" />
           <FieldRow label="BRANCH" value={form.branch} onChange={v => setForm(f => ({ ...f, branch: v }))} editing={editing} placeholder="e.g. Metallurgy" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1281,10 +1357,11 @@ export default function ProfilePage() {
             <FieldRow label="CGPA" value={form.cgpa} onChange={v => setForm(f => ({ ...f, cgpa: v }))} editing={editing} placeholder="8.2" error={cgpaError} />
           </div>
         </Section>
+        )} {/* end education */}
 
-        {isMentor ? <>
-          {/* Professional Experience */}
-          <Section id="field-exp" Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── EXPERIENCE (mentor) ── */}
+        {activeSection === 'experience' && isMentor && (
+          <Section id="field-exp" Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={1}>
             <FieldRow label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f => ({ ...f, yearsOfExperience: v }))} editing={editing} placeholder="2" />
             <div>
               <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 8 }}>TOP COMPANIES</label>
@@ -1292,21 +1369,27 @@ export default function ProfilePage() {
                 placeholder="Add a company, e.g. Amazon" emptyText="No companies yet — add where you worked or interned." />
             </div>
           </Section>
+        )}
 
-          {/* Skills & Expertise */}
-          <Section id="field-expertise" Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── EXPERTISE (mentor) ── */}
+        {activeSection === 'expertise' && isMentor && (
+          <Section id="field-expertise" Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.expertise} editing={editing} onChange={v => setForm(f => ({ ...f, expertise: v }))}
               placeholder="Add an expertise, e.g. System Design" emptyText="No expertise added yet — this is what students get matched on." />
           </Section>
+        )}
 
-          {/* Achievements */}
-          <Section id="field-tags" Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── ACHIEVEMENTS (mentor) ── */}
+        {activeSection === 'achievements' && isMentor && (
+          <Section id="field-tags" Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.specialTags} editing={editing} onChange={v => setForm(f => ({ ...f, specialTags: v }))}
               placeholder="Add a tag, e.g. FAANG, PPO, GATE" emptyText="No achievements yet — FAANG, PPO, GATE, research… add what you cracked." />
           </Section>
+        )}
 
-          {/* Mentoring Preferences */}
-          <Section id="field-domain" Icon={Compass} title="Mentoring Preferences" subtitle="What & who you want to mentor" onEdit={startEdit} editing={editing} delay={3}>
+        {/* ── MENTORING PREFERENCES (mentor) ── */}
+        {activeSection === 'preferences' && isMentor && (
+          <Section id="field-domain" Icon={Compass} title="Mentoring Preferences" subtitle="What & who you want to mentor" onEdit={startEdit} editing={editing} delay={1}>
             {editing ? <>
               <SelectRow label="MENTORING DOMAIN" value={form.primaryDomain} onChange={v => setForm(f => ({ ...f, primaryDomain: v }))} editing={editing}
                 options={[{ value: "internship", label: "Internships" }, { value: "placement", label: "Placements" }, { value: "both", label: "Both" }]} />
@@ -1340,9 +1423,11 @@ export default function ProfilePage() {
               )}
             </>}
           </Section>
+        )}
 
-          {/* Social Links */}
-          <Section Icon={Link2} title="Social Links & Location" subtitle="Where students can verify you" onEdit={startEdit} editing={editing} delay={4}>
+        {/* ── SOCIAL LINKS (mentor) ── */}
+        {activeSection === 'social' && isMentor && (<>
+          <Section Icon={Link2} title="Social Links & Location" subtitle="Where students can verify you" onEdit={startEdit} editing={editing} delay={1}>
             {editing ? <>
               <FieldRow label="LINKEDIN" value={form.linkedinProfile} onChange={v => setForm(f => ({ ...f, linkedinProfile: v }))} editing={editing}
                 placeholder="https://linkedin.com/in/you" error={linkedinError} />
@@ -1376,8 +1461,7 @@ export default function ProfilePage() {
             </>}
           </Section>
 
-          {/* Public Profile URL */}
-          <Section Icon={Globe} title="Public Profile URL" subtitle="Shareable link for your mentor profile" delay={4}>
+          <Section Icon={Globe} title="Public Profile URL" subtitle="Shareable link for your mentor profile" delay={2}>
             {slugEditing ? (
               <div>
                 <div style={{ marginBottom: 12 }}>
@@ -1484,11 +1568,10 @@ export default function ProfilePage() {
             )}
           </Section>
 
-          {/* Verification Status */}
           {(() => {
             const isVerified = user?.isVerified || pct >= 80;
             return (
-              <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={4}>
+              <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={3}>
                 {/* Progress bar — only shown when not yet verified */}
                 {!isVerified && (
                   <div style={{ marginBottom: 12 }}>
@@ -1522,20 +1605,23 @@ export default function ProfilePage() {
               </Section>
             );
           })()}
-        </> : <>
-          {/* Student: Goals */}
-          <Section Icon={Target} title="Current Goals" subtitle="What you're working towards" onEdit={startEdit} editing={editing} delay={3}>
+        </>)}
+        {/* end social */}
+
+        {/* ── GOALS & SKILLS (student) ── */}
+        {activeSection === 'goals' && !isMentor && (<>
+          <Section Icon={Target} title="Current Goals" subtitle="What you're working towards" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.goals} editing={editing} onChange={v => setForm(f => ({ ...f, goals: v }))} highlightFirst
               placeholder="Add a goal, e.g. AI/ML Internship" emptyText="No goals yet — your first goal powers your mentor matches." />
           </Section>
-
-          {/* Student: Skills */}
-          <Section Icon={Zap} title="Skills" subtitle="What you already know" onEdit={startEdit} editing={editing} delay={3}>
+          <Section Icon={Zap} title="Skills" subtitle="What you already know" onEdit={startEdit} editing={editing} delay={2}>
             <ChipEditor items={form.skills} editing={editing} onChange={v => setForm(f => ({ ...f, skills: v }))}
               placeholder="Add a skill, e.g. Python" emptyText="No skills added yet — list what you've learned so far." />
           </Section>
-        </>}
-      </div>
+        </>)}
+
+        </div> {/* end content panel */}
+      </div> {/* end sidebar+content row */}
 
       {/* Sticky save bar in edit mode (mobile-friendly) */}
       {editing && (

@@ -1,11 +1,27 @@
-import { LiveKitRoom, VideoConference } from '@livekit/components-react';
+import { LiveKitRoom, VideoConference, useConnectionState } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DisconnectReason } from 'livekit-client';
+import { DisconnectReason, ConnectionState } from 'livekit-client';
+import BackgroundControl from '../components/meet/BackgroundControl';
+import Whiteboard from '../components/meet/Whiteboard';
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+
+// In-call tools (background effects + shared whiteboard). Rendered only once the
+// room is connected, so the local camera track and data channel are ready.
+// `hasVideo` hides background effects on audio-only calls.
+function MeetTools({ hasVideo }) {
+    const state = useConnectionState();
+    if (state !== ConnectionState.Connected) return null;
+    return (
+        <>
+            {hasVideo && <BackgroundControl top={14} right={14} />}
+            <Whiteboard top={hasVideo ? 66 : 14} right={14} />
+        </>
+    );
+}
 
 export default function MeetPage({ sessionId: propSessionId }) {
     const { sessionId: paramSessionId } = useParams();
@@ -76,7 +92,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
             {error}
             {needsAuth && (
                 <button
-                    onClick={() => { window.location.href = `/?redirect=${encodeURIComponent(`/?meet=${sessionId}`)}`; }}
+                    onClick={() => { window.location.href = `/atyantEngine/?redirect=${encodeURIComponent(`/atyantEngine/?meet=${sessionId}`)}`; }}
                     style={{ background: '#7567C9', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
                 >
                     Sign in to join
@@ -104,6 +120,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
             options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
         >
             <VideoConference />
+            <MeetTools hasVideo={roomData.callType !== 'audio'} />
         </LiveKitRoom>
     );
 }

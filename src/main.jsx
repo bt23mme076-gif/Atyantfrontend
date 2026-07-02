@@ -4,18 +4,17 @@ import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import MeetPage from './pages/MeetPage.jsx'
-import PublicMentorProfile from './pages/PublicMentorProfile.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MentorTrackPage from './pages/MentorTrackPage'
 
-// The marketing site (atyant.in) only proxies "/" and "/product-assets/*" to
-// this product app — a real path like /session/meet/<id> falls through to the
-// marketing site. So the meet is served at the already-proxied root with a
-// ?meet=<sessionId> query param, which keeps it on the atyant.in origin (where
-// the auth token lives in localStorage). The /session/meet path route is kept
-// for localhost and direct vercel.app access.
+// atyant.in proxies "/atyantEngine/*" and "/product-assets/*" to this product
+// app (bare "/" is the marketing site's own homepage). Within that prefix, the
+// meet is served at the proxied path with a ?meet=<sessionId> query param,
+// which keeps it on the atyant.in origin (where the auth token lives in
+// localStorage). The /session/meet path route is kept for localhost and direct
+// vercel.app access.
 function RootOrMeet() {
   const [params] = useSearchParams()
   const meetId = params.get('meet')
@@ -28,23 +27,12 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename="/atyantEngine">
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
-              <Route path="/profile/:slug" element={<PublicMentorProfile />} />
-<Route
-  path="/test-profile"
-  element={<h1 style={{ color: "red" }}>PROFILE ROUTE WORKING</h1>}
-/>
-
 <Route
   path="/mentor/:mentorId/track"
   element={<MentorTrackPage />}
-/>
-
-<Route
-  path="/:slug"
-  element={<PublicMentorProfile />}
 />
               <Route path="/*" element={<RootOrMeet />} />
             </Routes>
