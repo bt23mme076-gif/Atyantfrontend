@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2, Sparkles, Video } from "lucide-react";
+import { Send, CheckCircle, Loader2, Sparkles, Video, ChevronLeft, ChevronRight } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -451,6 +451,57 @@ const truncateNodeText = (text, max = 42) => {
   return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
 };
 
+// Horizontal scroll row for the journey nodes, with edge fades + a chevron
+// hinting there's more to swipe — hidden once the user reaches that edge.
+function JourneyScrollRow({ children }) {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateHints = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    updateHints();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateHints, { passive: true });
+    window.addEventListener("resize", updateHints);
+    return () => {
+      el.removeEventListener("scroll", updateHints);
+      window.removeEventListener("resize", updateHints);
+    };
+  }, [children]);
+
+  return (
+    <div className="relative">
+      <div ref={scrollRef} className="flex items-start overflow-x-auto hide-scrollbar pb-4" style={{ WebkitOverflowScrolling: "touch" }}>
+        {children}
+      </div>
+      {canScrollLeft && (
+        <div
+          className="pointer-events-none absolute left-0 top-0 flex items-center justify-start"
+          style={{ bottom: 16, width: 32, background: "linear-gradient(90deg, var(--c-sidebar), rgba(0,0,0,0))" }}
+        >
+          <ChevronLeft size={16} style={{ color: "var(--c-accentText)" }} />
+        </div>
+      )}
+      {canScrollRight && (
+        <div
+          className="pointer-events-none absolute right-0 top-0 flex items-center justify-end"
+          style={{ bottom: 16, width: 32, background: "linear-gradient(270deg, var(--c-sidebar), rgba(0,0,0,0))" }}
+        >
+          <ChevronRight size={16} style={{ color: "var(--c-accentText)" }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Mentor's journey as a visual roadmap, built from the same answer-card fields ──
 function MentorJourneyFlow({ card }) {
   const c = card?.content || {};
@@ -486,10 +537,15 @@ function MentorJourneyFlow({ card }) {
 
   return (
     <div className="px-4 sm:px-6 pt-5 pb-1 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
-        The journey
-      </p>
-      <div className="flex items-start overflow-x-auto hide-scrollbar pb-4" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+          The journey
+        </p>
+        <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
+          Swipe <ChevronRight size={11} />
+        </span>
+      </div>
+      <JourneyScrollRow>
         {nodes.map((n, i) => (
           <div key={i} className="flex flex-col items-center flex-shrink-0" style={{ width: 168 }}>
             <div className="flex items-center w-full">
@@ -520,7 +576,7 @@ function MentorJourneyFlow({ card }) {
             </p>
           </div>
         ))}
-      </div>
+      </JourneyScrollRow>
     </div>
   );
 }
