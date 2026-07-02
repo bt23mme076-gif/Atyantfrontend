@@ -388,11 +388,16 @@ function MyRoadmapPage({ user }) {
                     </div>
                   </div>
                   {expanded===i && !isLocked && (
-                    <ul style={{ margin:"10px 0 0", paddingLeft:"1.2rem" }}>
+                    <div style={{ margin:"12px 0 2px", display:"grid", gap:8 }}>
                       {(s.tasks||[]).map((t, j) => (
-                        <li key={j} style={{ fontSize:"0.82rem", color:C.textSub, marginBottom:4, lineHeight:1.5 }}>{t}</li>
+                        <div key={j} style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
+                          <span style={{ width:16, height:16, borderRadius:5, background:isActive ? C.accentSoft : C.active, border:`1px solid ${isActive ? C.accent+"55" : C.cardBorder}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>
+                            <Check size={10} color={isActive ? C.accentText : C.textMuted} strokeWidth={2.6} />
+                          </span>
+                          <span style={{ fontSize:"0.82rem", color:C.textSub, lineHeight:1.5 }}>{t}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                   {isLocked && <div style={{ fontSize:"0.78rem", color:C.textMuted, marginTop:6 }}>Unlocks after Phase 3</div>}
                 </div>
@@ -406,10 +411,90 @@ function MyRoadmapPage({ user }) {
 }
 
 // ─── Saved Answers ────────────────────────────────────────────────────────────
+// Classify a saved answer into a visual "type" so the card gets a matching icon,
+// accent colour and label (Session Summary vs Action Item vs AI vs bookmark).
+function savedAnswerMeta(a) {
+  const tags = a.tags || [];
+  if (tags.includes("Session Summary"))
+    return { label:"Session Summary", Icon:Sparkles, color:C.accent, tint:C.accentSoft, text:C.accentText };
+  if (tags.includes("Action Item"))
+    return { label:"Action Item", Icon:Target, color:C.green, tint:"rgba(61,190,130,0.14)", text:C.green };
+  if (a.sourceType === "ai")
+    return { label:"Atyant AI", Icon:Zap, color:C.accent, tint:C.accentSoft, text:C.accentText };
+  return { label:"Saved", Icon:Bookmark, color:C.textMuted, tint:C.active, text:C.textSub };
+}
+
+function SavedAnswerCard({ a, onRemove }) {
+  const [expanded, setExpanded] = useState(false);
+  const { label, Icon, color, tint, text } = savedAnswerMeta(a);
+  const body = a.question || "";
+  const isLong = body.length > 260;
+  // Hide the type tag itself from the pill row (it's already shown in the header).
+  const pills = (a.tags || []).filter(t => t !== label);
+
+  return (
+    <div
+      style={{
+        background:C.card, border:`1px solid ${C.cardBorder}`, borderLeft:`3px solid ${color}`,
+        borderRadius:16, padding:"1.15rem 1.35rem", boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+        transition:"transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 10px 26px -12px rgba(0,0,0,0.28)"; e.currentTarget.style.borderColor=C.accent+"44"; e.currentTarget.style.borderLeftColor=color; }}
+      onMouseLeave={e => { e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="0 1px 2px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor=C.cardBorder; e.currentTarget.style.borderLeftColor=color; }}
+    >
+      {/* header row: type chip + date + delete */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+          <span style={{ width:26, height:26, borderRadius:8, background:tint, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Icon size={14} color={text} strokeWidth={2.1} />
+          </span>
+          <span style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:text }}>{label}</span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <span style={{ fontSize:"0.72rem", color:C.textMuted }}>
+            {a.savedAt ? new Date(a.savedAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"}) : ""}
+          </span>
+          <button onClick={() => onRemove(a._id)} aria-label="Remove"
+            style={{ width:24, height:24, display:"flex", alignItems:"center", justifyContent:"center", background:"transparent", border:"none", borderRadius:6, color:C.textMuted, cursor:"pointer", padding:0, transition:"background 0.15s, color 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.background=C.active; e.currentTarget.style.color=C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.background="transparent"; e.currentTarget.style.color=C.textMuted; }}>
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* body — preserve line breaks (rich summaries carry a "Key points" list) */}
+      <div style={{
+        color:C.text, fontSize:"0.9rem", lineHeight:1.62, whiteSpace:"pre-wrap",
+        ...(isLong && !expanded ? { display:"-webkit-box", WebkitLineClamp:4, WebkitBoxOrient:"vertical", overflow:"hidden" } : {}),
+      }}>
+        {body}
+      </div>
+      {isLong && (
+        <button onClick={() => setExpanded(v => !v)}
+          style={{ marginTop:8, background:"transparent", border:"none", color:C.accentText, fontSize:"0.78rem", fontWeight:600, cursor:"pointer", padding:0, fontFamily:"inherit", display:"flex", alignItems:"center", gap:4 }}>
+          {expanded ? "Show less" : "Read more"}
+          <ChevronRight size={13} style={{ transform:expanded ? "rotate(-90deg)" : "rotate(90deg)", transition:"transform 0.2s" }} />
+        </button>
+      )}
+
+      {/* tag pills */}
+      {pills.length > 0 && (
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:12 }}>
+          {pills.map((t, j) => (
+            <span key={j} style={{ fontSize:"0.68rem", fontWeight:500, padding:"3px 10px", borderRadius:999, background:C.active, color:C.textSub, border:`1px solid ${C.cardBorder}` }}>{t}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SavedAnswersPage() {
   const [search,  setSearch]  = useState("");
   const [answers, setAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [focused, setFocused] = useState(false);
 
   const load = (q="") => {
     savedAnswerAPI.list(q)
@@ -432,42 +517,37 @@ function SavedAnswersPage() {
   if (loading) return <div style={{ padding:"3rem", textAlign:"center", color:C.textMuted }}><Spin /></div>;
 
   return (
-    <div style={{ padding:"2rem" }}>
-      <h2 style={{ fontSize:"1.35rem", fontWeight:500, color:C.text, marginBottom:4 }}>Saved Answers</h2>
-      <p style={{ color:C.textSub, fontSize:"0.88rem", marginBottom:"1.5rem" }}>Insights you've bookmarked for quick reference.</p>
+    <div style={{ padding:"2rem", maxWidth:760, margin:"0 auto" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
+        <h2 style={{ fontSize:"1.35rem", fontWeight:600, color:C.text, margin:0 }}>Saved Answers</h2>
+        {answers.length > 0 && (
+          <span style={{ fontSize:"0.72rem", fontWeight:600, color:C.accentText, background:C.accentSoft, border:`1px solid ${C.accent}44`, borderRadius:999, padding:"2px 10px" }}>{answers.length}</span>
+        )}
+      </div>
+      <p style={{ color:C.textSub, fontSize:"0.88rem", marginBottom:"1.5rem" }}>Session summaries, action items and insights you've saved.</p>
 
       <div style={{ position:"relative", marginBottom:"1.5rem" }}>
-        <Search size={14} color={C.textMuted} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)" }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search saved answers…"
-          style={{ width:"100%", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:10, padding:"9px 14px 9px 36px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }} />
+        <Search size={15} color={focused ? C.accentText : C.textMuted} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", transition:"color 0.15s" }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          placeholder="Search saved answers…"
+          style={{ width:"100%", background:C.card, border:`1px solid ${focused ? C.accent+"88" : C.cardBorder}`, boxShadow:focused ? `0 0 0 3px ${C.accentSoft}` : "none", borderRadius:12, padding:"11px 14px 11px 38px", color:C.text, fontSize:"0.9rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box", transition:"border-color 0.15s, box-shadow 0.15s" }} />
       </div>
 
-      <div style={{ display:"grid", gap:10 }}>
+      <div style={{ display:"grid", gap:12 }}>
         {answers.map((a, i) => (
-          <div key={a._id||i}
-            style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.1rem 1.4rem" }}
-            onMouseEnter={e => e.currentTarget.style.background=C.cardHover}
-            onMouseLeave={e => e.currentTarget.style.background=C.card}>
-            <div style={{ fontWeight:400, color:C.text, marginBottom:10, fontSize:"0.88rem", lineHeight:1.55 }}>{a.question}</div>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div style={{ display:"flex", gap:6 }}>
-                {(a.tags||[]).map((t, j) => (
-                  <span key={j} style={{ fontSize:"0.7rem", padding:"2px 9px", borderRadius:999, background:C.active, color:C.textSub, border:`1px solid ${C.cardBorder}` }}>{t}</span>
-                ))}
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:"0.72rem", color:C.textMuted }}>
-                  {a.savedAt ? new Date(a.savedAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"}) : ""}
-                </span>
-                <button onClick={() => handleRemove(a._id)}
-                  style={{ background:"transparent", border:"none", color:C.textMuted, cursor:"pointer", fontSize:"0.75rem", padding:0 }}>✕</button>
-              </div>
-            </div>
-          </div>
+          <SavedAnswerCard key={a._id||i} a={a} onRemove={handleRemove} />
         ))}
         {answers.length===0 && (
-          <div style={{ textAlign:"center", color:C.textMuted, padding:"3rem", fontSize:"0.88rem" }}>
-            {search ? `No saved answers match "${search}"` : "Nothing saved yet. Bookmark answers from the Clarity view."}
+          <div style={{ textAlign:"center", padding:"3.5rem 2rem", background:C.card, border:`1px dashed ${C.cardBorder}`, borderRadius:16 }}>
+            <div style={{ width:44, height:44, borderRadius:12, background:C.accentSoft, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>
+              <Bookmark size={20} color={C.accentText} />
+            </div>
+            <div style={{ color:C.text, fontSize:"0.92rem", fontWeight:600, marginBottom:4 }}>
+              {search ? "No matches found" : "Nothing saved yet"}
+            </div>
+            <div style={{ color:C.textMuted, fontSize:"0.84rem", lineHeight:1.5 }}>
+              {search ? `Nothing matches "${search}"` : "Finish a mentor session or bookmark answers from Clarity — they'll show up here."}
+            </div>
           </div>
         )}
       </div>
