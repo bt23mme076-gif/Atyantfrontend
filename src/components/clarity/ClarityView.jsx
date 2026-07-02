@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2, Sparkles, Video, ChevronLeft, ChevronRight } from "lucide-react";
+import { Send, CheckCircle, Loader2, Sparkles, Video, ChevronLeft, ChevronRight, MapPin, AlertTriangle, ListChecks, Users, Trophy, BookOpen, Target, Wrench } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -444,17 +444,73 @@ function AnswerSection({ label, children }) {
   );
 }
 
-// Short flowchart-node text — this is a roadmap, not a paragraph.
+// Short flowchart-node text — the caption under each node. Full text is always
+// recoverable in the detail card, so this truncation never hides content.
 const truncateNodeText = (text, max = 42) => {
   if (!text) return "";
   const clean = String(text).trim();
   return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
 };
 
-// Horizontal scroll row for the journey nodes, with edge fades + a chevron
-// hinting there's more to swipe — hidden once the user reaches that edge.
-function JourneyScrollRow({ children }) {
+/**
+ * @typedef {Object} JourneyStep
+ * @property {"start"|"mistake"|"step"|"turning"|"outcome"} type
+ * @property {string} label  — short milestone title shown under the node
+ * @property {string} text   — full milestone story, shown in the detail card
+ */
+
+// Meaningful icon per milestone — keyword matching for generic action steps.
+const nodeIconFor = (type, label = "") => {
+  if (type === "start") return MapPin;
+  if (type === "mistake") return AlertTriangle;
+  if (type === "turning") return Sparkles;
+  if (type === "outcome") return Trophy;
+  const l = label.toLowerCase();
+  if (/senior|alumni|mentor|people|talk|network|connect/.test(l)) return Users;
+  if (/plan|schedule|prep|routine|timeline/.test(l)) return ListChecks;
+  if (/subject|study|learn|read|course|book|fundament/.test(l)) return BookOpen;
+  if (/goal|target|focus/.test(l)) return Target;
+  return Wrench;
+};
+
+// ── Mentor's journey as an interactive milestone timeline ──
+// Nodes have three states: COMPLETED (filled accent), ACTIVE (glowing ring),
+// UPCOMING (muted outline). The connecting line fills up to the active node.
+// Clicking a node (or the ‹ › arrows) opens its full story in a detail card —
+// nothing is permanently truncated.
+function MentorJourneyFlow({ card }) {
+  const c = card?.content || {};
+  const mentor = card?.mentor || {};
+  const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
+  const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
+
+  // The final node should read as "what this mentor became", not the raw
+  // timeline paragraph — prefer their actual placement, then the result half
+  // of mainAnswer ("X → Y"), and only fall back to timeline if nothing else exists.
+  const outcomeText =
+    (mentor.topCompanies?.[0] && `${mentor.expertise?.[0] || "Placed"} @ ${mentor.topCompanies[0]}`) ||
+    (c.mainAnswer?.includes("→") ? c.mainAnswer.split("→").pop().trim() : null) ||
+    c.timeline;
+
+  /** @type {JourneyStep[]} */
+  const nodes = [];
+  if (c.situation) nodes.push({ type: "start", label: "Starting point", text: c.situation });
+  if (mistakes.length) {
+    nodes.push({
+      type: "mistake",
+      label: "Mistakes made",
+      text: mistakes.map((m) => (typeof m === "string" ? m : m?.description || m?.mistake)).join(" · "),
+    });
+  }
+  steps.forEach((s, i) => {
+    nodes.push({ type: "step", label: s.step || `Step ${i + 1}`, text: s.description || "" });
+  });
+  if (c.whatWorked) nodes.push({ type: "turning", label: "Turning point", text: c.whatWorked });
+  if (outcomeText) nodes.push({ type: "outcome", label: "Outcome", text: outcomeText });
+
+  const [active, setActive] = useState(0);
   const scrollRef = useRef(null);
+  const nodeRefs = useRef([]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -475,108 +531,180 @@ function JourneyScrollRow({ children }) {
       el.removeEventListener("scroll", updateHints);
       window.removeEventListener("resize", updateHints);
     };
-  }, [children]);
+  }, [nodes.length]);
 
-  return (
-    <div className="relative">
-      <div ref={scrollRef} className="flex items-start overflow-x-auto hide-scrollbar pb-4" style={{ WebkitOverflowScrolling: "touch" }}>
-        {children}
-      </div>
-      {canScrollLeft && (
-        <div
-          className="pointer-events-none absolute left-0 top-0 flex items-center justify-start"
-          style={{ bottom: 16, width: 32, background: "linear-gradient(90deg, var(--c-sidebar), rgba(0,0,0,0))" }}
-        >
-          <ChevronLeft size={16} style={{ color: "var(--c-accentText)" }} />
-        </div>
-      )}
-      {canScrollRight && (
-        <div
-          className="pointer-events-none absolute right-0 top-0 flex items-center justify-end"
-          style={{ bottom: 16, width: 32, background: "linear-gradient(270deg, var(--c-sidebar), rgba(0,0,0,0))" }}
-        >
-          <ChevronRight size={16} style={{ color: "var(--c-accentText)" }} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Mentor's journey as a visual roadmap, built from the same answer-card fields ──
-function MentorJourneyFlow({ card }) {
-  const c = card?.content || {};
-  const mentor = card?.mentor || {};
-  const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
-  const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
-
-  // The final node should read as "what this mentor became", not the raw
-  // timeline paragraph — prefer their actual placement, then the result half
-  // of mainAnswer ("X → Y"), and only fall back to timeline if nothing else exists.
-  const outcomeText =
-    (mentor.topCompanies?.[0] && `${mentor.expertise?.[0] || "Placed"} @ ${mentor.topCompanies[0]}`) ||
-    (c.mainAnswer?.includes("→") ? c.mainAnswer.split("→").pop().trim() : null) ||
-    c.timeline;
-
-  const nodes = [];
-  if (c.situation) nodes.push({ icon: "📍", label: "Starting point", text: c.situation, color: "#f87171" });
-  if (mistakes.length) {
-    nodes.push({
-      icon: "⚠️",
-      label: "Mistakes made",
-      text: mistakes.map((m) => (typeof m === "string" ? m : m?.description || m?.mistake)).join(" · "),
-      color: "#f59e0b",
-    });
-  }
-  steps.forEach((s, i) => {
-    nodes.push({ icon: "🔧", label: s.step || `Step ${i + 1}`, text: s.description, color: "#7567C9" });
-  });
-  if (c.whatWorked) nodes.push({ icon: "💡", label: "Turning point", text: c.whatWorked, color: "#3DBE82" });
-  if (outcomeText) nodes.push({ icon: "🏁", label: "Outcome", text: outcomeText, color: "#3DBE82" });
+  // Keep the active node centered — matters most on mobile snap-scroll.
+  useEffect(() => {
+    nodeRefs.current[active]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [active]);
 
   if (nodes.length < 2) return null;
 
+  const activeNode = nodes[active];
+  const ActiveIcon = nodeIconFor(activeNode.type, activeNode.label);
+
   return (
-    <div className="px-4 sm:px-6 pt-5 pb-1 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
+    <div className="px-4 sm:px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
           The journey
         </p>
-        <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
-          Swipe <ChevronRight size={11} />
-        </span>
+        {canScrollRight && (
+          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
+            Swipe <ChevronRight size={11} />
+          </span>
+        )}
       </div>
-      <JourneyScrollRow>
-        {nodes.map((n, i) => (
-          <div key={i} className="flex flex-col items-center flex-shrink-0" style={{ width: 168 }}>
-            <div className="flex items-center w-full">
-              <div style={{ flex: i === 0 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)" }} />
-              <div
-                className="flex items-center justify-center flex-shrink-0"
-                style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--c-card)", border: `2px solid ${n.color}`, fontSize: 15 }}
+
+      {/* Timeline row */}
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          className="flex items-start overflow-x-auto hide-scrollbar pb-2"
+          style={{ WebkitOverflowScrolling: "touch", scrollSnapType: "x proximity" }}
+        >
+          {nodes.map((n, i) => {
+            const Icon = nodeIconFor(n.type, n.label);
+            const isCompleted = i < active;
+            const isActive = i === active;
+            // Connector halves: left half belongs to segment (i-1→i), right to (i→i+1).
+            const leftFilled = i > 0 && i <= active;
+            const rightFilled = i < nodes.length - 1 && i < active;
+            return (
+              <motion.button
+                key={i}
+                ref={(el) => { nodeRefs.current[i] = el; }}
+                onClick={() => setActive(i)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: i * 0.05 }}
+                whileHover={{ y: -2 }}
+                className="flex flex-col items-center flex-shrink-0 cursor-pointer"
+                style={{ width: 152, background: "transparent", border: "none", padding: 0, scrollSnapAlign: "center" }}
               >
-                {n.icon}
-              </div>
-              <div style={{ flex: i === nodes.length - 1 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)" }} />
-            </div>
-            <p className="text-[11px] font-bold text-center mt-2 px-1" style={{ color: "var(--c-text)", fontFamily: "Inter, sans-serif" }}>
-              {n.label}
-            </p>
-            <p
-              className="text-[11px] text-center mt-1 px-1.5 leading-snug"
-              style={{
-                color: "var(--c-textMuted)",
-                fontFamily: "Inter, sans-serif",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {truncateNodeText(n.text)}
-            </p>
+                <div className="flex items-center w-full">
+                  <div style={{ flex: i === 0 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
+                    <div
+                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${leftFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "linear-gradient(90deg,#7567C9,#5a52a8)" }}
+                    />
+                  </div>
+                  <motion.div
+                    animate={{
+                      scale: isActive ? 1.08 : 1,
+                      boxShadow: isActive ? "0 0 0 5px rgba(117,103,201,0.18), 0 4px 14px rgba(117,103,201,0.35)" : "0 0 0 0px rgba(117,103,201,0)",
+                    }}
+                    transition={{ duration: 0.25 }}
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: "50%",
+                      background: isCompleted ? "linear-gradient(135deg,#7567C9,#5a52a8)" : "var(--c-card)",
+                      border: isCompleted ? "2px solid transparent" : `2px solid ${isActive ? "#7567C9" : "var(--c-sidebarBorder)"}`,
+                    }}
+                  >
+                    <Icon size={16} style={{ color: isCompleted ? "#fff" : isActive ? "var(--c-accentText)" : "var(--c-textMuted)" }} />
+                  </motion.div>
+                  <div style={{ flex: i === nodes.length - 1 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
+                    <div
+                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${rightFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "linear-gradient(90deg,#7567C9,#5a52a8)" }}
+                    />
+                  </div>
+                </div>
+                <p
+                  className="text-[11px] font-bold text-center mt-2 px-1"
+                  style={{ color: isActive || isCompleted ? "var(--c-text)" : "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}
+                >
+                  {n.label}
+                </p>
+                <p
+                  className="text-[11px] text-center mt-1 px-1.5 leading-snug"
+                  style={{
+                    color: "var(--c-textMuted)",
+                    fontFamily: "Inter, sans-serif",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {truncateNodeText(n.text)}
+                </p>
+              </motion.button>
+            );
+          })}
+        </div>
+        {canScrollLeft && (
+          <div
+            className="pointer-events-none absolute left-0 top-0 flex items-center justify-start"
+            style={{ bottom: 8, width: 32, background: "linear-gradient(90deg, var(--c-sidebar), rgba(0,0,0,0))" }}
+          >
+            <ChevronLeft size={16} style={{ color: "var(--c-accentText)" }} />
           </div>
-        ))}
-      </JourneyScrollRow>
+        )}
+        {canScrollRight && (
+          <div
+            className="pointer-events-none absolute right-0 top-0 flex items-center justify-end"
+            style={{ bottom: 8, width: 32, background: "linear-gradient(270deg, var(--c-sidebar), rgba(0,0,0,0))" }}
+          >
+            <ChevronRight size={16} style={{ color: "var(--c-accentText)" }} />
+          </div>
+        )}
+      </div>
+
+      {/* Detail card — full milestone story, never truncated.
+          Keyed remount (no AnimatePresence): nesting a mode="wait" presence
+          inside ClarityView's outer AnimatePresence left the old card stuck. */}
+      <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18 }}
+          className="mt-2 rounded-xl px-4 py-3.5"
+          style={{ background: "var(--c-card)", border: "1px solid rgba(117,103,201,0.25)" }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="flex items-center justify-center flex-shrink-0 mt-0.5"
+              style={{ width: 30, height: 30, borderRadius: 10, background: "rgba(117,103,201,0.14)" }}
+            >
+              <ActiveIcon size={15} style={{ color: "var(--c-accentText)" }} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold" style={{ color: "var(--c-text)", fontFamily: "Inter, sans-serif" }}>
+                  {activeNode.label}
+                </p>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ color: "var(--c-accentText)", background: "rgba(117,103,201,0.12)" }}>
+                  {active + 1} / {nodes.length}
+                </span>
+              </div>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: "Inter, sans-serif" }}>
+                {activeNode.text}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setActive((v) => Math.max(0, v - 1))}
+                disabled={active === 0}
+                aria-label="Previous milestone"
+                className="flex items-center justify-center rounded-lg"
+                style={{ width: 26, height: 26, border: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)", color: active === 0 ? "var(--c-sidebarBorder)" : "var(--c-accentText)", cursor: active === 0 ? "default" : "pointer" }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                onClick={() => setActive((v) => Math.min(nodes.length - 1, v + 1))}
+                disabled={active === nodes.length - 1}
+                aria-label="Next milestone"
+                className="flex items-center justify-center rounded-lg"
+                style={{ width: 26, height: 26, border: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)", color: active === nodes.length - 1 ? "var(--c-sidebarBorder)" : "var(--c-accentText)", cursor: active === nodes.length - 1 ? "default" : "pointer" }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
     </div>
   );
 }
