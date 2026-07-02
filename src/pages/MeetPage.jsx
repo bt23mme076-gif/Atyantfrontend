@@ -6,22 +6,51 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DisconnectReason, ConnectionState } from 'livekit-client';
 import BackgroundControl from '../components/meet/BackgroundControl';
 import Whiteboard from '../components/meet/Whiteboard';
+import SessionTimer from '../components/meet/SessionTimer';
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
-// In-call tools (background effects + shared whiteboard). Rendered only once the
-// room is connected, so the local camera track and data channel are ready.
-// `hasVideo` hides background effects on audio-only calls.
+// In-call tools (session timer + background effects + shared whiteboard).
+// Rendered only once the room is connected, so the local camera track and data
+// channel are ready. `hasVideo` hides background effects on audio-only calls.
 function MeetTools({ hasVideo }) {
     const state = useConnectionState();
     if (state !== ConnectionState.Connected) return null;
     return (
         <>
+            <SessionTimer />
             {hasVideo && <BackgroundControl top={14} right={14} />}
             <Whiteboard top={hasVideo ? 66 : 14} right={14} />
         </>
     );
 }
+
+// Branded full-screen shell for the pre/post-call states (joining, error,
+// ended). Keeps the loading, error and ended views visually consistent with
+// the rest of the product instead of bare dark screens.
+function MeetScreen({ children }) {
+    return (
+        <div className="meet-screen">
+            <div className="meet-card">{children}</div>
+        </div>
+    );
+}
+
+const WarnIcon = () => (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        <path d="M12 9v4" /><path d="M12 17h.01" />
+    </svg>
+);
+
+const LeaveIcon = () => (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <path d="m16 17 5-5-5-5" /><path d="M21 12H9" />
+    </svg>
+);
 
 export default function MeetPage({ sessionId: propSessionId }) {
     const { sessionId: paramSessionId } = useParams();
@@ -70,35 +99,36 @@ export default function MeetPage({ sessionId: propSessionId }) {
     }, [sessionId]);
 
     if (ended) return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', justifyContent: 'center', background: '#111', color: '#fff', fontSize: 18, padding: 24, textAlign: 'center' }}>
-            The session has ended or the connection was lost.
-            <button
-                onClick={() => navigate('/')}
-                style={{ background: '#7567C9', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
-            >
-                Back to home
-            </button>
-        </div>
+        <MeetScreen>
+            <div className="meet-badge meet-badge-neutral"><LeaveIcon /></div>
+            <div className="meet-card-title">Session ended</div>
+            <div className="meet-card-sub">The session has ended or the connection was lost.</div>
+            <button className="meet-btn" onClick={() => navigate('/')}>Back to home</button>
+        </MeetScreen>
     );
 
     if (loading) return (
-        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', color: '#fff', fontSize: 18 }}>
-            Joining session...
-        </div>
+        <MeetScreen>
+            <div className="meet-spinner" />
+            <div className="meet-card-title">Joining your session…</div>
+            <div className="meet-card-sub">Setting up secure audio &amp; video</div>
+        </MeetScreen>
     );
 
     if (error) return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', justifyContent: 'center', background: '#111', color: '#f87171', fontSize: 18, padding: 24, textAlign: 'center' }}>
-            {error}
+        <MeetScreen>
+            <div className="meet-badge meet-badge-warn"><WarnIcon /></div>
+            <div className="meet-card-title">{needsAuth ? 'Sign in to continue' : 'Can’t join the session'}</div>
+            <div className="meet-card-sub">{error}</div>
             {needsAuth && (
                 <button
+                    className="meet-btn"
                     onClick={() => { window.location.href = `/atyantEngine/?redirect=${encodeURIComponent(`/atyantEngine/?meet=${sessionId}`)}`; }}
-                    style={{ background: '#7567C9', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
                 >
                     Sign in to join
                 </button>
             )}
-        </div>
+        </MeetScreen>
     );
 
     return (
@@ -109,7 +139,18 @@ export default function MeetPage({ sessionId: propSessionId }) {
             audio={true}
             video={roomData.callType !== 'audio'}
             data-lk-theme="default"
-            style={{ height: '100vh' }}
+            className="atyant-meet"
+            // Rebrand LiveKit's default (blue) accent to Atyant purple. Set as
+            // inline CSS custom properties so they cascade to every LiveKit
+            // child and can't be lost to stylesheet import-order/specificity.
+            style={{
+                height: '100vh',
+                '--lk-accent-bg': '#7567C9',
+                '--lk-accent2': '#8474d1',
+                '--lk-accent3': '#9585d9',
+                '--lk-accent4': '#a596e0',
+                '--lk-border-radius': '0.7rem',
+            }}
             onDisconnected={(reason) => {
                 // CLIENT_INITIATED = the user pressed Leave → straight home.
                 // Any other reason (lost/failed connection) → show a clear exit

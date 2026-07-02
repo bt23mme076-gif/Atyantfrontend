@@ -202,3 +202,150 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;                /* Chrome / Safari */
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MEET / VIDEO SESSION
+   Premium pre/post-call screens, the in-call session timer, and light branding
+   over LiveKit's default theme. Kept in one place so the call surface reads as
+   part of the product rather than a stock video widget.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Full-screen branded shell for the joining / error / ended states. */
+.meet-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #fff;
+  background:
+    radial-gradient(58% 52% at 50% 30%, rgba(117, 103, 201, 0.22), transparent 70%),
+    radial-gradient(48% 40% at 88% 108%, rgba(117, 103, 201, 0.12), transparent 70%),
+    #0c0c11;
+}
+.meet-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 34px 30px;
+  border-radius: 20px;
+  background: rgba(24, 24, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: meetCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.meet-card-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.meet-card-sub {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 300px;
+}
+.meet-spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #7567C9;
+  animation: meetSpin 0.8s linear infinite;
+  margin-bottom: 4px;
+}
+.meet-badge {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+.meet-badge-warn {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+.meet-badge-neutral {
+  color: #a99ee0;
+  background: rgba(117, 103, 201, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(117, 103, 201, 0.3);
+}
+.meet-btn {
+  margin-top: 6px;
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(180deg, #8375d0, #7567C9);
+  box-shadow: 0 8px 22px rgba(117, 103, 201, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.meet-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(117, 103, 201, 0.5);
+  filter: brightness(1.06);
+}
+.meet-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(117, 103, 201, 0.4);
+}
+
+/* In-call session timer pill (SessionTimer.jsx). */
+.meet-timer {
+  animation: meetTimerIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.meet-live-dot {
+  animation: meetLivePulse 1.8s ease-out infinite;
+}
+
+@keyframes meetCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes meetSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes meetTimerIn {
+  from { opacity: 0; transform: translate(-50%, -12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes meetLivePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* Light polish over LiveKit's control bar → a translucent "glass dock". Padding
+   is left at the theme default so button height stays within --lk-control-bar-height. */
+.atyant-meet .lk-control-bar {
+  gap: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(18, 18, 24, 0) 0%, rgba(12, 12, 16, 0.55) 55%, rgba(10, 10, 14, 0.82) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.atyant-meet .lk-button {
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+.atyant-meet .lk-button:active {
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meet-card, .meet-timer, .meet-live-dot, .meet-btn { animation: none; transition: none; }
+  .meet-spinner { animation-duration: 1.6s; }
+}
