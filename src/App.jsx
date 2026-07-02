@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useIsMobile from "./hooks/useIsMobile";
+import ClarityView from "./components/clarity/ClarityView";
+import Footer from "./components/Footer";
+import MentorTrackPage from "./pages/MentorTrackPage";
 
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 // Heavy, rarely-first pages are code-split so the initial bundle stays lean.
@@ -22,10 +26,7 @@ import Avatar         from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth } from "./context/AuthContext";
-import useIsMobile from "./hooks/useIsMobile";
-import ClarityView from "./components/clarity/ClarityView";
-import Footer from "./components/Footer";
-import MentorTrackPage from "./pages/MentorTrackPage";
+
 import { ThemeToggle } from "./context/ThemeContext";
 import {
   sessionAPI,
