@@ -540,15 +540,19 @@ function MentorJourneyFlow({ card }) {
 
   if (nodes.length < 2) return null;
 
-  const activeNode = nodes[active];
-  const ActiveIcon = nodeIconFor(activeNode.type, activeNode.label);
+  const journeyPct = Math.round((active / (nodes.length - 1)) * 100);
 
   return (
-    <div className="px-4 sm:px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
-          The journey
-        </p>
+    <div className="px-4 sm:px-6 pt-5 pb-2 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+            The journey
+          </p>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: journeyPct === 100 ? "#3DBE82" : "var(--c-accentText)", background: journeyPct === 100 ? "rgba(61,190,130,0.12)" : "rgba(117,103,201,0.12)" }}>
+            {journeyPct === 100 ? "🏆 100%" : `${journeyPct}%`}
+          </span>
+        </div>
         {canScrollRight && (
           <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
             Swipe <ChevronRight size={11} />
@@ -556,11 +560,11 @@ function MentorJourneyFlow({ card }) {
         )}
       </div>
 
-      {/* Timeline row */}
+      {/* Timeline row — pt-3 gives the active node's glow/lift room, so it isn't clipped */}
       <div className="relative">
         <div
           ref={scrollRef}
-          className="flex items-start overflow-x-auto hide-scrollbar pb-2"
+          className="flex items-start overflow-x-auto hide-scrollbar pt-3 pb-2"
           style={{ WebkitOverflowScrolling: "touch", scrollSnapType: "x proximity" }}
         >
           {nodes.map((n, i) => {
@@ -652,59 +656,6 @@ function MentorJourneyFlow({ card }) {
         )}
       </div>
 
-      {/* Detail card — full milestone story, never truncated.
-          Keyed remount (no AnimatePresence): nesting a mode="wait" presence
-          inside ClarityView's outer AnimatePresence left the old card stuck. */}
-      <motion.div
-          key={active}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
-          className="mt-2 rounded-xl px-4 py-3.5"
-          style={{ background: "var(--c-card)", border: "1px solid rgba(117,103,201,0.25)" }}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="flex items-center justify-center flex-shrink-0 mt-0.5"
-              style={{ width: 30, height: 30, borderRadius: 10, background: "rgba(117,103,201,0.14)" }}
-            >
-              <ActiveIcon size={15} style={{ color: "var(--c-accentText)" }} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-bold" style={{ color: "var(--c-text)", fontFamily: "Inter, sans-serif" }}>
-                  {activeNode.label}
-                </p>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ color: "var(--c-accentText)", background: "rgba(117,103,201,0.12)" }}>
-                  {active + 1} / {nodes.length}
-                </span>
-              </div>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: "Inter, sans-serif" }}>
-                {activeNode.text}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button
-                onClick={() => setActive((v) => Math.max(0, v - 1))}
-                disabled={active === 0}
-                aria-label="Previous milestone"
-                className="flex items-center justify-center rounded-lg"
-                style={{ width: 26, height: 26, border: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)", color: active === 0 ? "var(--c-sidebarBorder)" : "var(--c-accentText)", cursor: active === 0 ? "default" : "pointer" }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                onClick={() => setActive((v) => Math.min(nodes.length - 1, v + 1))}
-                disabled={active === nodes.length - 1}
-                aria-label="Next milestone"
-                className="flex items-center justify-center rounded-lg"
-                style={{ width: 26, height: 26, border: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)", color: active === nodes.length - 1 ? "var(--c-sidebarBorder)" : "var(--c-accentText)", cursor: active === nodes.length - 1 ? "default" : "pointer" }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        </motion.div>
     </div>
   );
 }
