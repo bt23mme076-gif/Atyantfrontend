@@ -444,11 +444,27 @@ function AnswerSection({ label, children }) {
   );
 }
 
+// Short flowchart-node text — this is a roadmap, not a paragraph.
+const truncateNodeText = (text, max = 42) => {
+  if (!text) return "";
+  const clean = String(text).trim();
+  return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
+};
+
 // ── Mentor's journey as a visual roadmap, built from the same answer-card fields ──
 function MentorJourneyFlow({ card }) {
   const c = card?.content || {};
+  const mentor = card?.mentor || {};
   const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
   const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
+
+  // The final node should read as "what this mentor became", not the raw
+  // timeline paragraph — prefer their actual placement, then the result half
+  // of mainAnswer ("X → Y"), and only fall back to timeline if nothing else exists.
+  const outcomeText =
+    (mentor.topCompanies?.[0] && `${mentor.expertise?.[0] || "Placed"} @ ${mentor.topCompanies[0]}`) ||
+    (c.mainAnswer?.includes("→") ? c.mainAnswer.split("→").pop().trim() : null) ||
+    c.timeline;
 
   const nodes = [];
   if (c.situation) nodes.push({ icon: "📍", label: "Starting point", text: c.situation, color: "#f87171" });
@@ -464,7 +480,7 @@ function MentorJourneyFlow({ card }) {
     nodes.push({ icon: "🔧", label: s.step || `Step ${i + 1}`, text: s.description, color: "#7567C9" });
   });
   if (c.whatWorked) nodes.push({ icon: "💡", label: "Turning point", text: c.whatWorked, color: "#3DBE82" });
-  if (c.timeline) nodes.push({ icon: "🏁", label: "Outcome", text: c.timeline, color: "#3DBE82" });
+  if (outcomeText) nodes.push({ icon: "🏁", label: "Outcome", text: outcomeText, color: "#3DBE82" });
 
   if (nodes.length < 2) return null;
 
@@ -495,12 +511,12 @@ function MentorJourneyFlow({ card }) {
                 color: "var(--c-textMuted)",
                 fontFamily: "Inter, sans-serif",
                 display: "-webkit-box",
-                WebkitLineClamp: 3,
+                WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
                 overflow: "hidden",
               }}
             >
-              {n.text}
+              {truncateNodeText(n.text)}
             </p>
           </div>
         ))}
