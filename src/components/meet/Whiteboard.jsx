@@ -1,80 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDataChannel } from '@livekit/components-react';
 
-// One shared data-channel topic for all whiteboard + notes traffic. `send`
-// from useDataChannel(topic, …) auto-attaches this topic to every outgoing
-// packet.
+// One shared data-channel topic for all meet whiteboard traffic. `send` from
+// useDataChannel(topic, …) auto-attaches this topic to every outgoing packet.
 const TOPIC = 'atyant-wb';
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// Fixed backing-store resolution for the drawing canvas. Both peers draw into
-// the same 1600×900 buffer and coordinates travel normalised (0..1), so
-// strokes land identically on any screen size. The canvas's CSS box is kept
-// at the same 16:9 shape (see .meet-canvas-wrap in index.css) specifically so
-// stretching to fill it never distorts a stroke, even though the two sides
-// may have independently resized their own panel to a different absolute size.
+// Fixed backing-store resolution. Both peers draw into the same 1600×900 buffer
+// and coordinates travel normalised (0..1), so strokes land identically on any
+// screen size and survive window resizes (CSS scales the canvas, not the buffer).
 const BW = 1600;
 const BH = 900;
 
 const COLORS = ['#111827', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#7567C9'];
 const SIZES = [{ w: 4, r: 6 }, { w: 8, r: 8 }, { w: 16, r: 11 }];
 const ERASER_W = 44;
-const NOTES_DEBOUNCE_MS = 300;
-
-// Panel size presets (px). These drive a CSS flex-basis on the room layout's
-// main axis, which is width on desktop (docked right) and height on narrow
-// screens (docked bottom — index.css flips flex-direction under 760px), so
-// the same numbers double as sane values for either axis.
-const PRESETS = { small: 340, medium: 460, large: 640 };
-const MIN_SIZE = 300;
-// Hard floor reserved for the video pane no matter how far the board is
-// resized — this is what actually guarantees a participant is never fully
-// hidden, not just a visual suggestion.
-const VIDEO_RESERVE = 280;
-
-function isNarrowViewport() {
-    return window.matchMedia('(max-width: 760px)').matches;
-}
-function clampSize(px, narrow) {
-    const viewportMax = narrow ? window.innerHeight : window.innerWidth;
-    return Math.min(Math.max(px, MIN_SIZE), Math.max(MIN_SIZE, viewportMax - VIDEO_RESERVE));
-}
 
 /**
- * Docked, resizable session panel combining the shared whiteboard AND shared
- * notes in one place (a Draw/Notes toggle switches the view — nothing about
- * "removing the separate notes button" loses content, since both the canvas
- * and the notes textarea stay mounted underneath and only `display` toggles).
+ * A shared whiteboard both participants can draw and write on. Opening it (or
+ * receiving a stroke) opens it for the other side too, so the board is always
+ * in sync while it's up. Drawing is broadcast stroke-segment by stroke-segment
+ * over the LiveKit data channel (reliable, so nothing is dropped).
  *
- * Docks as a real flex sibling of the video area (see .meet-board-dock /
- * .meet-video-pane in index.css) rather than a full-screen overlay, so the
- * video pane's box actually shrinks and LiveKit's own responsive grid layout
- * reflows the tiles — the video is resized, never covered.
- *
- * `open` is controlled by the parent (shared with the "hide BackgroundControl
- * while the board is open" decision in MeetPage) and also mirrors the
- * existing behaviour of auto-opening for the other participant on any
- * incoming stroke/note/open message.
+ * Note: strokes drawn before a peer opens the board are not back-filled — the
+ * board syncs from the moment both sides have it open (which the auto-open on
+ * first stroke guarantees for the normal flow).
  */
-export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 }) {
-    const [mode, setMode] = useState('draw'); // 'draw' | 'notes'
-    const [tool, setTool] = useState('pen');
+export default function Whiteboard({ top = 66, right = 14 }) {
+    const [open, setOpen] = useState(false);
+    const [tool, setTool] = useState('pen'); // 'pen' | 'eraser'
     const [color, setColor] = useState(COLORS[0]);
     const [sizeIdx, setSizeIdx] = useState(1);
-    const [size, setSize] = useState(PRESETS.medium);
-    const [dragging, setDragging] = useState(false);
-    const [notesText, setNotesText] = useState('');
 
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
-    const drawingRef = useRef(null);
+    const drawingRef = useRef(false);
     const lastRef = useRef(null);
-
-    const notesTsRef = useRef(0);
-    const notesFocusedRef = useRef(false);
-    const notesDebounceRef = useRef(null);
-    const dragStateRef = useRef(null);
+    // Live tool/color/size for use inside stable pointer handlers.
+    const cfgRef = useRef({ tool, color, sizeIdx });
+    cfgRef.current = { tool, color, sizeIdx };
 
     const getCtx = () => {
         if (ctxRef.current) return ctxRef.current;
@@ -123,23 +88,16 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
             return;
         }
         if (d.t === 'seg') {
-            onOpenChange(true); // defensive: a stroke always means the board is live
+            setOpen(true); // defensive: a stroke always means the board is live
             paint(d);
         } else if (d.t === 'clear') {
             clearLocal();
         } else if (d.t === 'open') {
-            onOpenChange(true);
+            setOpen(true);
         } else if (d.t === 'close') {
-            onOpenChange(false);
-        } else if (d.t === 'notes') {
-            if (d.ts <= notesTsRef.current) return;
-            notesTsRef.current = d.ts;
-            onOpenChange(true);
-            // Don't rip text out from under someone mid-sentence — the next
-            // broadcast after they blur/pause reconciles both sides anyway.
-            if (!notesFocusedRef.current) setNotesText(d.text);
+            setOpen(false);
         }
-    }, [paint, clearLocal, onOpenChange]);
+    }, [paint, clearLocal]);
 
     const { send } = useDataChannel(TOPIC, onMessage);
     const broadcast = useCallback(
@@ -149,23 +107,12 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
         [send],
     );
 
-    const broadcastNotes = useCallback((value) => {
-        const ts = Date.now();
-        notesTsRef.current = ts;
-        broadcast({ t: 'notes', text: value, ts });
-    }, [broadcast]);
-
-    const onNotesChange = (e) => {
-        const value = e.target.value;
-        setNotesText(value);
-        clearTimeout(notesDebounceRef.current);
-        notesDebounceRef.current = setTimeout(() => broadcastNotes(value), NOTES_DEBOUNCE_MS);
-    };
-
-    const toggleOpen = () => {
-        const next = !open;
-        onOpenChange(next);
-        broadcast({ t: next ? 'open' : 'close' });
+    const toggle = () => {
+        setOpen((v) => {
+            const next = !v;
+            broadcast({ t: next ? 'open' : 'close' });
+            return next;
+        });
     };
 
     const clearBoard = () => {
@@ -182,12 +129,13 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
     };
 
     const strokeAt = (a, b) => {
-        const isEraser = tool === 'eraser';
+        const { tool: t, color: c, sizeIdx: si } = cfgRef.current;
+        const isEraser = t === 'eraser';
         const s = {
             t: 'seg',
             x0: a.x, y0: a.y, x1: b.x, y1: b.y,
-            c: isEraser ? undefined : color,
-            w: isEraser ? ERASER_W : SIZES[sizeIdx].w,
+            c: isEraser ? undefined : c,
+            w: isEraser ? ERASER_W : SIZES[si].w,
             e: isEraser,
         };
         paint(s);
@@ -214,94 +162,25 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
         try { canvasRef.current.releasePointerCapture(e.pointerId); } catch { /* noop */ }
     };
 
-    // Reset the cached 2d context if the canvas element is remounted (open/close).
+    // Reset the cached 2d context if the canvas element is remounted.
     useEffect(() => {
         ctxRef.current = null;
     }, [open]);
 
-    useEffect(() => () => clearTimeout(notesDebounceRef.current), []);
-
-    // ── panel resize (drag the edge, or jump to a preset) ──
-    const onResizeStart = (e) => {
-        e.preventDefault();
-        const narrow = isNarrowViewport();
-        dragStateRef.current = { narrow, startClient: narrow ? e.clientY : e.clientX, startSize: size };
-        setDragging(true);
-        try { e.target.setPointerCapture(e.pointerId); } catch { /* noop */ }
-    };
-    const onResizeMove = (e) => {
-        const st = dragStateRef.current;
-        if (!st) return;
-        const client = st.narrow ? e.clientY : e.clientX;
-        // Panel is docked to the right (or bottom, narrow) edge — dragging its
-        // near edge toward the video shrinks it, away from it grows it.
-        setSize(clampSize(st.startSize - (client - st.startClient), st.narrow));
-    };
-    const onResizeEnd = (e) => {
-        dragStateRef.current = null;
-        setDragging(false);
-        try { e.target.releasePointerCapture(e.pointerId); } catch { /* noop */ }
-    };
-
-    const applyPreset = (key) => setSize(clampSize(PRESETS[key], isNarrowViewport()));
-    const applyFullscreen = () => {
-        const narrow = isNarrowViewport();
-        const viewportMax = narrow ? window.innerHeight : window.innerWidth;
-        setSize(clampSize(viewportMax - VIDEO_RESERVE, narrow));
-    };
-
     return (
         <>
-            {!open && (
-                <button
-                    type="button"
-                    onClick={toggleOpen}
-                    title="Whiteboard & notes"
-                    aria-label="Whiteboard & notes"
-                    style={fabBtn(top, right)}
-                >
-                    <BoardIcon />
-                </button>
-            )}
-
-            <div
-                className={`meet-board-dock${dragging ? ' dragging' : ''}`}
-                style={{ '--board-w': `${open ? size : 0}px`, display: open ? 'flex' : 'none' }}
-                role="complementary"
-                aria-label="Whiteboard and shared notes"
+            <button
+                type="button"
+                onClick={toggle}
+                title="Whiteboard"
+                aria-label="Whiteboard"
+                style={{ ...fabBtn(top, right), ...(open ? fabActive : null) }}
             >
-                <div
-                    className="meet-board-resize-handle"
-                    onPointerDown={onResizeStart}
-                    onPointerMove={onResizeMove}
-                    onPointerUp={onResizeEnd}
-                    onPointerCancel={onResizeEnd}
-                    title="Drag to resize"
-                />
+                <BoardIcon />
+            </button>
 
-                <div style={header}>
-                    <div style={group}>
-                        <ModeBtn active={mode === 'draw'} onClick={() => setMode('draw')} title="Draw">
-                            <PenIcon /><span>Draw</span>
-                        </ModeBtn>
-                        <ModeBtn active={mode === 'notes'} onClick={() => setMode('notes')} title="Notes">
-                            <NotesIcon /><span>Notes</span>
-                        </ModeBtn>
-                    </div>
-
-                    <div style={{ ...group, marginLeft: 'auto' }}>
-                        <SizeBtn onClick={() => applyPreset('small')} title="Small">S</SizeBtn>
-                        <SizeBtn onClick={() => applyPreset('medium')} title="Medium">M</SizeBtn>
-                        <SizeBtn onClick={() => applyPreset('large')} title="Large">L</SizeBtn>
-                        <SizeBtn onClick={applyFullscreen} title="Full screen"><ExpandIcon /></SizeBtn>
-                    </div>
-
-                    <button type="button" onClick={toggleOpen} style={closeBtn} title="Close" aria-label="Close whiteboard">
-                        <CloseIcon />
-                    </button>
-                </div>
-
-                {mode === 'draw' && (
+            {open && (
+                <div style={overlay} role="dialog" aria-label="Shared whiteboard">
                     <div style={toolbar}>
                         <div style={group}>
                             <ToolBtn active={tool === 'pen'} onClick={() => setTool('pen')} title="Pen">
@@ -311,7 +190,9 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
                                 <EraserIcon />
                             </ToolBtn>
                         </div>
+
                         <div style={divider} />
+
                         <div style={group}>
                             {COLORS.map((c) => (
                                 <button
@@ -321,7 +202,7 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
                                     title={c}
                                     aria-label={`Colour ${c}`}
                                     style={{
-                                        width: 20, height: 20, borderRadius: '50%', cursor: 'pointer',
+                                        width: 22, height: 22, borderRadius: '50%', cursor: 'pointer',
                                         background: c,
                                         border: color === c && tool === 'pen' ? '2px solid #fff' : '2px solid rgba(255,255,255,0.25)',
                                         boxShadow: color === c && tool === 'pen' ? '0 0 0 2px #7567C9' : 'none',
@@ -329,7 +210,9 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
                                 />
                             ))}
                         </div>
+
                         <div style={divider} />
+
                         <div style={group}>
                             {SIZES.map((s, i) => (
                                 <ToolBtn key={i} active={sizeIdx === i} onClick={() => setSizeIdx(i)} title={`Size ${i + 1}`}>
@@ -337,15 +220,18 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
                                 </ToolBtn>
                             ))}
                         </div>
+
                         <div style={divider} />
+
                         <button type="button" onClick={clearBoard} style={textBtn} title="Clear board">
                             Clear
                         </button>
+                        <button type="button" onClick={toggle} style={closeBtn} title="Close whiteboard" aria-label="Close whiteboard">
+                            <CloseIcon />
+                        </button>
                     </div>
-                )}
 
-                <div style={body}>
-                    <div className="meet-canvas-wrap" style={{ display: mode === 'draw' ? 'block' : 'none' }}>
+                    <div style={boardWrap}>
                         <canvas
                             ref={canvasRef}
                             width={BW}
@@ -355,6 +241,8 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
                             onPointerUp={onPointerUp}
                             onPointerCancel={onPointerUp}
                             style={{
+                                position: 'absolute',
+                                inset: 0,
                                 width: '100%',
                                 height: '100%',
                                 touchAction: 'none',
@@ -362,20 +250,8 @@ export default function Whiteboard({ open, onOpenChange, top = 14, right = 14 })
                             }}
                         />
                     </div>
-                    <textarea
-                        value={notesText}
-                        onChange={onNotesChange}
-                        onFocus={() => { notesFocusedRef.current = true; }}
-                        onBlur={() => {
-                            notesFocusedRef.current = false;
-                            clearTimeout(notesDebounceRef.current);
-                            broadcastNotes(notesText);
-                        }}
-                        placeholder="Notes both of you can see and edit…"
-                        style={{ ...notesArea, display: mode === 'notes' ? 'block' : 'none' }}
-                    />
                 </div>
-            </div>
+            )}
         </>
     );
 }
@@ -388,48 +264,11 @@ function ToolBtn({ active, onClick, title, children }) {
             title={title}
             aria-label={title}
             style={{
-                width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+                width: 34, height: 34, borderRadius: 8, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#fff',
                 border: active ? '1px solid #7567C9' : '1px solid rgba(255,255,255,0.14)',
                 background: active ? '#7567C9' : 'rgba(255,255,255,0.06)',
-            }}
-        >
-            {children}
-        </button>
-    );
-}
-function ModeBtn({ active, onClick, title, children }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            title={title}
-            aria-pressed={active}
-            style={{
-                display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 11px',
-                borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
-                color: '#fff',
-                border: active ? '1px solid #7567C9' : '1px solid rgba(255,255,255,0.14)',
-                background: active ? '#7567C9' : 'rgba(255,255,255,0.06)',
-            }}
-        >
-            {children}
-        </button>
-    );
-}
-function SizeBtn({ onClick, title, children }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            title={title}
-            aria-label={title}
-            style={{
-                width: 28, height: 28, borderRadius: 7, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: 11.5, fontWeight: 700,
-                border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
             }}
         >
             {children}
@@ -446,31 +285,18 @@ const BoardIcon = () => (
     </svg>
 );
 const PenIcon = () => (
-    <svg width="15" height="15" viewBox="0 0 24 24" {...stroke}>
+    <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
         <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
 );
 const EraserIcon = () => (
-    <svg width="15" height="15" viewBox="0 0 24 24" {...stroke}>
+    <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
         <path d="m7 21-4-4a2 2 0 0 1 0-3l9-9a2 2 0 0 1 3 0l4 4a2 2 0 0 1 0 3l-8 8Z" />
         <path d="M11 8 18 15" /><path d="M7 21h13" />
     </svg>
 );
-const NotesIcon = () => (
-    <svg width="15" height="15" viewBox="0 0 24 24" {...stroke}>
-        <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-        <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
-        <path d="M9 13h6" /><path d="M9 17h4" />
-    </svg>
-);
-const ExpandIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" {...stroke}>
-        <path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" />
-        <path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" />
-    </svg>
-);
 const CloseIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" {...stroke}>
+    <svg width="17" height="17" viewBox="0 0 24 24" {...stroke}>
         <path d="M18 6 6 18" /><path d="m6 6 12 12" />
     </svg>
 );
@@ -494,29 +320,50 @@ const fabBtn = (top, right) => ({
     backdropFilter: 'blur(8px)',
     boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
 });
-const header = {
-    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 10px 10px 14px',
-    background: 'rgba(20,20,26,0.98)', borderBottom: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap',
+const fabActive = { background: '#7567C9', borderColor: '#7567C9' };
+const overlay = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 990,
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: '70px 16px 20px',
+    boxSizing: 'border-box',
 };
 const toolbar = {
-    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-    padding: '8px 12px', background: 'rgba(20,20,26,0.94)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    padding: '8px 12px',
+    borderRadius: 12,
+    background: 'rgba(24,24,30,0.96)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
 };
 const group = { display: 'flex', alignItems: 'center', gap: 6 };
-const divider = { width: 1, height: 22, background: 'rgba(255,255,255,0.14)' };
+const divider = { width: 1, height: 24, background: 'rgba(255,255,255,0.14)' };
 const textBtn = {
-    height: 32, padding: '0 12px', borderRadius: 8, cursor: 'pointer',
-    color: '#fff', fontSize: 12.5, fontWeight: 600,
+    height: 34, padding: '0 12px', borderRadius: 8, cursor: 'pointer',
+    color: '#fff', fontSize: 13, fontWeight: 600,
     border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
 };
 const closeBtn = {
-    width: 30, height: 30, borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+    width: 34, height: 34, borderRadius: 8, cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: '#fff', border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(239,68,68,0.85)',
 };
-const body = { position: 'relative', flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f4f6' };
-const notesArea = {
-    width: '100%', height: '100%', resize: 'none', border: 'none', outline: 'none',
-    background: '#fff', color: '#1B1830', fontSize: 14, lineHeight: 1.6, padding: 18,
-    fontFamily: 'inherit', boxSizing: 'border-box',
+const boardWrap = {
+    position: 'relative',
+    width: 'min(96vw, calc((100vh - 150px) * 16 / 9))',
+    aspectRatio: '16 / 9',
+    background: '#fff',
+    borderRadius: 12,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+    overflow: 'hidden',
 };

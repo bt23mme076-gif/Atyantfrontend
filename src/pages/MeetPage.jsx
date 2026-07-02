@@ -7,34 +7,29 @@ import { DisconnectReason, ConnectionState } from 'livekit-client';
 import BackgroundControl from '../components/meet/BackgroundControl';
 import Whiteboard from '../components/meet/Whiteboard';
 import SessionTimer from '../components/meet/SessionTimer';
+import SessionNotes from '../components/meet/SessionNotes';
 import ResumePanel from '../components/meet/ResumePanel';
 import NetworkAlerts from '../components/meet/NetworkAlerts';
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
-// In-call tools (session timer, network alerts, background effects, the
-// whiteboard/notes dock, resume panel). Rendered only once the room is
-// connected, so the local camera track and data channel are ready. `hasVideo`
-// hides camera-only effects on audio-only calls.
-//
-// Whiteboard is docked as a real flex sibling of the video pane (see
-// .meet-board-dock in index.css) rather than an overlay, so opening it
-// actually shrinks the video area instead of covering it. Its open state is
-// lifted up here (not owned internally) purely so BackgroundControl — which
-// is also anchored top-right — can get out of the way while the dock is open;
-// everything else about the board (mode, size, drawing/notes content) stays
-// fully encapsulated inside Whiteboard itself.
+// In-call tools (session timer, network alerts, background effects, shared
+// whiteboard/notes, resume panel). Rendered only once the room is connected,
+// so the local camera track and data channel are ready. `hasVideo` hides
+// camera-only effects on audio-only calls. Right-side tools stack below the
+// timer pill; ResumePanel and NetworkAlerts don't compete for that space
+// (left side / top-center respectively).
 function MeetTools({ hasVideo }) {
     const state = useConnectionState();
-    const [boardOpen, setBoardOpen] = useState(false);
     if (state !== ConnectionState.Connected) return null;
     return (
         <>
             <SessionTimer />
             <NetworkAlerts />
             <ResumePanel top={14} left={14} />
-            {hasVideo && !boardOpen && <BackgroundControl top={14} right={14} />}
-            <Whiteboard open={boardOpen} onOpenChange={setBoardOpen} top={14} right={14} />
+            {hasVideo && <BackgroundControl top={14} right={14} />}
+            <Whiteboard top={hasVideo ? 66 : 14} right={14} />
+            <SessionNotes top={hasVideo ? 118 : 66} right={14} />
         </>
     );
 }
@@ -174,12 +169,8 @@ export default function MeetPage({ sessionId: propSessionId }) {
             }}
             options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
         >
-            <div className="meet-room-flex">
-                <div className="meet-video-pane">
-                    <VideoConference />
-                </div>
-                <MeetTools hasVideo={roomData.callType !== 'audio'} />
-            </div>
+            <VideoConference />
+            <MeetTools hasVideo={roomData.callType !== 'audio'} />
         </LiveKitRoom>
     );
 }
