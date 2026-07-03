@@ -25,6 +25,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   const [fetchLoading, setFetchLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [activeQuery, setActiveQuery] = useState(initialQuery);
+  const mainScrollRef = useRef(null);
 
   // Fetch on mount / when query changes
   useEffect(() => {
@@ -36,6 +37,12 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     setSelectedMentor(null);
     fetchMentors(q);
   }, [initialQuery]);
+
+  // Always land at the top of the answer feed / detail view — never mid-scroll
+  // from whatever was scrolled before (new query, new card, back to answers).
+  useEffect(() => {
+    if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0;
+  }, [answerCards, selectedMentor, fetchLoading]);
 
   const fetchMentors = async (query) => {
     setFetchLoading(true);
@@ -192,7 +199,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             </div>
           ) : (
             // Mobile: interleaved — mentor profile then their answer card, one pair at a time
-            <div className="h-full overflow-y-auto hide-scrollbar">
+            <div ref={mainScrollRef} className="h-full overflow-y-auto hide-scrollbar">
               {answerCards.length > 0 ? (
                 [...answerCards]
                   .sort((a, b) => (resolveMentor(b.mentor)?.matchPct || 0) - (resolveMentor(a.mentor)?.matchPct || 0))
@@ -296,7 +303,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         {header}
 
         {/* Main area */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={mainScrollRef} className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
             {fetchLoading ? (
               <motion.div
@@ -534,10 +541,18 @@ function MentorJourneyFlow({ card }) {
   }, [nodes.length]);
 
   // Keep the active node centered — matters most on mobile snap-scroll.
-  // The first node stays left-aligned so the timeline opens from the start,
-  // not scrolled to the middle.
+  // Scroll only this row's own container directly (never scrollIntoView —
+  // that bubbles to ancestor scroll containers and drags the whole page/feed
+  // down to reveal cards further down the list, which is what made the
+  // Clarity feed appear to open mid-scroll instead of at the top).
   useEffect(() => {
-    nodeRefs.current[active]?.scrollIntoView({ behavior: active === 0 ? "auto" : "smooth", inline: active === 0 ? "start" : "center", block: "nearest" });
+    const node = nodeRefs.current[active];
+    const container = scrollRef.current;
+    if (!node || !container) return;
+    const target = active === 0
+      ? 0
+      : node.offsetLeft + node.offsetWidth / 2 - container.clientWidth / 2;
+    container.scrollTo({ left: target, behavior: active === 0 ? "auto" : "smooth" });
   }, [active]);
 
   if (nodes.length < 2) return null;
