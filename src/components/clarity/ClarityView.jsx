@@ -534,8 +534,10 @@ function MentorJourneyFlow({ card }) {
   }, [nodes.length]);
 
   // Keep the active node centered — matters most on mobile snap-scroll.
+  // The first node stays left-aligned so the timeline opens from the start,
+  // not scrolled to the middle.
   useEffect(() => {
-    nodeRefs.current[active]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    nodeRefs.current[active]?.scrollIntoView({ behavior: active === 0 ? "auto" : "smooth", inline: active === 0 ? "start" : "center", block: "nearest" });
   }, [active]);
 
   if (nodes.length < 2) return null;
