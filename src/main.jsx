@@ -27,7 +27,7 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter basename="/atyantEngine">
+          <BrowserRouter basename={import.meta.env.MODE === 'production' ? '/atyantEngine' : ''}>
             <Routes>
               <Route path="/session/meet/:sessionId" element={<MeetPage />} />
 <Route
