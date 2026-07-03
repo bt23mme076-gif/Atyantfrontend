@@ -577,11 +577,12 @@ function MentorJourneyFlow({ card }) {
         )}
       </div>
 
-      {/* Timeline row — pt-3 gives the active node's glow/lift room, so it isn't clipped */}
+      {/* Timeline row — generous vertical padding gives the active node's glow/lift
+          room, so it isn't clipped by overflow-x-auto (which also clips the y-axis). */}
       <div className="relative">
         <div
           ref={scrollRef}
-          className="flex items-start overflow-x-auto hide-scrollbar pt-3 pb-2"
+          className="flex items-start overflow-x-auto hide-scrollbar pt-5 pb-3"
           style={{ WebkitOverflowScrolling: "touch", scrollSnapType: "x proximity" }}
         >
           {nodes.map((n, i) => {
@@ -601,10 +602,12 @@ function MentorJourneyFlow({ card }) {
                 transition={{ duration: 0.25, delay: i * 0.05 }}
                 whileHover={{ y: -2 }}
                 className="flex flex-col items-center flex-shrink-0 cursor-pointer"
-                style={{ width: 152, background: "transparent", border: "none", padding: 0, scrollSnapAlign: "center" }}
+                style={{ width: "clamp(112px, 33vw, 152px)", background: "transparent", border: "none", padding: 0, scrollSnapAlign: "center" }}
               >
                 <div className="flex items-center w-full">
-                  <div style={{ flex: i === 0 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
+                  {/* Left connector half — every node keeps the circle centred so the
+                      line rhythm stays even; the first node just hides its line. */}
+                  <div style={{ flex: 1, height: 2, background: i === 0 ? "transparent" : "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
                     <div
                       style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${leftFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "linear-gradient(90deg,#7567C9,#5a52a8)" }}
                     />
@@ -626,7 +629,9 @@ function MentorJourneyFlow({ card }) {
                   >
                     <Icon size={16} style={{ color: isCompleted ? "#fff" : isActive ? "var(--c-accentText)" : "var(--c-textMuted)" }} />
                   </motion.div>
-                  <div style={{ flex: i === nodes.length - 1 ? "0 0 0" : 1, height: 2, background: "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
+                  {/* Right connector half — hidden on the last node so the line
+                      doesn't trail past the final milestone. */}
+                  <div style={{ flex: 1, height: 2, background: i === nodes.length - 1 ? "transparent" : "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
                     <div
                       style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${rightFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "linear-gradient(90deg,#7567C9,#5a52a8)" }}
                     />
