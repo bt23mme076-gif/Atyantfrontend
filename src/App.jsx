@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useIsMobile from "./hooks/useIsMobile";
+import ClarityView from "./components/clarity/ClarityView";
+import Footer from "./components/Footer";
+import MentorTrackPage from "./pages/MentorTrackPage";
 
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
 // Heavy, rarely-first pages are code-split so the initial bundle stays lean.
@@ -22,10 +26,7 @@ import Avatar         from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth } from "./context/AuthContext";
-import useIsMobile from "./hooks/useIsMobile";
-import ClarityView from "./components/clarity/ClarityView";
-import Footer from "./components/Footer";
-import MentorTrackPage from "./pages/MentorTrackPage";
+
 import { ThemeToggle } from "./context/ThemeContext";
 import {
   sessionAPI,
@@ -197,31 +198,30 @@ function SessionDetailCard({ s, isUpcoming }) {
                     />
                   ))}
                 </div>
+                <p style={{ fontSize:"0.72rem", fontWeight:600, color:C.textMuted, marginBottom:"0.4rem" }}>Share your feedback</p>
+                <textarea
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  placeholder="What did you take away? (optional)"
+                  maxLength={300}
+                  rows={2}
+                  style={{ width:"100%", padding:"0.55rem 0.75rem", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:C.text, fontSize:"0.8rem", resize:"none", fontFamily:"Inter, sans-serif", marginBottom:"0.6rem", outline:"none", boxSizing:"border-box" }}
+                />
                 {chosenRating > 0 && (
-                  <>
-                    <textarea
-                      value={comment}
-                      onChange={e => setComment(e.target.value)}
-                      placeholder="What did you take away? (optional)"
-                      maxLength={300}
-                      rows={2}
-                      style={{ width:"100%", padding:"0.55rem 0.75rem", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:C.text, fontSize:"0.8rem", resize:"none", fontFamily:"Inter, sans-serif", marginBottom:"0.6rem", outline:"none", boxSizing:"border-box" }}
-                    />
-                    <button
-                      disabled={reviewing}
-                      onClick={async () => {
-                        setReviewing(true);
-                        try {
-                          await sessionAPI.review(s._id, chosenRating, comment);
-                          setReviewed(true);
-                        } catch { /* silent */ }
-                        setReviewing(false);
-                      }}
-                      style={{ padding:"0.5rem 1.2rem", borderRadius:8, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:600, fontSize:"0.8rem", border:"none", cursor:"pointer", opacity: reviewing ? 0.7 : 1 }}
-                    >
-                      {reviewing ? "Saving…" : "Submit Review"}
-                    </button>
-                  </>
+                  <button
+                    disabled={reviewing}
+                    onClick={async () => {
+                      setReviewing(true);
+                      try {
+                        await sessionAPI.review(s._id, chosenRating, comment);
+                        setReviewed(true);
+                      } catch { /* silent */ }
+                      setReviewing(false);
+                    }}
+                    style={{ padding:"0.5rem 1.2rem", borderRadius:8, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:600, fontSize:"0.8rem", border:"none", cursor:"pointer", opacity: reviewing ? 0.7 : 1 }}
+                  >
+                    {reviewing ? "Saving…" : "Submit Review"}
+                  </button>
                 )}
               </>
             )}
