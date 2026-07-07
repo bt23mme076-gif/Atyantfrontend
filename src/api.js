@@ -107,6 +107,10 @@ export const profileAPI = {
   uploadPicture: async (file) => uploadFile('/api/profile/upload-picture', 'profilePicture', file),
   // Parse a LinkedIn/résumé PDF → { success, data:{ name, bio, topCompanies, expertise, education, ... } }
   parseLinkedin: async (file) => uploadFile('/api/profile/parse-linkedin', 'resumePdf', file),
+  // Upload resume PDF permanently → { resumeUrl }
+  uploadResume: async (file) => uploadFile('/api/profile/upload-resume', 'resumePdf', file),
+  // Remove stored resume
+  deleteResume: () => api.delete('/api/profile/upload-resume'),
 };
 
 // Shared multipart uploader (FormData — no JSON Content-Type so the browser sets the boundary).

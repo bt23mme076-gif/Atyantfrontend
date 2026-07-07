@@ -475,6 +475,8 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   const [savingServices, setSavingServices] = useState(false);
   const [servicesSaved, setServicesSaved] = useState(false); // brief "Saved ✓" flash
   const [uploading, setUploading] = useState(false);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeMsg,       setResumeMsg]       = useState('');
   const [importing,  setImporting]  = useState(false);
   const [importMsg,  setImportMsg]  = useState("");
   const [importTab,  setImportTab]  = useState("url"); // "url" | "pdf"
@@ -522,6 +524,36 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const onPickResume = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') { setResumeMsg('Only PDF files are accepted.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setResumeMsg('Resume must be under 5 MB.'); return; }
+    setResumeUploading(true);
+    setResumeMsg('');
+    try {
+      const res = await profileAPI.uploadResume(file);
+      setUser(prev => ({ ...(prev || {}), resumeUrl: res.resumeUrl }));
+      setResumeMsg('✓ Resume uploaded successfully');
+    } catch (err) {
+      setResumeMsg(err.message || 'Upload failed');
+    } finally {
+      setResumeUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const onDeleteResume = async () => {
+    if (!window.confirm('Remove your resume?')) return;
+    try {
+      await profileAPI.deleteResume();
+      setUser(prev => ({ ...(prev || {}), resumeUrl: null }));
+      setResumeMsg('Resume removed.');
+    } catch (err) {
+      setResumeMsg(err.message || 'Failed to remove resume');
     }
   };
 
@@ -1083,6 +1115,55 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           </div>
         </div>
       )}
+
+      {/* ════════ RESUME UPLOAD ════════ */}
+      <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, padding: "16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FileText size={15} color={C.accentText} />
+            <span style={{ fontSize: ".85rem", fontWeight: 700, color: C.text }}>My Resume</span>
+          </div>
+          {user?.resumeUrl && (
+            <a href={user.resumeUrl} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize: ".72rem", color: C.accentText, fontWeight: 600, textDecoration: "none" }}>
+              View ↗
+            </a>
+          )}
+        </div>
+
+        {user?.resumeUrl ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.active, borderRadius: 10, padding: "10px 12px" }}>
+            <Check size={14} color={C.green} />
+            <span style={{ flex: 1, fontSize: ".78rem", color: C.textSub, fontWeight: 500 }}>Resume on file — shown during sessions &amp; used for insights</span>
+            <label style={{ cursor: "pointer" }} title="Replace resume">
+              <input type="file" accept="application/pdf" hidden disabled={resumeUploading} onChange={onPickResume} />
+              <span style={{ fontSize: ".72rem", color: C.accentText, fontWeight: 600, cursor: "pointer" }}>
+                {resumeUploading ? 'Uploading…' : 'Replace'}
+              </span>
+            </label>
+            <button onClick={onDeleteResume} style={{ background: "none", border: "none", cursor: "pointer", color: "#F87171", display: "flex", alignItems: "center", padding: 2 }} title="Remove resume">
+              <X size={13} />
+            </button>
+          </div>
+        ) : (
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, border: `2px dashed ${C.cardBorder}`, borderRadius: 10, padding: "18px 16px", cursor: resumeUploading ? "default" : "pointer", background: C.active }}>
+            <input type="file" accept="application/pdf" hidden disabled={resumeUploading} onChange={onPickResume} />
+            {resumeUploading
+              ? <><Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: C.accentText }} /><span style={{ fontSize: ".82rem", color: C.accentText, fontWeight: 600 }}>Uploading…</span></>
+              : <><Upload size={20} color={C.textMuted} /><span style={{ fontSize: ".82rem", color: C.textSub, fontWeight: 600 }}>Upload Resume PDF</span></>
+            }
+          </label>
+        )}
+
+        {resumeMsg && (
+          <div style={{ fontSize: ".74rem", marginTop: 8, color: resumeMsg.startsWith('✓') ? C.green : '#F87171' }}>
+            {resumeMsg}
+          </div>
+        )}
+        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 8 }}>
+          PDF only · max 5 MB · shown in your Meet panel &amp; used by AI to personalize session insights
+        </div>
+      </div>
 
       {/* ════════ STATS ════════ */}
       <div className="pf-stats" style={{ marginBottom: 18 }}>
