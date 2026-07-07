@@ -1,13 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
+import { useRoomContext, useLocalParticipant } from '@livekit/components-react';
 import './MicrophoneCheck.css';
 
-/**
- * Advanced Microphone Check with Real Audio Level Detection
- * Smart detection - only warns when mic is actually needed
- * 
- * Place inside LiveKitRoom component
- */
-export default function AdvancedMicrophoneCheck({ room, localParticipant }) {
+export default function AdvancedMicrophoneCheck() {
+  const room = useRoomContext();
+  const { localParticipant } = useLocalParticipant();
   const [micStatus, setMicStatus] = useState('checking');
   const [audioLevel, setAudioLevel] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
