@@ -199,11 +199,7 @@ export default function AdvancedMicrophoneCheck() {
   }, [room, localParticipant]);
 
   if (micStatus === 'checking') {
-    return (
-      <div className="mic-check-banner checking">
-        🎤 Checking microphone...
-      </div>
-    );
+    return null;
   }
 
   if (showWarning && (micStatus === 'muted' || micStatus === 'blocked' || micStatus === 'silent')) {
