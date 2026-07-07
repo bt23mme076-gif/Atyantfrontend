@@ -290,6 +290,7 @@ function MyRoadmapPage({ user }) {
   const [steps,      setSteps]      = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [genLoading, setGenLoading] = useState(false);
+  const [activeTab,  setActiveTab]  = useState("skill");
 
   const generate = () => {
     setGenLoading(true);
@@ -324,16 +325,96 @@ function MyRoadmapPage({ user }) {
   ];
 
   const displaySteps = steps.length ? steps : FALLBACK;
+
+  const skillSteps = displaySteps.filter(s => !s.phase || !s.phase.toLowerCase().includes("session"));
+  const sessionSteps = displaySteps.filter(s => s.phase && s.phase.toLowerCase().includes("session"));
+
+  const getMentorName = (step) => {
+    if (!step.title) return "Mentor";
+    const parts = step.title.split(/[\u2014-]/);
+    return parts[0] ? parts[0].trim() : "Mentor";
+  };
+
+  const getSessionDate = (step) => {
+    if (!step.phase) return "";
+    const parts = step.phase.split(/[\u2013\u2014-]/);
+    return parts[1] ? parts[1].trim() : "";
+  };
+
+  const splitSessionIntoPhases = (step) => {
+    if (!step || !step.tasks) return [];
+    
+    const actionTasks = step.tasks.filter(t => !t.toLowerCase().startsWith("work on:") && !t.toLowerCase().startsWith("prepare:"));
+    const improvementTasks = step.tasks.filter(t => t.toLowerCase().startsWith("work on:"))
+                                        .map(t => t.replace(/^work on:\s*/i, ""));
+    const prepTasks = step.tasks.filter(t => t.toLowerCase().startsWith("prepare:"))
+                                .map(t => t.replace(/^prepare:\s*/i, ""));
+                                
+    const phases = [];
+    let phaseCount = 1;
+    
+    if (actionTasks.length > 0) {
+      phases.push({
+        phase: `Phase ${phaseCount++}`,
+        title: `Action Items & Exercises`,
+        duration: `1–2 weeks`,
+        status: `active`,
+        tasks: actionTasks
+      });
+    }
+    
+    if (improvementTasks.length > 0) {
+      phases.push({
+        phase: `Phase ${phaseCount++}`,
+        title: `Areas to Improve`,
+        duration: `2–3 weeks`,
+        status: `upcoming`,
+        tasks: improvementTasks
+      });
+    }
+    
+    if (prepTasks.length > 0) {
+      phases.push({
+        phase: `Phase ${phaseCount++}`,
+        title: `Next Session Preparation`,
+        duration: `Ongoing`,
+        status: `upcoming`,
+        tasks: prepTasks
+      });
+    }
+    
+    if (phases.length === 0) {
+      return [step];
+    }
+    return phases;
+  };
+
+  let stepsToRender = [];
+  if (activeTab === "skill" || sessionSteps.length === 0) {
+    stepsToRender = skillSteps;
+  } else if (activeTab.startsWith("session-")) {
+    const idx = parseInt(activeTab.split("-")[1], 10);
+    if (sessionSteps[idx]) {
+      stepsToRender = splitSessionIntoPhases(sessionSteps[idx]);
+    } else {
+      stepsToRender = skillSteps;
+    }
+  } else {
+    stepsToRender = skillSteps;
+  }
+
   if (loading) return <div style={{ padding:"3rem", textAlign:"center", color:C.textMuted }}><Spin /></div>;
 
   return (
     <div style={{ padding:"2rem" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
         <h2 style={{ fontSize:"1.35rem", fontWeight:500, color:C.text }}>My Roadmap</h2>
-        <button onClick={generate} disabled={genLoading}
-          style={{ fontSize:"0.78rem", background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"6px 14px", cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:6 }}>
-          {genLoading ? <><Spin size={13} /> Generating…</> : "↻ Regenerate"}
-        </button>
+        {activeTab === "skill" && (
+          <button onClick={generate} disabled={genLoading}
+            style={{ fontSize:"0.78rem", background:C.accentSoft, border:`1px solid ${C.accent}55`, color:C.accentText, borderRadius:8, padding:"6px 14px", cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:6 }}>
+            {genLoading ? <><Spin size={13} /> Generating…</> : "↻ Regenerate"}
+          </button>
+        )}
       </div>
       <p style={{ color:C.textSub, fontSize:"0.88rem", marginBottom:"1.25rem" }}>
         {user?.interests?.[0]
@@ -341,33 +422,132 @@ function MyRoadmapPage({ user }) {
           : "Personalised for your profile"}
       </p>
 
+      {/* Roadmap switcher tabs under My Roadmap heading */}
+      {sessionSteps.length > 0 && (
+        <div style={{
+          display: "flex",
+          gap: 10,
+          borderBottom: `1px solid ${C.cardBorder}`,
+          paddingBottom: "10px",
+          marginBottom: "1.5rem",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }} className="no-scrollbar">
+          <style>{`
+            .no-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <button onClick={() => { setActiveTab("skill"); setExpanded(0); }}
+            style={{
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              background: activeTab === "skill" ? C.accentSoft : "transparent",
+              border: activeTab === "skill" ? `1.5px solid ${C.accent}` : `1px solid ${C.cardBorder}`,
+              color: activeTab === "skill" ? C.accentText : C.textSub,
+              borderRadius: 20,
+              padding: "8px 18px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              whiteSpace: "nowrap"
+            }}
+            onMouseEnter={e => {
+              if (activeTab !== "skill") {
+                e.currentTarget.style.borderColor = C.accent;
+                e.currentTarget.style.color = C.text;
+              }
+            }}
+            onMouseLeave={e => {
+              if (activeTab !== "skill") {
+                e.currentTarget.style.borderColor = C.cardBorder;
+                e.currentTarget.style.color = C.textSub;
+              }
+            }}
+          >
+            <TrendingUp size={14} />
+            Roadmap from Skill
+          </button>
+
+          {sessionSteps.map((s, idx) => {
+            const isSel = activeTab === `session-${idx}`;
+            const mName = getMentorName(s);
+            const sDate = getSessionDate(s);
+            const labelText = sDate ? `${mName} (${sDate}) Session Roadmap` : `${mName} Session Roadmap`;
+            return (
+              <button key={idx} onClick={() => { setActiveTab(`session-${idx}`); setExpanded(0); }}
+                style={{
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  background: isSel ? C.accentSoft : "transparent",
+                  border: isSel ? `1.5px solid ${C.accent}` : `1px solid ${C.cardBorder}`,
+                  color: isSel ? C.accentText : C.textSub,
+                  borderRadius: 20,
+                  padding: "8px 18px",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  whiteSpace: "nowrap"
+                }}
+                onMouseEnter={e => {
+                  if (!isSel) {
+                    e.currentTarget.style.borderColor = C.accent;
+                    e.currentTarget.style.color = C.text;
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isSel) {
+                    e.currentTarget.style.borderColor = C.cardBorder;
+                    e.currentTarget.style.color = C.textSub;
+                  }
+                }}
+              >
+                <Video size={14} />
+                {labelText}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* How the roadmap is generated — hybrid (AI draft + mentor refinement) */}
-      <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1rem 1.25rem", marginBottom:"2rem" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-          <Sparkles size={15} color={C.accentText} />
-          <span style={{ fontSize:"0.82rem", fontWeight:600, color:C.text }}>How your roadmap is built</span>
-        </div>
-        <div style={{ display:"grid", gap:12, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
-          {[
-            { n:"1", t:"AI draft", d:"Generated from your branch, goals, CGPA and the questions you've asked Atyant." },
-            { n:"2", t:"Mentor refinement", d:"A verified senior who's walked your path tailors the steps after your 1:1 session." },
-            { n:"3", t:"You track progress", d:"Tick off steps as you go — regenerate anytime your goals change." },
-          ].map((x) => (
-            <div key={x.n} style={{ display:"flex", gap:10 }}>
-              <div style={{ width:22, height:22, borderRadius:"50%", background:C.accentSoft, color:C.accentText, border:`1px solid ${C.accent}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, flexShrink:0 }}>{x.n}</div>
-              <div>
-                <div style={{ fontSize:"0.8rem", fontWeight:600, color:C.text, marginBottom:2 }}>{x.t}</div>
-                <div style={{ fontSize:"0.74rem", color:C.textSub, lineHeight:1.5 }}>{x.d}</div>
+      {activeTab === "skill" && (
+        <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1rem 1.25rem", marginBottom:"2rem" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+            <Sparkles size={15} color={C.accentText} />
+            <span style={{ fontSize:"0.82rem", fontWeight:600, color:C.text }}>How your roadmap is built</span>
+          </div>
+          <div style={{ display:"grid", gap:12, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+            {[
+              { n:"1", t:"AI draft", d:"Generated from your branch, goals, CGPA and the questions you've asked Atyant." },
+              { n:"2", t:"Mentor refinement", d:"A verified senior who's walked your path tailors the steps after your 1:1 session." },
+              { n:"3", t:"You track progress", d:"Tick off steps as you go — regenerate anytime your goals change." },
+            ].map((x) => (
+              <div key={x.n} style={{ display:"flex", gap:10 }}>
+                <div style={{ width:22, height:22, borderRadius:"50%", background:C.accentSoft, color:C.accentText, border:`1px solid ${C.accent}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, flexShrink:0 }}>{x.n}</div>
+                <div>
+                  <div style={{ fontSize:"0.8rem", fontWeight:600, color:C.text, marginBottom:2 }}>{x.t}</div>
+                  <div style={{ fontSize:"0.74rem", color:C.textSub, lineHeight:1.5 }}>{x.d}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ position:"relative" }}>
-        <div style={{ position:"absolute", left:23, top:28, bottom:28, width:1.5, background:C.cardBorder }} />
+        {stepsToRender.length > 1 && (
+          <div style={{ position:"absolute", left:23, top:28, bottom:28, width:1.5, background:C.cardBorder }} />
+        )}
         <div style={{ display:"grid", gap:"1.25rem" }}>
-          {displaySteps.map((s, i) => {
+          {stepsToRender.map((s, i) => {
             const isActive = s.status==="active";
             const isLocked = s.status==="locked";
             return (
