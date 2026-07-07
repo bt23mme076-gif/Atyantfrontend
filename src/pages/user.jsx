@@ -235,7 +235,7 @@ const FAQS = [
   },
   {
     q: "What platform is used for calls?",
-    a: "Audio calls use WhatsApp or regular phone (your choice). Video calls use Google Meet with screen-sharing. You'll get the link 30 minutes before your session.",
+    a: "Audio calls use WhatsApp or regular phone (your choice). Video calls use  Meet with screen-sharing. You'll get the link 30 minutes before your session.",
     icon: FiVideo,
   },
   {

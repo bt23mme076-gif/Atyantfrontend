@@ -10,6 +10,8 @@ import SessionTimer from '../components/meet/SessionTimer';
 import SessionNotes from '../components/meet/SessionNotes';
 import ResumePanel from '../components/meet/ResumePanel';
 import NetworkAlerts from '../components/meet/NetworkAlerts';
+import AdvancedMicrophoneCheck from '../components/LiveKit/AdvancedMicrophoneCheck';
+import '../components/LiveKit/MicrophoneCheck.css';
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
@@ -24,6 +26,7 @@ function MeetTools({ hasVideo }) {
     if (state !== ConnectionState.Connected) return null;
     return (
         <>
+            <AdvancedMicrophoneCheck />
             <SessionTimer />
             <NetworkAlerts />
             <ResumePanel top={14} left={14} />
