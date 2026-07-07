@@ -168,6 +168,7 @@ export const sessionAPI = {
   book:     (date, time, mentorId, topic)       => api.post('/api/sessions/book', { date, time, mentorId, topic }),
   cancel:   (id)                                => api.patch(`/api/sessions/${id}/cancel`),
   review:   (id, rating, comment)               => api.post(`/api/sessions/${id}/review`, { rating, comment }),
+  insight:  (id)                                => api.get(`/api/sessions/${id}/transcript`),
 };
 
 // Payments (Razorpay) — book a paid session + auto Meet link

@@ -86,7 +86,114 @@ function Detail({ icon, label, value, valueColor, span }) {
   );
 }
 
-function SessionDetailCard({ s, isUpcoming }) {
+function PastSessionInsights({ sessionId, pipelineStatus, isMentorView, onNavigate }) {
+  const [open,    setOpen]    = useState(false);
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    if (data || loading) return;
+    setLoading(true);
+    try {
+      const res = await sessionAPI.insight(sessionId);
+      setData(res);
+    } catch { setData({}); }
+    finally { setLoading(false); }
+  };
+
+  const statusInfo = {
+    completed:   { color: C.green,      icon: "✅", text: "Session insights ready" },
+    processing:  { color: C.accentText, icon: "⏳", text: "Insights being generated…" },
+    failed:      { color: "#F87171",    icon: "⚠️", text: "Insight generation failed" },
+    no_audio:    { color: "#F59E0B",    icon: "🎙️", text: "No audio captured" },
+  }[pipelineStatus] || { color: C.textMuted, icon: "📋", text: "Session completed" };
+
+  return (
+    <div style={{ marginTop:"1.1rem" }}>
+      <button
+        onClick={() => { setOpen(v => !v); if (!open) load(); }}
+        style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0.75rem 1rem", borderRadius:12, background:C.active, border:`1px solid ${C.cardBorder}`, cursor:"pointer", fontFamily:"inherit" }}
+      >
+        <span style={{ display:"flex", alignItems:"center", gap:7, fontSize:"0.8rem", fontWeight:600, color: statusInfo.color }}>
+          {statusInfo.icon} {statusInfo.text}
+        </span>
+        <span style={{ fontSize:"0.75rem", color:C.textMuted }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop:8, padding:"1rem 1.1rem", background:C.bg, borderRadius:12, border:`1px solid ${C.cardBorder}` }}>
+          {loading && <div style={{ color:C.textMuted, fontSize:"0.8rem", textAlign:"center", padding:"1rem" }}>Loading insights…</div>}
+
+          {!loading && data?.insight?.summary && (
+            <>
+              <p style={{ fontSize:"0.7rem", fontWeight:700, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"0.5rem" }}>Summary</p>
+              <p style={{ fontSize:"0.82rem", color:C.textSub, lineHeight:1.6, marginBottom:"1rem" }}>{data.insight.summary}</p>
+
+              {data.insight.keyDiscussionPoints?.length > 0 && (
+                <>
+                  <p style={{ fontSize:"0.7rem", fontWeight:700, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"0.5rem" }}>Key Points</p>
+                  <ul style={{ paddingLeft:"1.1rem", margin:0, marginBottom:"1rem" }}>
+                    {data.insight.keyDiscussionPoints.slice(0,4).map((pt,i) => (
+                      <li key={i} style={{ fontSize:"0.8rem", color:C.textSub, lineHeight:1.6, marginBottom:4 }}>{pt}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {!isMentorView && data.insight.actionItems?.student?.length > 0 && (
+                <>
+                  <p style={{ fontSize:"0.7rem", fontWeight:700, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"0.5rem" }}>Your Action Items</p>
+                  <ul style={{ paddingLeft:"1.1rem", margin:0 }}>
+                    {data.insight.actionItems.student.slice(0,4).map((it,i) => (
+                      <li key={i} style={{ fontSize:"0.8rem", color:C.accentText, lineHeight:1.6, marginBottom:4 }}>{it}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+
+          {!loading && data && !data.insight?.summary && pipelineStatus !== 'processing' && (
+            <p style={{ fontSize:"0.8rem", color:C.textMuted, textAlign:"center", padding:"0.5rem" }}>
+              {pipelineStatus === 'no_audio' ? "Audio wasn't captured in this session — check your mic before the next one." :
+               pipelineStatus === 'failed'   ? "Insight generation encountered an error for this session." :
+               "No insights available yet."}
+            </p>
+          )}
+
+          {!loading && pipelineStatus === 'processing' && (
+            <p style={{ fontSize:"0.8rem", color:C.accentText, textAlign:"center", padding:"0.5rem" }}>
+              ⏳ AI is analyzing your session — check back in a few minutes.
+            </p>
+          )}
+
+          {!isMentorView && onNavigate && (
+            <div style={{ display:"flex", gap:8, marginTop:"1rem" }}>
+              <button
+                onClick={() => onNavigate("saved")}
+                style={{ flex:1, padding:"0.6rem 0.75rem", borderRadius:10, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.accentText, fontSize:"0.78rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:5, transition:"background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+                onMouseLeave={e => e.currentTarget.style.background = C.active}
+              >
+                <Bookmark size={13} /> See Saved Answers
+              </button>
+              <button
+                onClick={() => onNavigate("roadmap")}
+                style={{ flex:1, padding:"0.6rem 0.75rem", borderRadius:10, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.accentText, fontSize:"0.78rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:5, transition:"background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+                onMouseLeave={e => e.currentTarget.style.background = C.active}
+              >
+                <TrendingUp size={13} /> View Your Roadmap
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SessionDetailCard({ s, isUpcoming, onNavigate }) {
   const [copied,       setCopied]       = useState(false);
   const [hoverRating,  setHoverRating]  = useState(0);
   const [chosenRating, setChosenRating] = useState(s.review?.rating || 0);
@@ -108,8 +215,13 @@ function SessionDetailCard({ s, isUpcoming }) {
   // token available. The backend ensures the LiveKit room idempotently on join,
   // so we build the link from the id directly rather than relying on a saved
   // meetingLink.
-  const meetUrl   = s._id ? `/atyantEngine/?meet=${s._id}` : "";
+  const meetUrl   = s._id ? `https://atyant.in/atyantEngine/?meet=${s._id}` : "";
   const hasMeet   = !!meetUrl;
+  // Join button active from 30 min before session until 24 h after scheduled time.
+  const now         = Date.now();
+  const sessionMs   = date.getTime();
+  const isJoinable  = isUpcoming && now >= sessionMs - 30 * 60 * 1000 && now <= sessionMs + 24 * 60 * 60 * 1000;
+  const isExpired   = isUpcoming && now > sessionMs + 24 * 60 * 60 * 1000;
 
   const copyId = () => {
     navigator.clipboard?.writeText(bookingId);
@@ -150,11 +262,11 @@ function SessionDetailCard({ s, isUpcoming }) {
           {s.amount > 0 && <Detail icon={<span style={{ fontSize:12, fontWeight:700 }}>₹</span>} label="Amount Paid" value={`₹${s.amount}`} valueColor={C.green} />}
         </div>
 
-        {/* meet CTA */}
-        {isUpcoming && (hasMeet ? (
+        {/* meet CTA — upcoming sessions only */}
+        {isUpcoming && !isExpired && (hasMeet ? (
           <a href={meetUrl} target="_blank" rel="noreferrer"
-             style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9" }}>
-            <Video size={17} /> Join Session <ExternalLink size={13} style={{ opacity:0.85 }} />
+             style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9", opacity: isJoinable ? 1 : 0.6, pointerEvents: isJoinable ? "auto" : "none" }}>
+            <Video size={17} /> {isJoinable ? "Join Session" : "Join opens 30 min before"} <ExternalLink size={13} style={{ opacity:0.85 }} />
           </a>
         ) : (
           <div style={{ marginTop:"1.1rem", padding:"0.75rem 0.9rem", borderRadius:10, background:C.active, border:`1px dashed ${C.cardBorder}`, color:C.textSub, fontSize:"0.78rem", textAlign:"center" }}>
@@ -162,10 +274,15 @@ function SessionDetailCard({ s, isUpcoming }) {
           </div>
         ))}
 
-        {/* raw link (selectable) */}
-        {hasMeet && (
-          <div style={{ marginTop:9, fontSize:"0.68rem", color:C.textMuted, wordBreak:"break-all", textAlign:"center" }}>{meetUrl}</div>
+        {/* Expired upcoming session */}
+        {isUpcoming && isExpired && (
+          <div style={{ marginTop:"1.1rem", padding:"0.75rem 0.9rem", borderRadius:10, background:C.active, border:`1px dashed ${C.cardBorder}`, color:C.textMuted, fontSize:"0.78rem", textAlign:"center" }}>
+            ⏰ Session link expired (24h window closed)
+          </div>
         )}
+
+        {/* Past session insights */}
+        {!isUpcoming && <PastSessionInsights sessionId={s._id} pipelineStatus={s.pipelineStatus} isMentorView={isMentorView} onNavigate={onNavigate} />}
 
         {/* Review section — only for past student sessions */}
         {!isUpcoming && !isMentorView && (
@@ -249,7 +366,7 @@ function SessionDetailCard({ s, isUpcoming }) {
   );
 }
 
-function MySessionsPage() {
+function MySessionsPage({ onNavigate }) {
   const [upcoming, setUpcoming] = useState([]);
   const [past,     setPast]     = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -272,13 +389,13 @@ function MySessionsPage() {
         <div style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.9rem" }}>UPCOMING</div>
         {upcoming.length===0
           ? <p style={{ fontSize:"0.85rem", color:C.textMuted }}>No upcoming sessions. Book one from the calendar!</p>
-          : <div style={{ display:"grid", gap:14 }}>{upcoming.map((s,i) => <SessionDetailCard key={s._id||i} s={s} isUpcoming={true}  />)}</div>}
+          : <div style={{ display:"grid", gap:14 }}>{upcoming.map((s,i) => <SessionDetailCard key={s._id||i} s={s} isUpcoming={true}  onNavigate={onNavigate} />)}</div>}
       </div>
       <div>
         <div style={{ fontSize:"0.68rem", fontWeight:700, letterSpacing:"0.12em", color:C.textMuted, marginBottom:"0.9rem" }}>PAST SESSIONS</div>
         {past.length===0
           ? <p style={{ fontSize:"0.85rem", color:C.textMuted }}>No past sessions yet.</p>
-          : <div style={{ display:"grid", gap:14 }}>{past.map((s,i) => <SessionDetailCard key={s._id||i} s={s} isUpcoming={false} />)}</div>}
+          : <div style={{ display:"grid", gap:14 }}>{past.map((s,i) => <SessionDetailCard key={s._id||i} s={s} isUpcoming={false} onNavigate={onNavigate} />)}</div>}
       </div>
     </div>
   );
@@ -1244,7 +1361,7 @@ const journeyItems = [
     chat:     <ChatPage       key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
     book:     <BookingPage    mentor={bookingMentor} user={user} onAuthRequired={() => setShowAuth(true)} onFindMentor={() => setActivePage("clarity")} onOpenChat={() => { setChatMentor(bookingMentor); setActivePage("chat"); }} onViewSessions={() => setActivePage("sessions")} />,
-    sessions: <MySessionsPage />,
+    sessions: <MySessionsPage onNavigate={setActivePage} />,
     roadmap:  <MyRoadmapPage  user={user} />,
     saved:    <SavedAnswersPage />,
     profile:  <ProfilePage activeSection={profileSection} setActiveSection={setProfileSection} />,
