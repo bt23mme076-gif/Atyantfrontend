@@ -342,12 +342,27 @@ export default function TPODashboard() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const branchStats = useMemo(() => {
-    const branches = [...new Set(students.map(s => s.branch))];
-    return branches.map(b => {
-      const bs   = students.filter(s => s.branch === b);
-      const done = bs.filter(s => s.status === "completed").length;
-      return { branch:b, total:bs.length, completed:done, pct:Math.round(done/bs.length*100) };
+    function normalizeBranch(raw) {
+      if (!raw) return null;
+      const b = raw.toLowerCase();
+      for (const [label, keys] of Object.entries(BRANCH_KEYS)) {
+        if (keys.some(k => b.includes(k))) return label;
+      }
+      return null; // skip unrecognised branches
+    }
+    const map = {};
+    students.forEach(s => {
+      const label = normalizeBranch(s.branch);
+      if (!label) return;
+      if (!map[label]) map[label] = { total: 0, completed: 0 };
+      map[label].total++;
+      if (s.status === "completed") map[label].completed++;
     });
+    return Object.entries(map)
+      .map(([branch, { total, completed }]) => ({
+        branch, total, completed, pct: Math.round(completed / total * 100),
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [students]);
 
   if (user?.email !== TPO_EMAIL) {
