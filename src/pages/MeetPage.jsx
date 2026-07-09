@@ -170,7 +170,17 @@ export default function MeetPage({ sessionId: propSessionId }) {
                 if (reason === DisconnectReason.CLIENT_INITIATED) navigate('/');
                 else setEnded(true);
             }}
-            options={{ rtcConfig: { iceTransportPolicy: 'all' } }}
+            // Force ALL media through the TURN relay (TURN-over-TLS-443, verified
+            // working on the LiveKit VPS). Students on Tier-2/3 college WiFi / mobile
+            // data can't hold a direct (srflx) path — it connects, then drops
+            // ("short ice connection"), and every reconnect recreates the room, which
+            // orphans the audio egress so the recording captures only the first few
+            // silent seconds (this is exactly why real sessions came out as
+            // `no_audio` even though the two people could hear each other). Relaying
+            // every call through the always-reachable TURN keeps the connection — and
+            // the room — stable for the whole session, so egress records it end to
+            // end. 'all' let ICE pick the fragile direct path; 'relay' removes it.
+            options={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
         >
             <VideoConference />
             <MeetTools hasVideo={roomData.callType !== 'audio'} />
