@@ -292,9 +292,9 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
   };
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}
+    <div className="tpo-modal-overlay" style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background:"var(--c-sidebar)", border:`1px solid ${C.cardBorder}`, borderRadius:20, padding:"1.75rem", width:440, position:"relative", maxHeight:"90vh", overflowY:"auto" }}>
+      <div className="tpo-modal" style={{ background:"var(--c-sidebar)", border:`1px solid ${C.cardBorder}`, borderRadius:20, padding:"1.75rem", width:440, maxWidth:"100%", position:"relative", maxHeight:"90vh", overflowY:"auto" }}>
         <button onClick={onClose} style={{ position:"absolute", top:14, right:14, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:"50%", width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:C.textSub }}>
           <X size={14} />
         </button>
@@ -384,7 +384,7 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
               </select>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
+            <div className="tpo-modal-grid-2" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
               <div>
                 <label style={{ fontSize:"0.72rem", color:C.textSub, display:"block", marginBottom:5, fontWeight:700, letterSpacing:"0.05em" }}>DATE</label>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inp} />
@@ -540,7 +540,64 @@ export default function TPODashboard() {
   const COL = "2.2fr 0.9fr 0.7fr 1.3fr 1.1fr 1.6fr 0.7fr";
 
   return (
-    <div style={{ padding:"2rem", maxWidth:1120, margin:"0 auto" }}>
+    <div className="tpo-page" style={{ padding:"2rem", maxWidth:1120, margin:"0 auto" }}>
+
+      <style>{`
+        /* Tabs never overflow the viewport */
+        .tpo-tabs { overflow-x: auto; scrollbar-width: none; }
+        .tpo-tabs::-webkit-scrollbar { display: none; }
+        .tpo-tabs > button { flex-shrink: 0; }
+
+        /* Modal is always inset from the viewport edges */
+        .tpo-modal-overlay { padding: 1rem; box-sizing: border-box; }
+
+        @media (max-width: 860px) {
+          .tpo-stats { display: grid !important; grid-template-columns: 1fr 1fr; }
+          .tpo-stats > div { min-width: 0 !important; }
+        }
+
+        @media (max-width: 720px) {
+          .tpo-page { padding: 1rem !important; }
+
+          /* Header: title stacks, actions go full-width */
+          .tpo-header-actions { width: 100%; }
+          .tpo-header-actions > button { flex: 1; justify-content: center; }
+
+          /* Filters stack */
+          .tpo-filters { flex-direction: column; }
+          .tpo-filters > * { width: 100%; min-width: 0 !important; box-sizing: border-box; }
+
+          /* Table → stacked cards. Header row is meaningless without columns. */
+          .tpo-thead { display: none !important; }
+          .tpo-row { grid-template-columns: 1fr !important; gap: 7px; padding: 14px !important; }
+          /* !important: several cells carry inline display/gap that must not win */
+          .tpo-cell[data-label] {
+            display: flex !important; align-items: center !important;
+            justify-content: space-between !important; gap: 12px !important;
+          }
+          .tpo-cell[data-label]::before {
+            content: attr(data-label);
+            font-size: 0.63rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--c-textMuted); flex-shrink: 0;
+          }
+          /* Mentor cell can ellipsis, but must not force the row wider */
+          .tpo-cell-mentor { min-width: 0; }
+          .tpo-cell-mentor > span { min-width: 0; }
+
+          /* Pagination stacks and centres */
+          .tpo-pagination { flex-direction: column; gap: 10px; align-items: stretch !important; }
+          .tpo-pagination .tpo-pages { justify-content: center; flex-wrap: wrap; }
+          .tpo-pagination .tpo-count { text-align: center; }
+
+          /* Modal fills the inset width */
+          .tpo-modal { width: 100% !important; border-radius: 16px !important; padding: 1.25rem !important; }
+          .tpo-modal-grid-2 { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 380px) {
+          .tpo-stats { grid-template-columns: 1fr; }
+        }
+      `}</style>
 
       {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"1.75rem", flexWrap:"wrap", gap:"1rem" }}>
@@ -555,7 +612,7 @@ export default function TPODashboard() {
             Phase 1 · Mock Interview Pilot · {new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" })}
           </p>
         </div>
-        <div style={{ display:"flex", gap:"0.75rem" }}>
+        <div className="tpo-header-actions" style={{ display:"flex", gap:"0.75rem" }}>
           <button onClick={exportCSV}
             style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px", borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, fontSize:"0.82rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
             <Download size={14} /> Export CSV
@@ -568,7 +625,7 @@ export default function TPODashboard() {
       </div>
 
       {/* Stats */}
-      <div style={{ display:"flex", gap:"0.9rem", marginBottom:"1.5rem", flexWrap:"wrap" }}>
+      <div className="tpo-stats" style={{ display:"flex", gap:"0.9rem", marginBottom:"1.5rem", flexWrap:"wrap" }}>
         <StatCard icon={Users}    label="Total"     value={students.length} sub="Phase 1 batch"   />
         <StatCard icon={BarChart3} label="Completed" value={completed.length} sub={`${completionPct}% done`} color={C.green} />
         <StatCard icon={Calendar} label="Upcoming"  value={booked.length}   sub="Sessions booked" color="#7567C9" />
@@ -600,7 +657,7 @@ export default function TPODashboard() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display:"flex", gap:"0.4rem", borderBottom:`1px solid ${C.cardBorder}`, marginBottom:"1.5rem" }}>
+      <div className="tpo-tabs" style={{ display:"flex", gap:"0.4rem", borderBottom:`1px solid ${C.cardBorder}`, marginBottom:"1.5rem" }}>
         {tabs.map(t => {
           const active = tab === t.id;
           return (
@@ -618,7 +675,7 @@ export default function TPODashboard() {
       {/* ── Students Tab ── */}
       {tab === "students" && (
         <div>
-          <div style={{ display:"flex", gap:"0.75rem", marginBottom:"1.25rem", flexWrap:"wrap" }}>
+          <div className="tpo-filters" style={{ display:"flex", gap:"0.75rem", marginBottom:"1.25rem", flexWrap:"wrap" }}>
             <div style={{ position:"relative", flex:1, minWidth:220 }}>
               <Search size={14} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:C.textMuted, pointerEvents:"none" }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, company, branch…"
@@ -633,7 +690,7 @@ export default function TPODashboard() {
           </div>
 
           <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, overflow:"hidden" }}>
-            <div style={{ display:"grid", gridTemplateColumns:COL, padding:"10px 16px", background:C.active, borderBottom:`1px solid ${C.cardBorder}` }}>
+            <div className="tpo-thead" style={{ display:"grid", gridTemplateColumns:COL, padding:"10px 16px", background:C.active, borderBottom:`1px solid ${C.cardBorder}` }}>
               {["Student","Branch","CGPA","Target Co.","Status","Mentor","Rating"].map(h => (
                 <div key={h} style={{ fontSize:"0.66rem", fontWeight:700, letterSpacing:"0.08em", color:C.textMuted, textTransform:"uppercase" }}>{h}</div>
               ))}
@@ -646,23 +703,24 @@ export default function TPODashboard() {
             {paginated.map((s, i) => (
               <div key={s.id}>
                 <div
+                  className="tpo-row"
                   onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
                   style={{ display:"grid", gridTemplateColumns:COL, padding:"13px 16px", borderBottom:(i < filtered.length-1 || expandedId === s.id) ? `1px solid ${C.cardBorder}` : "none", cursor:"pointer", alignItems:"center", background:expandedId === s.id ? C.active : "transparent", transition:"background 0.12s" }}
                   onMouseEnter={e => { if (expandedId !== s.id) e.currentTarget.style.background = C.active; }}
                   onMouseLeave={e => { if (expandedId !== s.id) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <div>
+                  <div className="tpo-cell" style={{ minWidth:0 }}>
                     <div style={{ fontWeight:600, color:C.text, fontSize:"0.88rem" }}>{s.name}</div>
-                    <div style={{ fontSize:"0.71rem", color:C.textMuted, marginTop:1 }}>Year {s.year}{s.email ? ` · ${s.email}` : ""}</div>
+                    <div style={{ fontSize:"0.71rem", color:C.textMuted, marginTop:1, wordBreak:"break-word" }}>Year {s.year}{s.email ? ` · ${s.email}` : ""}</div>
                   </div>
-                  <div style={{ fontSize:"0.83rem", color:C.textSub }}>{shortBranch(s.branch) || <span style={{ color:C.textMuted }}>—</span>}</div>
-                  <div style={{ fontSize:"0.83rem", color:C.textSub, fontWeight:600 }}>{s.cgpa || <span style={{ color:C.textMuted }}>—</span>}</div>
-                  <div style={{ fontSize:"0.82rem", color:C.text }}>{s.company || <span style={{ color:C.textMuted }}>—</span>}</div>
-                  <StatusBadge status={s.status} />
-                  <div style={{ fontSize:"0.76rem", color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  <div className="tpo-cell" data-label="Branch" style={{ fontSize:"0.83rem", color:C.textSub }}>{shortBranch(s.branch) || <span style={{ color:C.textMuted }}>—</span>}</div>
+                  <div className="tpo-cell" data-label="CGPA" style={{ fontSize:"0.83rem", color:C.textSub, fontWeight:600 }}>{s.cgpa || <span style={{ color:C.textMuted }}>—</span>}</div>
+                  <div className="tpo-cell" data-label="Target Co." style={{ fontSize:"0.82rem", color:C.text }}>{s.company || <span style={{ color:C.textMuted }}>—</span>}</div>
+                  <div className="tpo-cell" data-label="Status"><StatusBadge status={s.status} /></div>
+                  <div className="tpo-cell tpo-cell-mentor" data-label="Mentor" style={{ fontSize:"0.76rem", color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                     {s.mentor ? s.mentor.split("·")[0].trim() : <span style={{ color:C.textMuted }}>—</span>}
                   </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:3 }}>
+                  <div className="tpo-cell" data-label="Rating" style={{ display:"flex", alignItems:"center", gap:3 }}>
                     {s.rating > 0 ? (
                       <><Star size={12} fill="#F59E0B" stroke="#F59E0B" /><span style={{ fontSize:"0.82rem", fontWeight:600, color:C.text }}>{s.rating}</span></>
                     ) : <span style={{ color:C.textMuted, fontSize:"0.78rem" }}>—</span>}
@@ -722,11 +780,11 @@ export default function TPODashboard() {
             })();
 
             return (
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"1.25rem", padding:"0 2px" }}>
-                <span style={{ fontSize:"0.78rem", color:C.textMuted }}>
+              <div className="tpo-pagination" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"1.25rem", padding:"0 2px" }}>
+                <span className="tpo-count" style={{ fontSize:"0.78rem", color:C.textMuted }}>
                   {(page-1)*PAGE_SIZE + 1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length} students
                 </span>
-                <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+                <div className="tpo-pages" style={{ display:"flex", gap:5, alignItems:"center" }}>
                   <button onClick={() => setPage(p=>Math.max(1,p-1))} disabled={page===1}
                     style={page===1 ? pgDisabled : pgBase}>‹</button>
                   {pages.map((n,i) =>
