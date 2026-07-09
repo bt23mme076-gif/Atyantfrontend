@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { ThemeToggle } from "../context/ThemeContext";
+import { ThemeToggle, useTheme } from "../context/ThemeContext";
 import TPODashboard from "./TPODashboard";
 
 const TPO_EMAIL   = "atyant.in@gmail.com";
@@ -23,38 +23,38 @@ function Spin({ size = 18 }) {
 // variant="dark"  → logos on the dark branding panel (left)
 // variant="light" → logos on themed header/form (respects CSS vars)
 function PartnershipLogos({ size = "md", variant = "light" }) {
+  const { theme } = useTheme();
   const imgSize = size === "sm" ? 28 : 44;
   const gap     = size === "sm" ? 8  : 14;
   const xSize   = size === "sm" ? "0.75rem" : "1.1rem";
   const r       = size === "sm" ? 6 : 10;
 
-  // On dark panel: frosted pill so any residual white bg looks intentional
-  // On light/themed panel: transparent container, multiply blend hides white
-  const imgWrap = (isDark) => ({
+  // "panel" = left branding panel that adapts with the theme
+  // "dark"  = always dark (legacy)
+  // "light" = always light-mode style
+  const isDark = variant === "dark" || (variant === "panel" && theme === "dark");
+
+  const imgWrap = () => ({
     width: imgSize, height: imgSize, borderRadius: r,
     overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
     background: isDark ? "rgba(255,255,255,0.12)" : "transparent",
     flexShrink: 0,
   });
 
-  const imgStyle = (isDark) => ({
+  const imgStyle = () => ({
     width: "100%", height: "100%", objectFit: "contain",
-    // mix-blend-mode: multiply makes white bg transparent on light surfaces
-    // On dark panels we use the frosted container instead
     mixBlendMode: isDark ? "normal" : "multiply",
   });
 
-  const isDark = variant === "dark";
-
   return (
     <div style={{ display: "flex", alignItems: "center", gap }}>
-      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap(isDark)}>
-        <img src={VNIT_LOGO} alt="VNIT" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle(isDark)}
+      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap()}>
+        <img src={VNIT_LOGO} alt="VNIT" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle()}
           onError={e => { e.target.parentElement.style.display = "none"; }} />
       </div>
       <span style={{ fontSize: xSize, fontWeight: 800, color: isDark ? "rgba(255,255,255,0.4)" : "var(--c-textMuted)", lineHeight: 1 }}>×</span>
-      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap(isDark)}>
-        <img src={ATYANT_LOGO} alt="Atyant" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle(isDark)}
+      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap()}>
+        <img src={ATYANT_LOGO} alt="Atyant" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle()}
           onError={e => { e.target.parentElement.style.display = "none"; }} />
       </div>
     </div>
@@ -95,83 +95,105 @@ function LoginScreen({ onLogin }) {
       <style>{`
         @keyframes tpoSpin   { to { transform: rotate(360deg); } }
         @keyframes tpoFadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes tpoPulse  { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+        @keyframes tpoPulse  { 0%,100% { opacity:.6; } 50% { opacity:1; } }
         @keyframes tpoFloat  { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-12px); } }
         .tpo-input:focus { outline:none; border-color:#7567C9 !important; box-shadow:0 0 0 3px rgba(117,103,201,0.18); }
         .tpo-input { transition: border-color .2s, box-shadow .2s; }
         .tpo-btn { transition: all .2s; }
         .tpo-btn:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 24px rgba(117,103,201,0.4); }
         .tpo-btn:disabled { opacity:0.5; cursor:not-allowed; }
-        /* Logo blend: multiply removes white bg in light mode; dark mode uses normal */
-        .dark .tpo-logo-blend { mix-blend-mode: normal !important; }
-        /* Dark mode: give logos a frosted pill so they read on dark bg */
-        .dark .tpo-logo-wrap  { background: rgba(255,255,255,0.1) !important; border-radius: 8px; }
+
+        /* ── Left panel theme ── */
+        @media (min-width:900px) { .tpo-left-panel { display:flex !important; } }
+        @media (max-width:899px) { .tpo-left-panel { display:none !important; } }
+
+        /* Light mode — soft purple/lavender */
+        .tpo-left-panel {
+          background: linear-gradient(145deg, #edeaff 0%, #e0dbff 50%, #d8d0ff 100%);
+        }
+        .tpo-brand-title  { color: #1B1830; }
+        .tpo-brand-sub    { color: rgba(27,24,48,0.6); }
+        .tpo-brand-stat-n { color: #2d2660; }
+        .tpo-brand-stat-l { color: rgba(27,24,48,0.5); }
+        .tpo-brand-divider{ background: rgba(27,24,48,0.1); }
+        .tpo-brand-footer { color: rgba(27,24,48,0.4); }
+        .tpo-phase-pill   { background: rgba(117,103,201,0.15); border: 1px solid rgba(117,103,201,0.35); }
+        .tpo-phase-text   { color: #5a52c8; }
+        .tpo-phase-dot    { background: #7567C9; }
+        .tpo-orb1 { background: radial-gradient(circle, rgba(117,103,201,0.25) 0%, transparent 70%); }
+        .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); }
+        .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%); }
+
+        /* Dark mode overrides */
+        .dark .tpo-left-panel {
+          background: linear-gradient(145deg, #1a1535 0%, #0f0d1a 60%, #12103d 100%) !important;
+        }
+        .dark .tpo-brand-title  { color: #fff; }
+        .dark .tpo-brand-sub    { color: rgba(255,255,255,0.55); }
+        .dark .tpo-brand-stat-n { color: #fff; }
+        .dark .tpo-brand-stat-l { color: rgba(255,255,255,0.45); }
+        .dark .tpo-brand-divider{ background: rgba(255,255,255,0.08); }
+        .dark .tpo-brand-footer { color: rgba(255,255,255,0.3); }
+        .dark .tpo-phase-pill   { background: rgba(117,103,201,0.2); border: 1px solid rgba(117,103,201,0.4); }
+        .dark .tpo-phase-text   { color: #c4b5fd; }
+        .dark .tpo-phase-dot    { background: #a78bfa; }
+        .dark .tpo-orb1 { background: radial-gradient(circle, rgba(117,103,201,0.3) 0%, transparent 70%); }
+        .dark .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%); }
+        .dark .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%); }
+
+        /* Logo blend modes */
+        .tpo-logo-blend  { mix-blend-mode: multiply; }
+        .dark .tpo-logo-blend { mix-blend-mode: normal; }
+        .tpo-logo-wrap   { background: transparent; }
+        .dark .tpo-logo-wrap  { background: rgba(255,255,255,0.1); border-radius: 8px; }
       `}</style>
 
       {/* ── Left panel — branding ── */}
-      <div style={{
-        display: "none",
-        flex: "0 0 52%",
-        background: "linear-gradient(145deg, #1a1535 0%, #0f0d1a 60%, #12103d 100%)",
-        position: "relative", overflow: "hidden", padding: "3rem",
-        flexDirection: "column", justifyContent: "space-between",
-        ...(typeof window !== "undefined" && window.innerWidth >= 900 ? { display: "flex" } : {}),
-      }}
+      <div
         className="tpo-left-panel"
+        style={{ display:"none", flex:"0 0 52%", position:"relative", overflow:"hidden", padding:"3rem", flexDirection:"column", justifyContent:"space-between" }}
       >
-        <style>{`
-          @media (min-width: 900px) { .tpo-left-panel { display:flex !important; } }
-          @media (max-width: 899px) { .tpo-left-panel { display:none !important; } }
-        `}</style>
-
         {/* Gradient orbs */}
-        <div style={{ position: "absolute", top: -100, left: -100, width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(117,103,201,0.3) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -80, right: -80, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "40%", right: "15%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%)", animation: "tpoFloat 6s ease-in-out infinite", pointerEvents: "none" }} />
+        <div className="tpo-orb1" style={{ position:"absolute", top:-100, left:-100, width:500, height:500, borderRadius:"50%", pointerEvents:"none" }} />
+        <div className="tpo-orb2" style={{ position:"absolute", bottom:-80, right:-80, width:400, height:400, borderRadius:"50%", pointerEvents:"none" }} />
+        <div className="tpo-orb3" style={{ position:"absolute", top:"40%", right:"15%", width:200, height:200, borderRadius:"50%", animation:"tpoFloat 6s ease-in-out infinite", pointerEvents:"none" }} />
 
         {/* Top logos */}
-        <div>
-          <PartnershipLogos size="md" variant="dark" />
-        </div>
+        <div><PartnershipLogos size="md" variant="panel" /></div>
 
         {/* Center copy */}
-        <div style={{ animation: "tpoFadeUp .6s ease" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(117,103,201,0.2)", border: "1px solid rgba(117,103,201,0.4)", borderRadius: 999, padding: "6px 16px", marginBottom: "1.5rem" }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#a78bfa", display: "inline-block", animation: "tpoPulse 2s ease-in-out infinite" }} />
-            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c4b5fd", letterSpacing: "0.1em", textTransform: "uppercase" }}>Phase 1 · Mock Interview Pilot</span>
+        <div style={{ animation:"tpoFadeUp .6s ease" }}>
+          <div className="tpo-phase-pill" style={{ display:"inline-flex", alignItems:"center", gap:8, borderRadius:999, padding:"6px 16px", marginBottom:"1.5rem" }}>
+            <span className="tpo-phase-dot" style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", animation:"tpoPulse 2s ease-in-out infinite" }} />
+            <span className="tpo-phase-text" style={{ fontSize:"0.72rem", fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase" }}>Phase 1 · Mock Interview Pilot</span>
           </div>
 
-          <h1 style={{ fontSize: "clamp(2rem,3vw,2.8rem)", fontWeight: 900, color: "#fff", margin: "0 0 1rem", lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+          <h1 className="tpo-brand-title" style={{ fontSize:"clamp(2rem,3vw,2.8rem)", fontWeight:900, margin:"0 0 1rem", lineHeight:1.1, letterSpacing:"-0.03em" }}>
             VNIT Nagpur<br />
-            <span style={{ background: "linear-gradient(135deg,#a78bfa,#7567C9,#60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <span style={{ background:"linear-gradient(135deg,#7567C9,#5a52c8,#6366f1)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
               Placement Portal
             </span>
           </h1>
 
-          <p style={{ fontSize: "1rem", color: "rgba(255,255,255,0.55)", maxWidth: 380, lineHeight: 1.7, margin: "0 0 2.5rem" }}>
+          <p className="tpo-brand-sub" style={{ fontSize:"1rem", maxWidth:380, lineHeight:1.7, margin:"0 0 2.5rem" }}>
             Schedule mock interviews, track student readiness, and manage placement sessions — all in one place.
           </p>
 
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: "2rem" }}>
-            {[
-              { n: "1,000+", label: "Students enrolled" },
-              { n: "50+", label: "Verified mentors" },
-              { n: "4.5★", label: "Avg session rating" },
-            ].map(({ n, label }) => (
+          <div style={{ display:"flex", gap:"2rem" }}>
+            {[["1,000+","Students enrolled"],["50+","Verified mentors"],["4.5★","Avg session rating"]].map(([n,label]) => (
               <div key={label}>
-                <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{n}</div>
-                <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", fontWeight: 500, marginTop: 2 }}>{label}</div>
+                <div className="tpo-brand-stat-n" style={{ fontSize:"1.4rem", fontWeight:800, letterSpacing:"-0.02em" }}>{n}</div>
+                <div className="tpo-brand-stat-l" style={{ fontSize:"0.72rem", fontWeight:500, marginTop:2 }}>{label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom attribution */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ height: 1, flex: 1, background: "rgba(255,255,255,0.08)" }} />
-          <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>Powered by Atyant Intelligence</span>
-          <div style={{ height: 1, flex: 1, background: "rgba(255,255,255,0.08)" }} />
+        {/* Bottom */}
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div className="tpo-brand-divider" style={{ height:1, flex:1 }} />
+          <span className="tpo-brand-footer" style={{ fontSize:"0.72rem", fontWeight:500 }}>Powered by Atyant Intelligence</span>
+          <div className="tpo-brand-divider" style={{ height:1, flex:1 }} />
         </div>
       </div>
 
