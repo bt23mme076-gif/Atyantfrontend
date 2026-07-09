@@ -272,6 +272,8 @@ export default function TPODashboard() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [showModal,    setShowModal]    = useState(false);
   const [expandedId,   setExpandedId]   = useState(null);
+  const [page,         setPage]         = useState(1);
+  const PAGE_SIZE = 10;
 
   // Fetch real students + mentors from backend; silently fall back to demo data
   useEffect(() => {
@@ -295,13 +297,20 @@ export default function TPODashboard() {
       .finally(() => setLoading(false));
   }, [user?.email]);
 
-  const filtered = useMemo(() => students.filter(s => {
+  const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    const matchSearch = !q || s.name.toLowerCase().includes(q) || (s.company||"").toLowerCase().includes(q) || s.branch.toLowerCase().includes(q);
-    const matchBranch = branchFilter === "All" || s.branch === branchFilter;
-    const matchStatus = statusFilter === "All" || s.status === statusFilter;
-    return matchSearch && matchBranch && matchStatus;
-  }), [students, search, branchFilter, statusFilter]);
+    return students.filter(s => {
+      const matchSearch = !q || s.name.toLowerCase().includes(q) || (s.company||"").toLowerCase().includes(q) || s.branch.toLowerCase().includes(q);
+      const matchBranch = branchFilter === "All" || s.branch === branchFilter;
+      const matchStatus = statusFilter === "All" || s.status === statusFilter;
+      return matchSearch && matchBranch && matchStatus;
+    });
+  }, [students, search, branchFilter, statusFilter]);
+
+  useEffect(() => { setPage(1); }, [search, branchFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const branchStats = useMemo(() => {
     const branches = [...new Set(students.map(s => s.branch))];
@@ -470,7 +479,7 @@ export default function TPODashboard() {
               <div style={{ padding:"3rem", textAlign:"center", color:C.textMuted, fontSize:"0.85rem" }}>No students match your filters.</div>
             )}
 
-            {filtered.map((s, i) => (
+            {paginated.map((s, i) => (
               <div key={s.id}>
                 <div
                   onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
@@ -522,6 +531,37 @@ export default function TPODashboard() {
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"1rem", padding:"0 2px" }}>
+              <span style={{ fontSize:"0.78rem", color:C.textMuted }}>
+                {(page-1)*PAGE_SIZE + 1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length} students
+              </span>
+              <div style={{ display:"flex", gap:6 }}>
+                <button
+                  onClick={() => setPage(p => Math.max(1, p-1))}
+                  disabled={page === 1}
+                  style={{ padding:"5px 14px", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:page===1 ? C.textMuted : C.text, fontSize:"0.8rem", fontWeight:600, cursor:page===1?"not-allowed":"pointer", fontFamily:"inherit", opacity:page===1?0.5:1 }}
+                >
+                  ← Prev
+                </button>
+                {Array.from({length:totalPages}, (_,i)=>i+1).map(n => (
+                  <button key={n} onClick={() => setPage(n)}
+                    style={{ padding:"5px 11px", borderRadius:8, border:`1px solid ${n===page?"#7567C9":C.cardBorder}`, background:n===page?"#7567C9":C.card, color:n===page?"#fff":C.textSub, fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p+1))}
+                  disabled={page === totalPages}
+                  style={{ padding:"5px 14px", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:page===totalPages ? C.textMuted : C.text, fontSize:"0.8rem", fontWeight:600, cursor:page===totalPages?"not-allowed":"pointer", fontFamily:"inherit", opacity:page===totalPages?0.5:1 }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
