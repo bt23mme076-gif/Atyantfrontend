@@ -94,6 +94,25 @@ const BRANCHES = [
   "Mining Engineering",
   "Metallurgical and Materials Engineering",
 ];
+
+// Keywords to match against student.branch (which may be abbreviated in DB)
+const BRANCH_KEYS = {
+  "Computer Science and Engineering (CSE)":        ["cse", "computer science"],
+  "Electronics and Communication Engineering (ECE)":["ece", "electronics"],
+  "Electrical and Electronics Engineering (EE)":   ["ee", "electrical"],
+  "Mechanical Engineering (ME)":                   ["me", "mechanical"],
+  "Chemical Engineering":                          ["chemical"],
+  "Civil Engineering":                             ["civil"],
+  "Mining Engineering":                            ["mining"],
+  "Metallurgical and Materials Engineering":       ["metallurgical", "materials", "mme"],
+};
+
+function branchMatches(studentBranch, filter) {
+  if (filter === "All") return true;
+  const b = (studentBranch || "").toLowerCase();
+  const keys = BRANCH_KEYS[filter] || [filter.toLowerCase()];
+  return keys.some(k => b.includes(k));
+}
 const STATUS_OPTS = ["All", "completed", "booked", "pending"];
 const TYPES       = ["Mock Interview", "Resume Review", "OA Prep"];
 
@@ -311,7 +330,7 @@ export default function TPODashboard() {
     const q = search.toLowerCase();
     return students.filter(s => {
       const matchSearch = !q || s.name.toLowerCase().includes(q) || (s.company||"").toLowerCase().includes(q) || s.branch.toLowerCase().includes(q);
-      const matchBranch = branchFilter === "All" || s.branch === branchFilter;
+      const matchBranch = branchMatches(s.branch, branchFilter);
       const matchStatus = statusFilter === "All" || s.status === statusFilter;
       return matchSearch && matchBranch && matchStatus;
     });
