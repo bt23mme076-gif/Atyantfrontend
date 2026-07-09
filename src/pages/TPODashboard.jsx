@@ -52,6 +52,33 @@ const DEMO_MENTORS = [
   { _id:"dm8", name:"Kirti Verma",      branch:"CSE",   displayName:"Kirti Verma · SWE, Google" },
 ];
 
+// VNIT roll-number email → branch. e.g. bt23cse097@students.vnit.ac.in → CSE
+const ROLL_BRANCH = {
+  cse: "Computer Science and Engineering (CSE)",
+  ece: "Electronics and Communication Engineering (ECE)",
+  eee: "Electrical and Electronics Engineering (EE)",
+  eel: "Electrical and Electronics Engineering (EE)",
+  mec: "Mechanical Engineering (ME)",
+  mee: "Mechanical Engineering (ME)",
+  che: "Chemical Engineering",
+  cml: "Chemical Engineering",
+  civ: "Civil Engineering",
+  cvl: "Civil Engineering",
+  min: "Mining Engineering",
+  mnl: "Mining Engineering",
+  mme: "Metallurgical and Materials Engineering",
+  mmd: "Metallurgical and Materials Engineering",
+  met: "Metallurgical and Materials Engineering",
+};
+
+function branchFromEmail(email) {
+  const local = (email || "").split("@")[0].toLowerCase();
+  const m = local.match(/[a-z]+\d{2}([a-z]{2,4})\d/); // <prefix><yy><code><num>
+  if (!m) return "";
+  const code = m[1];
+  return ROLL_BRANCH[code] || ROLL_BRANCH[code.slice(0, 3)] || "";
+}
+
 // Map a backend student document → internal row shape
 function mapStudent(s) {
   const edu = Array.isArray(s.education) ? s.education[0] : {};
@@ -59,9 +86,9 @@ function mapStudent(s) {
     id:       s._id,
     name:     s.name || s.username || "Unknown",
     email:    s.email || "",
-    branch:   edu.field || s.branch || "—",
+    branch:   edu.field || s.branch || branchFromEmail(s.email) || "",
     year:     parseInt(edu.year || s.year) || 4,
-    cgpa:     String(edu.cgpa || s.cgpa || "—"),
+    cgpa:     String(edu.cgpa || s.cgpa || ""),
     company:  s.targetCompany || s.company || "",
     status:   s.sessionStatus || "pending",
     mentor:   s.mentorName   || "",
@@ -132,6 +159,26 @@ function sameBranch(studentBranch, mentorBranch) {
   const b = normalizeBranch(mentorBranch);
   return !!a && a === b;
 }
+
+const BRANCH_SHORT = {
+  "Computer Science and Engineering (CSE)":        "CSE",
+  "Electronics and Communication Engineering (ECE)":"ECE",
+  "Electrical and Electronics Engineering (EE)":   "EE",
+  "Mechanical Engineering (ME)":                   "ME",
+  "Chemical Engineering":                          "Chemical",
+  "Civil Engineering":                             "Civil",
+  "Mining Engineering":                            "Mining",
+  "Metallurgical and Materials Engineering":       "MME",
+};
+
+// Short label for narrow columns (CSE, ECE, …); falls back to a paren code.
+function shortBranch(raw) {
+  if (!raw) return "";
+  const norm = normalizeBranch(raw);
+  if (norm && BRANCH_SHORT[norm]) return BRANCH_SHORT[norm];
+  const paren = raw.match(/\(([^)]+)\)/);
+  return paren ? paren[1] : raw;
+}
 const STATUS_OPTS = ["All", "completed", "booked", "pending"];
 const TYPES       = ["Mock Interview", "Resume Review", "OA Prep"];
 
@@ -167,10 +214,13 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 }
 
 // ── Schedule Modal ────────────────────────────────────────────────────────────
-function ScheduleModal({ students, mentors, onClose, onScheduled }) {
+function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled }) {
   const pending = students.filter(s => s.status === "pending");
 
-  const [studentId,     setStudentId]     = useState(pending[0]?.id || "");
+  const [studentId,     setStudentId]     = useState(preselectId || pending[0]?.id || "");
+
+  // Honour the student the TPO clicked "Schedule" on (may change between opens)
+  useEffect(() => { if (preselectId) setStudentId(preselectId); }, [preselectId]);
   const [mentorId,      setMentorId]      = useState("");
   const [mentorQuery,   setMentorQuery]   = useState("");
   const [mentorOpen,    setMentorOpen]    = useState(false);
@@ -263,17 +313,22 @@ function ScheduleModal({ students, mentors, onClose, onScheduled }) {
               <select value={studentId} onChange={e => setStudentId(e.target.value)} style={{ ...inp, cursor:"pointer" }}>
                 {pending.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.name}{s.branch ? ` · ${s.branch}` : ""}{s.company ? ` · ${s.company}` : ""}
+                    {s.name}{s.branch ? ` · ${shortBranch(s.branch)}` : ""}{s.company ? ` · ${s.company}` : ""}
                   </option>
                 ))}
               </select>
             </div>
 
             {selected && (
-              <div style={{ padding:"0.75rem 1rem", background:C.active, borderRadius:10, border:`1px solid ${C.cardBorder}`, fontSize:"0.79rem", color:C.textSub, display:"flex", gap:"1.5rem", flexWrap:"wrap" }}>
-                {selected.cgpa    && <span>CGPA: <strong style={{ color:C.text }}>{selected.cgpa}</strong></span>}
-                {selected.company && <span>Target: <strong style={{ color:C.text }}>{selected.company}</strong></span>}
-                {selected.branch  && <span>Branch: <strong style={{ color:C.text }}>{selected.branch}</strong></span>}
+              <div style={{ padding:"0.85rem 1rem", background:C.active, borderRadius:10, border:`1px solid ${C.cardBorder}` }}>
+                <div style={{ fontWeight:700, color:C.text, fontSize:"0.9rem" }}>{selected.name}</div>
+                {selected.email && <div style={{ fontSize:"0.74rem", color:C.textMuted, marginTop:2, wordBreak:"break-all" }}>{selected.email}</div>}
+                <div style={{ display:"flex", gap:"1.25rem", flexWrap:"wrap", marginTop:8, fontSize:"0.78rem", color:C.textSub }}>
+                  <span>Year: <strong style={{ color:C.text }}>{selected.year || "—"}</strong></span>
+                  <span>CGPA: <strong style={{ color:C.text }}>{selected.cgpa || "—"}</strong></span>
+                  <span>Branch: <strong style={{ color:C.text }}>{studentBranch || "—"}</strong></span>
+                  {selected.company && <span>Target: <strong style={{ color:C.text }}>{selected.company}</strong></span>}
+                </div>
               </div>
             )}
 
@@ -281,8 +336,8 @@ function ScheduleModal({ students, mentors, onClose, onScheduled }) {
               <label style={{ fontSize:"0.72rem", color:C.textSub, display:"flex", alignItems:"center", gap:8, marginBottom:5, fontWeight:700, letterSpacing:"0.05em" }}>
                 MENTOR
                 {studentBranch && (
-                  <span style={{ fontWeight:700, fontSize:"0.62rem", color:"#7567C9", background:"rgba(117,103,201,0.14)", border:"1px solid rgba(117,103,201,0.3)", borderRadius:999, padding:"2px 8px", letterSpacing:"0.03em", textTransform:"none" }}>
-                    {studentBranch}
+                  <span title={studentBranch} style={{ fontWeight:700, fontSize:"0.62rem", color:"#7567C9", background:"rgba(117,103,201,0.14)", border:"1px solid rgba(117,103,201,0.3)", borderRadius:999, padding:"2px 8px", letterSpacing:"0.03em", textTransform:"none" }}>
+                    {shortBranch(studentBranch)}
                   </span>
                 )}
               </label>
@@ -372,6 +427,7 @@ export default function TPODashboard() {
   const [branchFilter, setBranchFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showModal,    setShowModal]    = useState(false);
+  const [scheduleFor,  setScheduleFor]  = useState(null);   // student id to preselect
   const [expandedId,   setExpandedId]   = useState(null);
   const [page,         setPage]         = useState(1);
   const PAGE_SIZE = 10;
@@ -504,7 +560,7 @@ export default function TPODashboard() {
             style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px", borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, fontSize:"0.82rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
             <Download size={14} /> Export CSV
           </button>
-          <button onClick={() => setShowModal(true)}
+          <button onClick={() => { setScheduleFor(null); setShowModal(true); }}
             style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px", borderRadius:9, border:"none", background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontSize:"0.82rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", boxShadow:"0 4px 14px -4px #7567C9" }}>
             <Plus size={14} /> Schedule Session
           </button>
@@ -599,8 +655,8 @@ export default function TPODashboard() {
                     <div style={{ fontWeight:600, color:C.text, fontSize:"0.88rem" }}>{s.name}</div>
                     <div style={{ fontSize:"0.71rem", color:C.textMuted, marginTop:1 }}>Year {s.year}{s.email ? ` · ${s.email}` : ""}</div>
                   </div>
-                  <div style={{ fontSize:"0.83rem", color:C.textSub }}>{s.branch}</div>
-                  <div style={{ fontSize:"0.83rem", color:C.textSub, fontWeight:600 }}>{s.cgpa}</div>
+                  <div style={{ fontSize:"0.83rem", color:C.textSub }}>{shortBranch(s.branch) || <span style={{ color:C.textMuted }}>—</span>}</div>
+                  <div style={{ fontSize:"0.83rem", color:C.textSub, fontWeight:600 }}>{s.cgpa || <span style={{ color:C.textMuted }}>—</span>}</div>
                   <div style={{ fontSize:"0.82rem", color:C.text }}>{s.company || <span style={{ color:C.textMuted }}>—</span>}</div>
                   <StatusBadge status={s.status} />
                   <div style={{ fontSize:"0.76rem", color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
@@ -629,7 +685,7 @@ export default function TPODashboard() {
                       ))}
                     </div>
                     {s.status === "pending" && (
-                      <button onClick={e => { e.stopPropagation(); setShowModal(true); }}
+                      <button onClick={e => { e.stopPropagation(); setScheduleFor(s.id); setShowModal(true); }}
                         style={{ padding:"6px 14px", borderRadius:8, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontSize:"0.78rem", fontWeight:600, border:"none", cursor:"pointer", fontFamily:"inherit" }}>
                         + Schedule Session
                       </button>
@@ -700,7 +756,7 @@ export default function TPODashboard() {
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"0.9rem" }}>
                 <div>
                   <div style={{ fontWeight:700, color:C.text, fontSize:"0.95rem" }}>{s.name}</div>
-                  <div style={{ fontSize:"0.75rem", color:C.textMuted, marginTop:2 }}>{s.branch} · Year {s.year} · CGPA {s.cgpa}</div>
+                  <div style={{ fontSize:"0.75rem", color:C.textMuted, marginTop:2 }}>{[shortBranch(s.branch), s.year && `Year ${s.year}`, s.cgpa && `CGPA ${s.cgpa}`].filter(Boolean).join(" · ")}</div>
                 </div>
                 <StatusBadge status={s.status} />
               </div>
@@ -787,7 +843,8 @@ export default function TPODashboard() {
         <ScheduleModal
           students={students}
           mentors={mentors}
-          onClose={() => setShowModal(false)}
+          preselectId={scheduleFor}
+          onClose={() => { setShowModal(false); setScheduleFor(null); }}
           onScheduled={handleScheduled}
         />
       )}
