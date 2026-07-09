@@ -37,24 +37,22 @@ function PartnershipLogos({ size = "md", variant = "light" }) {
   const imgWrap = () => ({
     width: imgSize, height: imgSize, borderRadius: r,
     overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
-    background: isDark ? "rgba(255,255,255,0.12)" : "transparent",
     flexShrink: 0,
   });
 
   const imgStyle = () => ({
     width: "100%", height: "100%", objectFit: "contain",
-    mixBlendMode: isDark ? "normal" : "multiply",
   });
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap }}>
-      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap()}>
-        <img src={VNIT_LOGO} alt="VNIT" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle()}
+      <div className="tpo-logo-wrap" style={imgWrap()}>
+        <img src={VNIT_LOGO} alt="VNIT" className="tpo-logo-blend" style={imgStyle()}
           onError={e => { e.target.parentElement.style.display = "none"; }} />
       </div>
-      <span style={{ fontSize: xSize, fontWeight: 800, color: isDark ? "rgba(255,255,255,0.4)" : "var(--c-textMuted)", lineHeight: 1 }}>×</span>
-      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap()}>
-        <img src={ATYANT_LOGO} alt="Atyant" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle()}
+      <span style={{ fontSize: xSize, fontWeight: 800, color: "var(--c-textMuted)", lineHeight: 1 }}>×</span>
+      <div className="tpo-logo-wrap" style={imgWrap()}>
+        <img src={ATYANT_LOGO} alt="Atyant" className="tpo-logo-blend" style={imgStyle()}
           onError={e => { e.target.parentElement.style.display = "none"; }} />
       </div>
     </div>
@@ -88,9 +86,8 @@ function LoginScreen({ onLogin }) {
   }
 
   return (
-    <div style={{
-      minHeight: "100vh", background: "var(--c-bg)",
-      display: "flex", overflow: "hidden", position: "relative",
+    <div className="tpo-login-wrap" style={{
+      minHeight: "100vh", display: "flex", overflow: "hidden", position: "relative",
     }}>
       <style>{`
         @keyframes tpoSpin   { to { transform: rotate(360deg); } }
@@ -103,31 +100,34 @@ function LoginScreen({ onLogin }) {
         .tpo-btn:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 24px rgba(117,103,201,0.4); }
         .tpo-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
-        /* ── Left panel theme ── */
+        /* ── Shared gradient wrapper ── */
+        .tpo-login-wrap {
+          background: linear-gradient(145deg, #edeaff 0%, #e0dbff 55%, #d8d0ff 100%);
+        }
+        .dark .tpo-login-wrap {
+          background: linear-gradient(145deg, #1a1535 0%, #0f0d1a 60%, #12103d 100%);
+        }
+
+        /* ── Left panel (transparent — inherits wrapper bg) ── */
         @media (min-width:900px) { .tpo-left-panel { display:flex !important; } }
         @media (max-width:899px) { .tpo-left-panel { display:none !important; } }
+        .tpo-left-panel { background: transparent; }
 
-        /* Light mode — soft purple/lavender */
-        .tpo-left-panel {
-          background: linear-gradient(145deg, #edeaff 0%, #e0dbff 50%, #d8d0ff 100%);
-        }
+        /* Light text colors */
         .tpo-brand-title  { color: #1B1830; }
         .tpo-brand-sub    { color: rgba(27,24,48,0.6); }
         .tpo-brand-stat-n { color: #2d2660; }
         .tpo-brand-stat-l { color: rgba(27,24,48,0.5); }
-        .tpo-brand-divider{ background: rgba(27,24,48,0.1); }
+        .tpo-brand-divider{ background: rgba(27,24,48,0.12); }
         .tpo-brand-footer { color: rgba(27,24,48,0.4); }
         .tpo-phase-pill   { background: rgba(117,103,201,0.15); border: 1px solid rgba(117,103,201,0.35); }
         .tpo-phase-text   { color: #5a52c8; }
         .tpo-phase-dot    { background: #7567C9; }
-        .tpo-orb1 { background: radial-gradient(circle, rgba(117,103,201,0.25) 0%, transparent 70%); }
-        .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); }
-        .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%); }
+        .tpo-orb1 { background: radial-gradient(circle, rgba(117,103,201,0.2) 0%, transparent 70%); }
+        .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%); }
+        .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.1) 0%, transparent 70%); }
 
-        /* Dark mode overrides */
-        .dark .tpo-left-panel {
-          background: linear-gradient(145deg, #1a1535 0%, #0f0d1a 60%, #12103d 100%) !important;
-        }
+        /* Dark text colors */
         .dark .tpo-brand-title  { color: #fff; }
         .dark .tpo-brand-sub    { color: rgba(255,255,255,0.55); }
         .dark .tpo-brand-stat-n { color: #fff; }
@@ -141,11 +141,22 @@ function LoginScreen({ onLogin }) {
         .dark .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%); }
         .dark .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%); }
 
-        /* Logo blend modes */
-        .tpo-logo-blend  { mix-blend-mode: multiply; }
-        .dark .tpo-logo-blend { mix-blend-mode: normal; }
-        .tpo-logo-wrap   { background: transparent; }
-        .dark .tpo-logo-wrap  { background: rgba(255,255,255,0.1); border-radius: 8px; }
+        /* ── Right panel — frosted glass card ── */
+        .tpo-right-panel {
+          background: rgba(255,255,255,0.6);
+          backdrop-filter: blur(28px);
+          border-left: 1px solid rgba(117,103,201,0.15);
+        }
+        .dark .tpo-right-panel {
+          background: rgba(10,8,28,0.55);
+          backdrop-filter: blur(28px);
+          border-left: 1px solid rgba(255,255,255,0.06);
+        }
+
+        /* ── Logos — always pill, no blend tricks ── */
+        .tpo-logo-wrap { background: rgba(117,103,201,0.12); border-radius: 8px; }
+        .dark .tpo-logo-wrap  { background: rgba(255,255,255,0.12); }
+        .tpo-logo-blend { mix-blend-mode: normal; }
       `}</style>
 
       {/* ── Left panel — branding ── */}
@@ -198,11 +209,10 @@ function LoginScreen({ onLogin }) {
       </div>
 
       {/* ── Right panel — login form ── */}
-      <div style={{
+      <div className="tpo-right-panel" style={{
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
-        padding: "2rem 1.5rem", background: "var(--c-bg)",
-        position: "relative",
+        padding: "2rem 1.5rem", position: "relative",
       }}>
         {/* Theme toggle */}
         <div style={{ position: "absolute", top: 20, right: 20 }}>
