@@ -23,24 +23,25 @@ function Spin({ size = 18 }) {
 // variant="dark"  → logos on the dark branding panel (left)
 // variant="light" → logos on themed header/form (respects CSS vars)
 function PartnershipLogos({ size = "md", variant = "light" }) {
-  const imgH  = size === "sm" ? 30 : 46;   // pill height
-  const padX  = size === "sm" ? 8  : 12;   // internal horizontal padding
-  const gap   = size === "sm" ? 8  : 14;
-  const xSize = size === "sm" ? "0.75rem" : "1.1rem";
-  const r     = size === "sm" ? 7 : 11;
+  const { theme } = useTheme();
+  const imgSize = size === "sm" ? 28 : 44;
+  const gap     = size === "sm" ? 8  : 14;
+  const xSize   = size === "sm" ? "0.75rem" : "1.1rem";
+  const r       = size === "sm" ? 6 : 10;
 
-  // Fixed-height pill, auto width — wide wordmarks get a wider pill so they
-  // stay legible instead of being squished into a square.
+  // "panel" = left branding panel that adapts with the theme
+  // "dark"  = always dark (legacy)
+  // "light" = always light-mode style
+  const isDark = variant === "dark" || (variant === "panel" && theme === "dark");
+
   const imgWrap = () => ({
-    height: imgH, minWidth: imgH, borderRadius: r,
-    padding: `0 ${padX}px`, boxSizing: "border-box",
-    display: "flex", alignItems: "center", justifyContent: "center",
+    width: imgSize, height: imgSize, borderRadius: r,
+    overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
     flexShrink: 0,
   });
 
   const imgStyle = () => ({
-    height: "62%", width: "auto", maxWidth: size === "sm" ? 70 : 110,
-    objectFit: "contain", display: "block",
+    width: "100%", height: "100%", objectFit: "contain",
   });
 
   return (
