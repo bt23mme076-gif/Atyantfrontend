@@ -24,10 +24,10 @@ function Spin({ size = 18 }) {
 // variant="light" → logos on themed header/form (respects CSS vars)
 function PartnershipLogos({ size = "md", variant = "light" }) {
   const { theme } = useTheme();
-  const imgSize = size === "sm" ? 28 : 44;
-  const gap     = size === "sm" ? 8  : 14;
-  const xSize   = size === "sm" ? "0.75rem" : "1.1rem";
-  const r       = size === "sm" ? 6 : 10;
+  const imgSize = size === "sm" ? 36 : 44;
+  const gap     = size === "sm" ? 9  : 14;
+  const xSize   = size === "sm" ? "0.8rem" : "1.1rem";
+  const r       = size === "sm" ? 8 : 10;
 
   // "panel" = left branding panel that adapts with the theme
   // "dark"  = always dark (legacy)
