@@ -220,3 +220,15 @@ export const roadmapAPI = {
   generate: (payload)  => api.post('/api/roadmap/generate', payload),
   setStep:  (idx, status) => api.patch(`/api/roadmap/step/${idx}/status`, { status }),
 };
+
+// TPO (Training & Placement) — VNIT dashboard
+// Backend contract:
+//   GET  /api/tpo/students  → { students: [{ _id, name, email, branch, year, cgpa, targetCompany }] }
+//   GET  /api/tpo/mentors   → { mentors:  [{ _id, name, currentRole, currentCompany }] }
+//   POST /api/tpo/sessions/book → { session: { _id, scheduledAt, studentId, mentorId, topic } }
+export const tpoAPI = {
+  students:    ()        => api.get('/api/tpo/students'),
+  mentors:     ()        => api.get('/api/tpo/mentors'),
+  bookSession: (payload) => api.post('/api/tpo/sessions/book', payload),
+  sessions:    ()        => api.get('/api/tpo/sessions'),
+};

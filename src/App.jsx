@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   MessageSquare, Target, CalendarDays, Video,
-  TrendingUp, Bookmark, BarChart3,
+  TrendingUp, Bookmark, BarChart3, Building2,
   Plus, Clock, Lock, ChevronRight, Search,
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check, Star,
@@ -22,6 +22,7 @@ const UpgradePage   = lazy(() => import("./pages/UpgradePage"));
 const ChatPage      = lazy(() => import("./components/clarity/ChatPage"));
 const MentorOnboard = lazy(() => import("./pages/MentorOnboard"));
 const ProfilePage   = lazy(() => import("./pages/ProfilePage"));
+const TPODashboard  = lazy(() => import("./pages/TPODashboard"));
 import Avatar         from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import HomeSEOContent from "./components/HomeSEOContent";
@@ -1346,6 +1347,7 @@ export default function App() {
     { id:"sessions", Icon:Video,         label:"My Sessions"     },
   ];
 const isMentor = user?.role === "mentor";
+const isTpo    = user?.email === "atyant.in@gmail.com";
 
 const journeyItems = [
   { id: "roadmap", Icon: TrendingUp, label: "My Roadmap" },
@@ -1353,6 +1355,9 @@ const journeyItems = [
 
   ...(isMentor
     ? [{ id: "track", Icon: BarChart3, label: "Mentor Dashboard" }]
+    : []),
+  ...(isTpo
+    ? [{ id: "tpo", Icon: Building2, label: "TPO Dashboard" }]
     : []),
 ];
 
@@ -1371,6 +1376,7 @@ const journeyItems = [
 roadmap: <MyRoadmapPage user={user} />,
 saved: <SavedAnswersPage />,
 track: <MentorTrackPage />,
+tpo:   <TPODashboard />,
   };
 
   const initials = user ? (user.username||user.name||"?").slice(0,2).toUpperCase() : null;
