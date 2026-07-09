@@ -4,7 +4,7 @@ import { ThemeToggle } from "../context/ThemeContext";
 import TPODashboard from "./TPODashboard";
 
 const TPO_EMAIL  = "atyant.in@gmail.com";
-const VNIT_LOGO  = "https://img.logokit.com/vnit.ac.in";
+const VNIT_LOGO  = "https://res.cloudinary.com/dny6dtmox/image/upload/v1783631461/VNIT_logo_nwy3ji.png";
 const ATYANT_LOGO = "https://res.cloudinary.com/dny6dtmox/image/upload/v1783630246/atyantlogo_a2k9xd.jpg";
 
 function Spin({ size = 18 }) {
