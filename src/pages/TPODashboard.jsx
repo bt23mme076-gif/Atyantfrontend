@@ -83,7 +83,17 @@ function mapMentor(m) {
   };
 }
 
-const BRANCHES   = ["All", "CSE", "ECE", "MME", "Mech", "Civil", "Chem"];
+const BRANCHES = [
+  "All",
+  "Computer Science and Engineering (CSE)",
+  "Electronics and Communication Engineering (ECE)",
+  "Electrical and Electronics Engineering (EE)",
+  "Mechanical Engineering (ME)",
+  "Chemical Engineering",
+  "Civil Engineering",
+  "Mining Engineering",
+  "Metallurgical and Materials Engineering",
+];
 const STATUS_OPTS = ["All", "completed", "booked", "pending"];
 const TYPES       = ["Mock Interview", "Resume Review", "OA Prep"];
 
