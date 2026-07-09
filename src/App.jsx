@@ -217,11 +217,15 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
   // meetingLink.
   const meetUrl   = s._id ? `https://atyant.in/atyantEngine/?meet=${s._id}` : "";
   const hasMeet   = !!meetUrl;
-  // Join button active from 30 min before session until 24 h after scheduled time.
-  const now         = Date.now();
-  const sessionMs   = date.getTime();
-  const isJoinable  = isUpcoming && now >= sessionMs - 30 * 60 * 1000 && now <= sessionMs + 24 * 60 * 60 * 1000;
-  const isExpired   = isUpcoming && now > sessionMs + 24 * 60 * 60 * 1000;
+  const now       = Date.now();
+  const sessionMs = date.getTime();
+  // Time-window states — NOT tied to isUpcoming so the join button stays live
+  // even after the backend moves the session from upcoming[] to past[].
+  const isBeforeSession = now < sessionMs;
+  // Active join window: from session start to +1 hour (e.g. 12:00–13:00)
+  const isInJoinWindow  = now >= sessionMs && now <= sessionMs + 60 * 60 * 1000;
+  // Once the 1-hour window closes, or the session is completed, show post-session content (insights/review).
+  const treatAsPast = (!isInJoinWindow && !isBeforeSession) || s.status === "completed";
 
   const copyId = () => {
     navigator.clipboard?.writeText(bookingId);
@@ -262,11 +266,15 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
           {s.amount > 0 && <Detail icon={<span style={{ fontSize:12, fontWeight:700 }}>₹</span>} label="Amount Paid" value={`₹${s.amount}`} valueColor={C.green} />}
         </div>
 
-        {/* meet CTA — upcoming sessions only */}
-        {isUpcoming && !isExpired && (hasMeet ? (
-          <a href={meetUrl} target="_blank" rel="noreferrer"
-             style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9", opacity: isJoinable ? 1 : 0.6, pointerEvents: isJoinable ? "auto" : "none" }}>
-            <Video size={17} /> {isJoinable ? "Join Session" : "Join opens 30 min before"} <ExternalLink size={13} style={{ opacity:0.85 }} />
+        {/* meet CTA — visible before session (disabled) and during the 1-hour join window (active).
+            Does NOT depend on isUpcoming so the button stays live even after the backend
+            moves the session from upcoming[] to past[] once scheduledAt passes. */}
+        {!treatAsPast && (hasMeet ? (
+          <a href={isInJoinWindow ? meetUrl : undefined}
+             target={isInJoinWindow ? "_blank" : undefined}
+             rel="noreferrer"
+             style={{ marginTop:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"0.85rem", borderRadius:12, background:"linear-gradient(90deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.88rem", textDecoration:"none", boxShadow:"0 8px 20px -8px #7567C9", opacity: isInJoinWindow ? 1 : 0.55, cursor: isInJoinWindow ? "pointer" : "default" }}>
+            <Video size={17} /> {isInJoinWindow ? "Join Session" : `Opens at ${timeStr}`} <ExternalLink size={13} style={{ opacity:0.85 }} />
           </a>
         ) : (
           <div style={{ marginTop:"1.1rem", padding:"0.75rem 0.9rem", borderRadius:10, background:C.active, border:`1px dashed ${C.cardBorder}`, color:C.textSub, fontSize:"0.78rem", textAlign:"center" }}>
@@ -274,18 +282,11 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
           </div>
         ))}
 
-        {/* Expired upcoming session */}
-        {isUpcoming && isExpired && (
-          <div style={{ marginTop:"1.1rem", padding:"0.75rem 0.9rem", borderRadius:10, background:C.active, border:`1px dashed ${C.cardBorder}`, color:C.textMuted, fontSize:"0.78rem", textAlign:"center" }}>
-            ⏰ Session link expired (24h window closed)
-          </div>
-        )}
-
-        {/* Past session insights */}
-        {!isUpcoming && <PastSessionInsights sessionId={s._id} pipelineStatus={s.pipelineStatus} isMentorView={isMentorView} onNavigate={onNavigate} />}
+        {/* Past session insights — shown after the 1-hour window closes */}
+        {treatAsPast && <PastSessionInsights sessionId={s._id} pipelineStatus={s.pipelineStatus} isMentorView={isMentorView} onNavigate={onNavigate} />}
 
         {/* Review section — only for past student sessions */}
-        {!isUpcoming && !isMentorView && (
+        {treatAsPast && !isMentorView && (
           <div style={{ marginTop:"1.1rem", padding:"1rem 1.1rem", background:C.bg, borderRadius:12, border:`1px solid ${C.cardBorder}` }}>
             {reviewed ? (
               <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -1475,7 +1476,7 @@ track: <MentorTrackPage />,
               }}
             >
               <Home size={17} strokeWidth={2.5} />
-              <span>Home</span>
+              <span>Back Home</span>
             </button>
           ) : (
             <button
@@ -1523,7 +1524,7 @@ track: <MentorTrackPage />,
             </button>
           )}
 
-          {activePage === "profile" ? (
+          {activePage === "profile" && !isMobile ? (
             /* ── Profile section nav ── */
             <div>
               <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>

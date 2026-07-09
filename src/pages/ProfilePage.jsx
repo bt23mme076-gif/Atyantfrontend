@@ -1038,9 +1038,9 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         </div>
       </header>
 
-      {/* ════════ MOBILE TABS (only when used standalone without app sidebar) ════════ */}
-      {isMobileView && !sectionProp && (
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14, scrollbarWidth: "none" }}>
+      {/* ════════ MOBILE TABS ════════ */}
+      {isMobileView && (
+        <div className="hide-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14 }}>
           {navItems.map(({ key, label }) => (
             <button key={key} onClick={() => setActiveSection(key)}
               style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, border: activeSection === key ? "none" : `1px solid ${C.cardBorder}`, background: activeSection === key ? C.accent : C.card, color: activeSection === key ? "#fff" : C.textSub, fontSize: ".74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
