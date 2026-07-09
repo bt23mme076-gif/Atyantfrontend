@@ -153,17 +153,14 @@ function LoginScreen({ onLogin }) {
           border-left: 1px solid rgba(255,255,255,0.06);
         }
 
-        /* ── Logos — white pill in light, frosted in dark ── */
+        /* ── Logos — solid brand-purple pill in BOTH modes ──
+           White Atyant wordmark + colourful VNIT crest both read on purple,
+           so one pill works everywhere (light lavender + dark bg). ── */
         .tpo-logo-wrap {
-          background: rgba(255,255,255,0.92);
+          background: linear-gradient(135deg, #6a5cc4 0%, #7567C9 100%);
           border-radius: 8px;
-          border: 1px solid rgba(117,103,201,0.15);
-          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
-        .dark .tpo-logo-wrap {
-          background: rgba(255,255,255,0.14);
-          border: 1px solid rgba(255,255,255,0.08);
-          box-shadow: none;
+          border: 1px solid rgba(255,255,255,0.18);
+          box-shadow: 0 2px 8px rgba(117,103,201,0.35);
         }
         .tpo-logo-blend { mix-blend-mode: normal; }
       `}</style>
