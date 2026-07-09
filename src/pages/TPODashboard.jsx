@@ -42,14 +42,14 @@ const DEMO_STUDENTS = [
 ];
 
 const DEMO_MENTORS = [
-  { _id:"dm1", displayName:"Vedang Lokhande · SDE, Accenture" },
-  { _id:"dm2", displayName:"Shreyansh Dixit · Product Intern, Linkfluencor" },
-  { _id:"dm3", displayName:"Ravi Kumar · SDE-2, Samsung R&D" },
-  { _id:"dm4", displayName:"Neha Agarwal · SDE-2, Microsoft" },
-  { _id:"dm5", displayName:"Arjun Mehta · Engineer, L&T ECC" },
-  { _id:"dm6", displayName:"Pooja Singh · Data Analyst, TCS" },
-  { _id:"dm7", displayName:"Rahul Dev · SDE, Amazon" },
-  { _id:"dm8", displayName:"Kirti Verma · SWE, Google" },
+  { _id:"dm1", name:"Vedang Lokhande",  branch:"CSE",   displayName:"Vedang Lokhande · SDE, Accenture" },
+  { _id:"dm2", name:"Shreyansh Dixit",  branch:"MME",   displayName:"Shreyansh Dixit · Product Intern, Linkfluencor" },
+  { _id:"dm3", name:"Ravi Kumar",       branch:"ECE",   displayName:"Ravi Kumar · SDE-2, Samsung R&D" },
+  { _id:"dm4", name:"Neha Agarwal",     branch:"CSE",   displayName:"Neha Agarwal · SDE-2, Microsoft" },
+  { _id:"dm5", name:"Arjun Mehta",      branch:"Mech",  displayName:"Arjun Mehta · Engineer, L&T ECC" },
+  { _id:"dm6", name:"Pooja Singh",      branch:"CSE",   displayName:"Pooja Singh · Data Analyst, TCS" },
+  { _id:"dm7", name:"Rahul Dev",        branch:"CSE",   displayName:"Rahul Dev · SDE, Amazon" },
+  { _id:"dm8", name:"Kirti Verma",      branch:"CSE",   displayName:"Kirti Verma · SWE, Google" },
 ];
 
 // Map a backend student document → internal row shape
@@ -79,6 +79,8 @@ function mapMentor(m) {
   const suffix  = [role, company].filter(Boolean).join(", ");
   return {
     _id:         m._id,
+    name:        m.name || m.username || "Mentor",
+    branch:      m.branch || "",
     displayName: suffix ? `${m.name || m.username} · ${suffix}` : (m.name || m.username),
   };
 }
@@ -112,6 +114,23 @@ function branchMatches(studentBranch, filter) {
   const b = (studentBranch || "").toLowerCase();
   const keys = BRANCH_KEYS[filter] || [filter.toLowerCase()];
   return keys.some(k => b.includes(k));
+}
+
+// Map any raw branch string → canonical label (null if unrecognised)
+function normalizeBranch(raw) {
+  if (!raw) return null;
+  const b = raw.toLowerCase();
+  for (const [label, keys] of Object.entries(BRANCH_KEYS)) {
+    if (keys.some(k => b.includes(k))) return label;
+  }
+  return null;
+}
+
+// Do a student and mentor share the same canonical branch?
+function sameBranch(studentBranch, mentorBranch) {
+  const a = normalizeBranch(studentBranch);
+  const b = normalizeBranch(mentorBranch);
+  return !!a && a === b;
 }
 const STATUS_OPTS = ["All", "completed", "booked", "pending"];
 const TYPES       = ["Mock Interview", "Resume Review", "OA Prep"];
@@ -153,6 +172,8 @@ function ScheduleModal({ students, mentors, onClose, onScheduled }) {
 
   const [studentId,     setStudentId]     = useState(pending[0]?.id || "");
   const [mentorId,      setMentorId]      = useState("");
+  const [mentorQuery,   setMentorQuery]   = useState("");
+  const [mentorOpen,    setMentorOpen]    = useState(false);
   const [date,          setDate]          = useState("");
   const [time,          setTime]          = useState("10:00");
   const [type,          setType]          = useState("Mock Interview");
@@ -162,6 +183,22 @@ function ScheduleModal({ students, mentors, onClose, onScheduled }) {
   const selected      = students.find(s => s.id === studentId);
   const selectedMentor = mentors.find(m => m._id === mentorId);
   const canSubmit     = studentId && mentorId && date && !saving;
+
+  // Auto-detected branch from the chosen student
+  const studentBranch = normalizeBranch(selected?.branch) || selected?.branch || "";
+
+  // Reset mentor selection whenever the student (and thus branch) changes
+  useEffect(() => { setMentorId(""); setMentorQuery(""); }, [studentId]);
+
+  // Mentors of the student's branch, then narrowed by the typed query.
+  // If no mentor matches the branch, fall back to all mentors so TPO isn't blocked.
+  const branchMentors = mentors.filter(m => sameBranch(selected?.branch, m.branch));
+  const pool          = branchMentors.length ? branchMentors : mentors;
+  const noBranchMatch = branchMentors.length === 0;
+  const mentorMatches = pool.filter(m => {
+    const q = mentorQuery.trim().toLowerCase();
+    return !q || m.name.toLowerCase().includes(q) || m.displayName.toLowerCase().includes(q);
+  });
 
   const inp = { width:"100%", background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"9px 12px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
 
@@ -240,14 +277,49 @@ function ScheduleModal({ students, mentors, onClose, onScheduled }) {
               </div>
             )}
 
-            <div>
-              <label style={{ fontSize:"0.72rem", color:C.textSub, display:"block", marginBottom:5, fontWeight:700, letterSpacing:"0.05em" }}>MENTOR</label>
-              <select value={mentorId} onChange={e => setMentorId(e.target.value)} style={{ ...inp, cursor:"pointer" }}>
-                <option value="">Select mentor…</option>
-                {mentors.map(m => (
-                  <option key={m._id} value={m._id}>{m.displayName}</option>
-                ))}
-              </select>
+            <div style={{ position:"relative" }}>
+              <label style={{ fontSize:"0.72rem", color:C.textSub, display:"flex", alignItems:"center", gap:8, marginBottom:5, fontWeight:700, letterSpacing:"0.05em" }}>
+                MENTOR
+                {studentBranch && (
+                  <span style={{ fontWeight:700, fontSize:"0.62rem", color:"#7567C9", background:"rgba(117,103,201,0.14)", border:"1px solid rgba(117,103,201,0.3)", borderRadius:999, padding:"2px 8px", letterSpacing:"0.03em", textTransform:"none" }}>
+                    {studentBranch}
+                  </span>
+                )}
+              </label>
+
+              <input
+                type="text"
+                value={mentorId ? (selectedMentor?.displayName || "") : mentorQuery}
+                onChange={e => { setMentorId(""); setMentorQuery(e.target.value); setMentorOpen(true); }}
+                onFocus={() => setMentorOpen(true)}
+                onBlur={() => setTimeout(() => setMentorOpen(false), 150)}
+                placeholder="Type mentor name…"
+                style={{ ...inp, cursor:"text" }}
+              />
+
+              {mentorOpen && (
+                <div style={{ position:"absolute", top:"100%", left:0, right:0, marginTop:4, zIndex:20, background:"var(--c-sidebar)", border:`1px solid ${C.cardBorder}`, borderRadius:10, boxShadow:"0 10px 30px rgba(0,0,0,0.35)", maxHeight:220, overflowY:"auto" }}>
+                  {noBranchMatch && (
+                    <div style={{ padding:"7px 12px", fontSize:"0.68rem", color:C.textMuted, borderBottom:`1px solid ${C.cardBorder}`, background:C.active }}>
+                      No {studentBranch || "branch"} mentor found — showing all mentors
+                    </div>
+                  )}
+                  {mentorMatches.length === 0 ? (
+                    <div style={{ padding:"10px 12px", fontSize:"0.82rem", color:C.textMuted }}>No mentors match “{mentorQuery}”.</div>
+                  ) : mentorMatches.map(m => (
+                    <div
+                      key={m._id}
+                      onMouseDown={() => { setMentorId(m._id); setMentorQuery(""); setMentorOpen(false); }}
+                      style={{ padding:"9px 12px", fontSize:"0.85rem", color:C.text, cursor:"pointer", borderBottom:`1px solid ${C.cardBorder}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.active}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <span>{m.displayName}</span>
+                      {m.branch && <span style={{ fontSize:"0.66rem", color:C.textMuted, flexShrink:0 }}>{normalizeBranch(m.branch) ? m.branch : ""}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -342,14 +414,6 @@ export default function TPODashboard() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const branchStats = useMemo(() => {
-    function normalizeBranch(raw) {
-      if (!raw) return null;
-      const b = raw.toLowerCase();
-      for (const [label, keys] of Object.entries(BRANCH_KEYS)) {
-        if (keys.some(k => b.includes(k))) return label;
-      }
-      return null; // skip unrecognised branches
-    }
     const map = {};
     students.forEach(s => {
       const label = normalizeBranch(s.branch);
