@@ -153,9 +153,18 @@ function LoginScreen({ onLogin }) {
           border-left: 1px solid rgba(255,255,255,0.06);
         }
 
-        /* ── Logos — always pill, no blend tricks ── */
-        .tpo-logo-wrap { background: rgba(117,103,201,0.12); border-radius: 8px; }
-        .dark .tpo-logo-wrap  { background: rgba(255,255,255,0.12); }
+        /* ── Logos — white pill in light, frosted in dark ── */
+        .tpo-logo-wrap {
+          background: rgba(255,255,255,0.92);
+          border-radius: 8px;
+          border: 1px solid rgba(117,103,201,0.15);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .dark .tpo-logo-wrap {
+          background: rgba(255,255,255,0.14);
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: none;
+        }
         .tpo-logo-blend { mix-blend-mode: normal; }
       `}</style>
 
