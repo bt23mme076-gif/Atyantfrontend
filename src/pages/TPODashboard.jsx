@@ -533,35 +533,49 @@ export default function TPODashboard() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"1rem", padding:"0 2px" }}>
-              <span style={{ fontSize:"0.78rem", color:C.textMuted }}>
-                {(page-1)*PAGE_SIZE + 1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length} students
-              </span>
-              <div style={{ display:"flex", gap:6 }}>
-                <button
-                  onClick={() => setPage(p => Math.max(1, p-1))}
-                  disabled={page === 1}
-                  style={{ padding:"5px 14px", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:page===1 ? C.textMuted : C.text, fontSize:"0.8rem", fontWeight:600, cursor:page===1?"not-allowed":"pointer", fontFamily:"inherit", opacity:page===1?0.5:1 }}
-                >
-                  ← Prev
-                </button>
-                {Array.from({length:totalPages}, (_,i)=>i+1).map(n => (
-                  <button key={n} onClick={() => setPage(n)}
-                    style={{ padding:"5px 11px", borderRadius:8, border:`1px solid ${n===page?"#7567C9":C.cardBorder}`, background:n===page?"#7567C9":C.card, color:n===page?"#fff":C.textSub, fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                    {n}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p+1))}
-                  disabled={page === totalPages}
-                  style={{ padding:"5px 14px", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.card, color:page===totalPages ? C.textMuted : C.text, fontSize:"0.8rem", fontWeight:600, cursor:page===totalPages?"not-allowed":"pointer", fontFamily:"inherit", opacity:page===totalPages?0.5:1 }}
-                >
-                  Next →
-                </button>
+          {totalPages > 1 && (() => {
+            const pgBase = {
+              display:"inline-flex", alignItems:"center", justifyContent:"center",
+              minWidth:34, height:34, padding:"0 10px", borderRadius:8,
+              border:`1px solid ${C.cardBorder}`, background:C.card,
+              color:C.textSub, fontSize:"0.82rem", fontWeight:600,
+              cursor:"pointer", fontFamily:"inherit", transition:"all .15s",
+            };
+            const pgActive = { ...pgBase, background:"#7567C9", borderColor:"#7567C9", color:"#fff" };
+            const pgDisabled = { ...pgBase, opacity:0.35, cursor:"not-allowed" };
+
+            // Smart ellipsis pages: always show first, last, current ±1
+            const pages = (() => {
+              if (totalPages <= 7) return Array.from({length:totalPages},(_,i)=>i+1);
+              const s = new Set([1, totalPages, page, page-1, page+1].filter(n=>n>=1&&n<=totalPages));
+              const sorted = [...s].sort((a,b)=>a-b);
+              const result = [];
+              sorted.forEach((n,i) => {
+                if (i > 0 && n - sorted[i-1] > 1) result.push("…");
+                result.push(n);
+              });
+              return result;
+            })();
+
+            return (
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:"1.25rem", padding:"0 2px" }}>
+                <span style={{ fontSize:"0.78rem", color:C.textMuted }}>
+                  {(page-1)*PAGE_SIZE + 1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length} students
+                </span>
+                <div style={{ display:"flex", gap:5, alignItems:"center" }}>
+                  <button onClick={() => setPage(p=>Math.max(1,p-1))} disabled={page===1}
+                    style={page===1 ? pgDisabled : pgBase}>‹</button>
+                  {pages.map((n,i) =>
+                    n === "…"
+                      ? <span key={`e${i}`} style={{ color:C.textMuted, fontSize:"0.85rem", padding:"0 2px", userSelect:"none" }}>…</span>
+                      : <button key={n} onClick={() => setPage(n)} style={n===page ? pgActive : pgBase}>{n}</button>
+                  )}
+                  <button onClick={() => setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
+                    style={page===totalPages ? pgDisabled : pgBase}>›</button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
