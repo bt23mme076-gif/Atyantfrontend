@@ -3,9 +3,10 @@ import { useAuth } from "../context/AuthContext";
 import { ThemeToggle } from "../context/ThemeContext";
 import TPODashboard from "./TPODashboard";
 
-const TPO_EMAIL = "atyant.in@gmail.com";
-const VNIT_LOGO = "https://res.cloudinary.com/dny6dtmox/image/upload/v1783631688/VNIT_logo-removebg-preview_qnjrva.png";
-const ATYANT_LOGO = "https://res.cloudinary.com/dny6dtmox/image/upload/v1783630246/atyantlogo_a2k9xd.jpg";
+const TPO_EMAIL   = "atyant.in@gmail.com";
+const VNIT_LOGO   = "https://res.cloudinary.com/dny6dtmox/image/upload/v1783631688/VNIT_logo-removebg-preview_qnjrva.png";
+// Cloudinary: e_background_removal strips the white bg server-side, f_png returns transparent
+const ATYANT_LOGO = "https://res.cloudinary.com/dny6dtmox/image/upload/e_background_removal,f_png/v1783630246/atyantlogo_a2k9xd.jpg";
 
 function Spin({ size = 18 }) {
   return (
@@ -19,24 +20,43 @@ function Spin({ size = 18 }) {
 }
 
 // ── Partnership Badge ─────────────────────────────────────────────────────────
-function PartnershipLogos({ size = "md" }) {
+// variant="dark"  → logos on the dark branding panel (left)
+// variant="light" → logos on themed header/form (respects CSS vars)
+function PartnershipLogos({ size = "md", variant = "light" }) {
   const imgSize = size === "sm" ? 28 : 44;
-  const gap = size === "sm" ? 8 : 14;
-  const xSize = size === "sm" ? "0.75rem" : "1.1rem";
+  const gap     = size === "sm" ? 8  : 14;
+  const xSize   = size === "sm" ? "0.75rem" : "1.1rem";
+  const r       = size === "sm" ? 6 : 10;
+
+  // On dark panel: frosted pill so any residual white bg looks intentional
+  // On light/themed panel: transparent container, multiply blend hides white
+  const imgWrap = (isDark) => ({
+    width: imgSize, height: imgSize, borderRadius: r,
+    overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+    background: isDark ? "rgba(255,255,255,0.12)" : "transparent",
+    flexShrink: 0,
+  });
+
+  const imgStyle = (isDark) => ({
+    width: "100%", height: "100%", objectFit: "contain",
+    // mix-blend-mode: multiply makes white bg transparent on light surfaces
+    // On dark panels we use the frosted container instead
+    mixBlendMode: isDark ? "normal" : "multiply",
+  });
+
+  const isDark = variant === "dark";
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap }}>
-      <img
-        src={VNIT_LOGO} alt="VNIT"
-        style={{ width: imgSize, height: imgSize, borderRadius: size === "sm" ? 6 : 10, objectFit: "contain", background: "#fff", padding: 2 }}
-        onError={e => { e.target.style.display = "none"; }}
-      />
-      <span style={{ fontSize: xSize, fontWeight: 800, color: "var(--c-textMuted)", lineHeight: 1 }}>×</span>
-      <img
-        src={ATYANT_LOGO} alt="Atyant"
-        style={{ width: imgSize, height: imgSize, borderRadius: size === "sm" ? 6 : 10, objectFit: "contain", background: "#fff", padding: 2 }}
-        onError={e => { e.target.style.display = "none"; }}
-      />
+      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap(isDark)}>
+        <img src={VNIT_LOGO} alt="VNIT" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle(isDark)}
+          onError={e => { e.target.parentElement.style.display = "none"; }} />
+      </div>
+      <span style={{ fontSize: xSize, fontWeight: 800, color: isDark ? "rgba(255,255,255,0.4)" : "var(--c-textMuted)", lineHeight: 1 }}>×</span>
+      <div className={isDark ? "" : "tpo-logo-wrap"} style={imgWrap(isDark)}>
+        <img src={ATYANT_LOGO} alt="Atyant" className={isDark ? "" : "tpo-logo-blend"} style={imgStyle(isDark)}
+          onError={e => { e.target.parentElement.style.display = "none"; }} />
+      </div>
     </div>
   );
 }
@@ -82,6 +102,10 @@ function LoginScreen({ onLogin }) {
         .tpo-btn { transition: all .2s; }
         .tpo-btn:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 24px rgba(117,103,201,0.4); }
         .tpo-btn:disabled { opacity:0.5; cursor:not-allowed; }
+        /* Logo blend: multiply removes white bg in light mode; dark mode uses normal */
+        .dark .tpo-logo-blend { mix-blend-mode: normal !important; }
+        /* Dark mode: give logos a frosted pill so they read on dark bg */
+        .dark .tpo-logo-wrap  { background: rgba(255,255,255,0.1) !important; border-radius: 8px; }
       `}</style>
 
       {/* ── Left panel — branding ── */}
@@ -107,7 +131,7 @@ function LoginScreen({ onLogin }) {
 
         {/* Top logos */}
         <div>
-          <PartnershipLogos size="md" />
+          <PartnershipLogos size="md" variant="dark" />
         </div>
 
         {/* Center copy */}
