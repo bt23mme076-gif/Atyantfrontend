@@ -112,6 +112,43 @@ function mapMentor(m) {
   };
 }
 
+// Backend session.status → dashboard row status
+const SESSION_STATUS = { completed:"completed", upcoming:"booked", pending:"pending" };
+
+function fmtSessionDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })
+    + ", " + d.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+}
+
+// Merge backend sessions onto student rows — latest session per student wins.
+// Without this every student stays "pending" no matter what's in the DB.
+function applySessions(students, sessions) {
+  const byStudent = new Map();
+  sessions.forEach(sess => {
+    const uid = String(sess.userId?._id || sess.userId || "");
+    if (!uid) return;
+    const prev = byStudent.get(uid);
+    if (!prev || new Date(sess.scheduledAt) > new Date(prev.scheduledAt)) byStudent.set(uid, sess);
+  });
+
+  return students.map(s => {
+    const sess = byStudent.get(String(s.id));
+    if (!sess) return s;
+    const mentorName = sess.mentorName || sess.mentorId?.name || sess.mentorId?.username || "";
+    return {
+      ...s,
+      status:   SESSION_STATUS[sess.status] || s.status,
+      mentor:   mentorName || s.mentor,
+      mentorId: String(sess.mentorId?._id || sess.mentorId || s.mentorId || ""),
+      date:     fmtSessionDate(sess.scheduledAt) || s.date,
+      type:     sess.topic?.split("·")[0].trim() || s.type,
+      rating:   sess.rating ?? s.rating,
+    };
+  });
+}
+
 const BRANCHES = [
   "All",
   "Computer Science and Engineering (CSE)",
@@ -209,6 +246,74 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
       </div>
       <div style={{ fontSize:"1.7rem", fontWeight:700, color:color || C.text, lineHeight:1 }}>{value}</div>
       {sub && <div style={{ fontSize:"0.73rem", color:C.textMuted, marginTop:5 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function SessionCard({ s, accent, dateLabel }) {
+  return (
+    <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderLeft:`3px solid ${accent}`, borderRadius:14, padding:"1.1rem 1.25rem" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"0.75rem", marginBottom:"0.9rem", flexWrap:"wrap" }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontWeight:700, color:C.text, fontSize:"0.95rem" }}>{s.name}</div>
+          <div style={{ fontSize:"0.75rem", color:C.textMuted, marginTop:2 }}>
+            {[shortBranch(s.branch), s.year && `Year ${s.year}`, s.cgpa && `CGPA ${s.cgpa}`].filter(Boolean).join(" · ")}
+          </div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          {s.rating > 0 && (
+            <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:"0.8rem", fontWeight:700, color:C.text }}>
+              <Star size={13} fill="#F59E0B" stroke="#F59E0B" />{s.rating}
+            </span>
+          )}
+          <StatusBadge status={s.status} />
+        </div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:"0.65rem" }}>
+        {[
+          { label:"Company",  value:s.company },
+          { label:"Mentor",   value:s.mentor  },
+          { label:"Type",     value:s.type    },
+          { label:dateLabel,  value:s.date    },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ minWidth:0 }}>
+            <div style={{ fontSize:"0.64rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:2 }}>{label}</div>
+            <div style={{ fontSize:"0.82rem", color:C.text, wordBreak:"break-word" }}>{value || "—"}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Donut chart (inline SVG, no deps) ─────────────────────────────────────────
+function Donut({ segments, total, size = 168, stroke = 18 }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  let offset = 0;
+  const pct = total ? Math.round((segments[0]?.value || 0) / total * 100) : 0;
+
+  return (
+    <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
+      <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.active} strokeWidth={stroke} />
+        {segments.map(seg => {
+          if (!seg.value || !total) return null;
+          const len = (seg.value / total) * circ;
+          const el = (
+            <circle key={seg.label} cx={size/2} cy={size/2} r={r} fill="none"
+              stroke={seg.color} strokeWidth={stroke}
+              strokeDasharray={`${len} ${circ - len}`} strokeDashoffset={-offset}
+              strokeLinecap="butt" />
+          );
+          offset += len;
+          return el;
+        })}
+      </svg>
+      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ fontSize:"1.75rem", fontWeight:800, color:C.text, lineHeight:1 }}>{pct}%</div>
+        <div style={{ fontSize:"0.66rem", color:C.textMuted, marginTop:3, letterSpacing:"0.06em", textTransform:"uppercase", fontWeight:700 }}>Completed</div>
+      </div>
     </div>
   );
 }
@@ -432,14 +537,16 @@ export default function TPODashboard() {
   const [page,         setPage]         = useState(1);
   const PAGE_SIZE = 10;
 
-  // Fetch real students + mentors from backend; silently fall back to demo data
+  // Fetch real students + mentors + sessions; silently fall back to demo data
   useEffect(() => {
     if (user?.email !== TPO_EMAIL) { setLoading(false); return; }
 
-    Promise.allSettled([tpoAPI.students(), tpoAPI.mentors()])
-      .then(([studentsRes, mentorsRes]) => {
+    Promise.allSettled([tpoAPI.students(), tpoAPI.mentors(), tpoAPI.sessions()])
+      .then(([studentsRes, mentorsRes, sessionsRes]) => {
+        const sessions = sessionsRes.status === "fulfilled" ? (sessionsRes.value?.sessions || []) : [];
+
         if (studentsRes.status === "fulfilled" && studentsRes.value?.students?.length) {
-          const mapped = studentsRes.value.students.map(mapStudent);
+          const mapped = applySessions(studentsRes.value.students.map(mapStudent), sessions);
           // Keep completed pilot sessions from demo if not yet in DB
           setStudents(prev => {
             const dbIds = new Set(mapped.map(s => s.id));
@@ -531,8 +638,9 @@ export default function TPODashboard() {
   };
 
   const tabs = [
-    { id:"students",  label:"Students",         count:students.length },
+    { id:"students",  label:"Students",          count:students.length },
     { id:"upcoming",  label:"Upcoming Sessions", count:booked.length },
+    { id:"completed", label:"Completed",         count:completed.length },
     { id:"analytics", label:"Analytics",         count:null },
   ];
 
@@ -592,6 +700,10 @@ export default function TPODashboard() {
           /* Modal fills the inset width */
           .tpo-modal { width: 100% !important; border-radius: 16px !important; padding: 1.25rem !important; }
           .tpo-modal-grid-2 { grid-template-columns: 1fr !important; }
+
+          /* Donut stacks above its legend */
+          .tpo-analytics-top { grid-template-columns: 1fr !important; justify-items: center; gap: 1.25rem !important; }
+          .tpo-analytics-top > div:last-child { width: 100%; }
         }
 
         @media (max-width: 380px) {
@@ -809,36 +921,64 @@ export default function TPODashboard() {
               No upcoming sessions scheduled.
             </div>
           )}
-          {booked.map(s => (
-            <div key={s.id} style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderLeft:"3px solid #7567C9", borderRadius:14, padding:"1.1rem 1.25rem" }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"0.9rem" }}>
-                <div>
-                  <div style={{ fontWeight:700, color:C.text, fontSize:"0.95rem" }}>{s.name}</div>
-                  <div style={{ fontSize:"0.75rem", color:C.textMuted, marginTop:2 }}>{[shortBranch(s.branch), s.year && `Year ${s.year}`, s.cgpa && `CGPA ${s.cgpa}`].filter(Boolean).join(" · ")}</div>
-                </div>
-                <StatusBadge status={s.status} />
-              </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))", gap:"0.65rem" }}>
-                {[
-                  { label:"Company",    value:s.company },
-                  { label:"Mentor",     value:s.mentor  },
-                  { label:"Type",       value:s.type    },
-                  { label:"Scheduled",  value:s.date    },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <div style={{ fontSize:"0.64rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:2 }}>{label}</div>
-                    <div style={{ fontSize:"0.82rem", color:C.text }}>{value || "—"}</div>
-                  </div>
-                ))}
-              </div>
+          {booked.map(s => <SessionCard key={s.id} s={s} accent="#7567C9" dateLabel="Scheduled" />)}
+        </div>
+      )}
+
+      {/* ── Completed Tab ── */}
+      {tab === "completed" && (
+        <div style={{ display:"grid", gap:"1rem" }}>
+          {completed.length === 0 && (
+            <div style={{ padding:"3rem", textAlign:"center", color:C.textMuted, background:C.card, border:`1px dashed ${C.cardBorder}`, borderRadius:14, fontSize:"0.85rem" }}>
+              No completed sessions yet.
             </div>
-          ))}
+          )}
+          {completed.map(s => <SessionCard key={s.id} s={s} accent={C.green} dateLabel="Completed on" />)}
         </div>
       )}
 
       {/* ── Analytics Tab ── */}
       {tab === "analytics" && (
         <div style={{ display:"grid", gap:"1.5rem" }}>
+
+          {/* Session status overview — donut + legend */}
+          <div className="tpo-analytics-top" style={{ display:"grid", gridTemplateColumns:"auto 1fr", gap:"1.75rem", alignItems:"center", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem" }}>
+            <Donut
+              total={students.length}
+              segments={[
+                { label:"Completed", value:completed.length, color:C.green },
+                { label:"Booked",    value:booked.length,    color:"#7567C9" },
+                { label:"Pending",   value:pending.length,   color:C.orange },
+              ]}
+            />
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontWeight:700, color:C.text, marginBottom:"1rem", fontSize:"0.95rem" }}>Session Status</div>
+              <div style={{ display:"grid", gap:"0.8rem" }}>
+                {[
+                  { label:"Completed", value:completed.length, color:C.green },
+                  { label:"Booked",    value:booked.length,    color:"#7567C9" },
+                  { label:"Pending",   value:pending.length,   color:C.orange },
+                ].map(x => {
+                  const pct = students.length ? Math.round(x.value / students.length * 100) : 0;
+                  return (
+                    <div key={x.label}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5, gap:8 }}>
+                        <span style={{ display:"flex", alignItems:"center", gap:7, fontSize:"0.83rem", color:C.text, fontWeight:500 }}>
+                          <span style={{ width:9, height:9, borderRadius:3, background:x.color, flexShrink:0 }} />
+                          {x.label}
+                        </span>
+                        <span style={{ fontSize:"0.76rem", color:C.textMuted, whiteSpace:"nowrap" }}>{x.value} · {pct}%</span>
+                      </div>
+                      <div style={{ height:7, background:C.active, borderRadius:999, overflow:"hidden" }}>
+                        <div style={{ height:"100%", width:`${pct}%`, background:x.color, borderRadius:999, transition:"width .5s ease" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.25rem" }}>
             <div style={{ fontWeight:700, color:C.text, marginBottom:"1.25rem", fontSize:"0.95rem" }}>Completion by Branch</div>
             <div style={{ display:"grid", gap:"0.85rem" }}>
