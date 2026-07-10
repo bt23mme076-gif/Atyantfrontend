@@ -531,7 +531,7 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
     setSaving(true);
     setError("");
     try {
-      await tpoAPI.bookSession({
+      const res = await tpoAPI.bookSession({
         studentId,
         mentorId,
         scheduledAt: new Date(`${date}T${time}`).toISOString(),
@@ -539,24 +539,25 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
         serviceId:   "video-call",
         durationMin: 30,
       });
+      // Only mark it "booked" once the backend confirms a session was actually
+      // created — a 404 here means "student/mentor not found", a real failure,
+      // not "route missing". Pretending it succeeded hid sessions that were
+      // never saved and vanished after the next refresh.
+      onScheduled({
+        studentId,
+        mentor:      selectedMentor?.displayName || "",
+        mentorId,
+        date:        fmtDate(date, time),
+        scheduledAt: res?.session?.scheduledAt || new Date(`${date}T${time}`).toISOString(),
+        sessionId:   res?.session?._id || "",
+        type,
+      });
+      setSaving(false);
+      onClose();
     } catch (err) {
-      // 404 = backend endpoint not built yet → proceed optimistically
-      // Any other error = surface to TPO
-      if (err.status !== 404 && err.status !== 405) {
-        setError(err.message || "Failed to schedule. Please try again.");
-        setSaving(false);
-        return;
-      }
+      setError(err.message || "Failed to schedule. Please try again.");
+      setSaving(false);
     }
-    onScheduled({
-      studentId,
-      mentor:   selectedMentor?.displayName || "",
-      mentorId,
-      date:     fmtDate(date, time),
-      type,
-    });
-    setSaving(false);
-    onClose();
   };
 
   return (
@@ -790,9 +791,9 @@ export default function TPODashboard() {
     : "—";
   const completionPct = Math.round((completed.length / students.length) * 100);
 
-  const handleScheduled = ({ studentId, mentor, mentorId, date, type }) => {
+  const handleScheduled = ({ studentId, mentor, mentorId, date, scheduledAt, sessionId, type }) => {
     setStudents(prev => prev.map(s =>
-      s.id === studentId ? { ...s, status:"booked", mentor, mentorId, date, type } : s
+      s.id === studentId ? { ...s, status:"booked", mentor, mentorId, date, scheduledAt, sessionId, type } : s
     ));
   };
 
