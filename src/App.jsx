@@ -1236,11 +1236,33 @@ export default function App() {
   const [showAuth,     setShowAuth]     = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
   const [serviceCatalog, setServiceCatalog] = useState([]);
+  const [hasJoinableSession, setHasJoinableSession] = useState(false);
 
   // Load service catalog once for the booking modal
   useEffect(() => {
     servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => {});
   }, []);
+
+  // Poll for a session that's live or starting soon (1hr before start to 1hr
+  // after), so the "My Sessions" nav item can show a red dot alerting the user.
+  useEffect(() => {
+    if (!user) { setHasJoinableSession(false); return; }
+    const checkJoinable = () => {
+      sessionAPI.my()
+        .then(data => {
+          const now = Date.now();
+          const live = (data.upcoming || []).some(s => {
+            const t = new Date(s.scheduledAt).getTime();
+            return now >= t - 60 * 60 * 1000 && now <= t + 60 * 60 * 1000;
+          });
+          setHasJoinableSession(live);
+        })
+        .catch(() => {});
+    };
+    checkJoinable();
+    const interval = setInterval(checkJoinable, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Global trigger: any component can call window.openBooking({ mentorId, mentorName, mentorPic })
   useEffect(() => {
@@ -1395,8 +1417,16 @@ tpo:   <TPODashboard />,
         onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
         {/* Left accent bar — active only */}
         <span style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)", width:3, height:18, borderRadius:"0 3px 3px 0", background:C.accent, opacity:isActive ? 1 : 0, transition:"opacity 0.2s ease" }} />
-        <item.Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} style={{ color:isActive ? C.accentText : "currentColor", flexShrink:0, transition:"color 0.2s ease" }} />
-        <span>{item.label}</span>
+        <span style={{ position:"relative", display:"inline-flex", flexShrink:0 }}>
+          <item.Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} style={{ color:isActive ? C.accentText : "currentColor", transition:"color 0.2s ease" }} />
+          {item.id === "sessions" && hasJoinableSession && (
+            <span style={{ position:"absolute", top:-3, right:-3, width:9, height:9, borderRadius:"50%", background:"#F04438", border:`1.5px solid ${C.sidebar}`, boxShadow:"0 0 0 2px rgba(240,68,56,0.25)" }} />
+          )}
+        </span>
+        <span style={{ flex:1 }}>{item.label}</span>
+        {item.id === "sessions" && hasJoinableSession && (
+          <span style={{ fontSize:"0.62rem", fontWeight:700, color:"#F04438", letterSpacing:"0.03em", whiteSpace:"nowrap" }}>LIVE</span>
+        )}
       </button>
     );
   };
