@@ -321,6 +321,9 @@ function LoginScreen({ onLogin }) {
 
 // ── Portal Header ─────────────────────────────────────────────────────────────
 function PortalHeader({ user, onLogout }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const displayName = user?.username || user?.name || "TPO Admin";
+
   return (
     <div className="tpo-header" style={{
       position: "sticky", top: 0, zIndex: 100,
@@ -332,39 +335,33 @@ function PortalHeader({ user, onLogout }) {
       gap: 10,
     }}>
       <style>{`
+        .tpo-header-menu-btn { display: none; }
         @media (max-width: 640px) {
           .tpo-header { padding: 0 0.85rem !important; }
-          .tpo-header-divider { display: none !important; }
-          .tpo-header-brandtext { display: none !important; }
-          .tpo-header-user-name { display: none !important; }
-          .tpo-header-user { padding: 6px !important; }
-          .tpo-header-signout { padding: 6px 10px !important; font-size: 0.72rem !important; }
-        }
-        @media (max-width: 380px) {
-          .tpo-header-actions { gap: 6px !important; }
+          .tpo-header-actions-desktop { display: none !important; }
+          .tpo-header-menu-btn { display: inline-flex !important; }
         }
       `}</style>
 
+      {/* Brand: logo × logo + "VNIT × Atyant / T&P Portal" — always visible */}
       <div className="tpo-header-brand" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <PartnershipLogos size="sm" />
-        <div className="tpo-header-divider" style={{ width: 1, height: 24, background: "var(--c-cardBorder)", flexShrink: 0 }} />
-        <div className="tpo-header-brandtext" style={{ minWidth: 0 }}>
+        <div style={{ width: 1, height: 24, background: "var(--c-cardBorder)", flexShrink: 0 }} />
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: "0.82rem", fontWeight: 800, color: "var(--c-text)", lineHeight: 1.2, whiteSpace: "nowrap" }}>VNIT × Atyant</div>
           <div style={{ fontSize: "0.62rem", fontWeight: 600, color: "var(--c-textMuted)", letterSpacing: "0.07em", textTransform: "uppercase", whiteSpace: "nowrap" }}>T&P Portal</div>
         </div>
       </div>
 
-      <div className="tpo-header-actions" style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+      {/* Desktop: theme + user + sign out inline */}
+      <div className="tpo-header-actions-desktop" style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <ThemeToggle size={14} />
-        <div className="tpo-header-user" style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px", background: "var(--c-accentSoft)", border: "1px solid var(--c-activeBorder)", borderRadius: 999 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 12px", background: "var(--c-accentSoft)", border: "1px solid var(--c-activeBorder)", borderRadius: 999 }}>
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,0.2)", flexShrink: 0 }} />
-          <span className="tpo-header-user-name" style={{ fontSize: "0.76rem", fontWeight: 700, color: "var(--c-accentText)", whiteSpace: "nowrap" }}>
-            {user?.username || user?.name || "TPO Admin"}
-          </span>
+          <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "var(--c-accentText)", whiteSpace: "nowrap" }}>{displayName}</span>
         </div>
         <button
           onClick={onLogout}
-          className="tpo-header-signout"
           style={{
             background: "transparent", border: "1px solid var(--c-cardBorder)",
             borderRadius: 9, padding: "6px 14px",
@@ -378,6 +375,55 @@ function PortalHeader({ user, onLogout }) {
           Sign out
         </button>
       </div>
+
+      {/* Mobile: hamburger opens the same controls in a dropdown */}
+      <button
+        className="tpo-header-menu-btn"
+        onClick={() => setMenuOpen(o => !o)}
+        aria-label="Menu"
+        style={{
+          alignItems: "center", justifyContent: "center",
+          width: 34, height: 34, flexShrink: 0,
+          background: menuOpen ? "var(--c-active)" : "transparent",
+          border: "1px solid var(--c-cardBorder)", borderRadius: 8,
+          color: "var(--c-textSub)", fontSize: "1.1rem", cursor: "pointer",
+        }}
+      >
+        {menuOpen ? "✕" : "☰"}
+      </button>
+
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 99 }} />
+          <div style={{
+            position: "absolute", top: "100%", right: "0.85rem", marginTop: 8, zIndex: 101,
+            background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", borderRadius: 12,
+            boxShadow: "0 12px 32px rgba(0,0,0,0.25)", padding: "0.85rem", width: 220,
+            display: "grid", gap: 10,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--c-textMuted)", letterSpacing: "0.05em", textTransform: "uppercase" }}>Theme</span>
+              <ThemeToggle size={14} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "var(--c-accentSoft)", border: "1px solid var(--c-activeBorder)", borderRadius: 999 }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 0 3px rgba(16,185,129,0.2)", flexShrink: 0 }} />
+              <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "var(--c-accentText)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
+            </div>
+            <button
+              onClick={() => { setMenuOpen(false); onLogout(); }}
+              style={{
+                background: "transparent", border: "1px solid var(--c-cardBorder)",
+                borderRadius: 9, padding: "8px 14px", width: "100%",
+                color: "var(--c-textSub)", fontSize: "0.8rem", fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
