@@ -34,10 +34,18 @@ function PartnershipLogos({ size = "md", variant = "light" }) {
   // "light" = always light-mode style
   const isDark = variant === "dark" || (variant === "panel" && theme === "dark");
 
+  // Solid brand-purple pill, always inline — never depends on a stylesheet
+  // owned by a sibling component that might not be mounted (e.g. the header
+  // renders this after LoginScreen, which used to own this CSS, unmounts).
+  // White Atyant wordmark + colourful VNIT crest both read on purple, so one
+  // pill works in every mode and every surface.
   const imgWrap = () => ({
     width: imgSize, height: imgSize, borderRadius: r,
     overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
     flexShrink: 0,
+    background: "linear-gradient(135deg, #6a5cc4 0%, #7567C9 100%)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    boxShadow: "0 2px 8px rgba(117,103,201,0.35)",
   });
 
   const imgStyle = () => ({
@@ -46,13 +54,13 @@ function PartnershipLogos({ size = "md", variant = "light" }) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap }}>
-      <div className="tpo-logo-wrap" style={imgWrap()}>
-        <img src={VNIT_LOGO} alt="VNIT" className="tpo-logo-blend" style={imgStyle()}
+      <div style={imgWrap()}>
+        <img src={VNIT_LOGO} alt="VNIT" style={imgStyle()}
           onError={e => { e.target.parentElement.style.display = "none"; }} />
       </div>
       <span style={{ fontSize: xSize, fontWeight: 800, color: "var(--c-textMuted)", lineHeight: 1 }}>×</span>
-      <div className="tpo-logo-wrap" style={imgWrap()}>
-        <img src={ATYANT_LOGO} alt="Atyant" className="tpo-logo-blend" style={imgStyle()}
+      <div style={imgWrap()}>
+        <img src={ATYANT_LOGO} alt="Atyant" style={imgStyle()}
           onError={e => { e.target.parentElement.style.display = "none"; }} />
       </div>
     </div>
@@ -152,17 +160,6 @@ function LoginScreen({ onLogin }) {
           backdrop-filter: blur(28px);
           border-left: 1px solid rgba(255,255,255,0.06);
         }
-
-        /* ── Logos — solid brand-purple pill in BOTH modes ──
-           White Atyant wordmark + colourful VNIT crest both read on purple,
-           so one pill works everywhere (light lavender + dark bg). ── */
-        .tpo-logo-wrap {
-          background: linear-gradient(135deg, #6a5cc4 0%, #7567C9 100%);
-          border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.18);
-          box-shadow: 0 2px 8px rgba(117,103,201,0.35);
-        }
-        .tpo-logo-blend { mix-blend-mode: normal; }
       `}</style>
 
       {/* ── Left panel — branding ── */}
