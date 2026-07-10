@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Download, Search, Star, Plus, Building2,
-  X, BarChart3, Users, Calendar, Loader2,
+  X, BarChart3, Users, Calendar, Loader2, FileText,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { tpoAPI } from "../api";
@@ -139,12 +139,16 @@ function applySessions(students, sessions) {
     const mentorName = sess.mentorName || sess.mentorId?.name || sess.mentorId?.username || "";
     return {
       ...s,
-      status:   SESSION_STATUS[sess.status] || s.status,
-      mentor:   mentorName || s.mentor,
-      mentorId: String(sess.mentorId?._id || sess.mentorId || s.mentorId || ""),
-      date:     fmtSessionDate(sess.scheduledAt) || s.date,
-      type:     sess.topic?.split("·")[0].trim() || s.type,
-      rating:   sess.rating ?? s.rating,
+      status:        SESSION_STATUS[sess.status] || s.status,
+      mentor:        mentorName || s.mentor,
+      mentorId:      String(sess.mentorId?._id || sess.mentorId || s.mentorId || ""),
+      mentorCompany: sess.mentorCompany || sess.mentorId?.currentCompany || "",
+      date:          fmtSessionDate(sess.scheduledAt) || s.date,
+      scheduledAt:   sess.scheduledAt || null,   // raw, for sorting
+      type:          sess.topic?.split("·")[0].trim() || s.type,
+      rating:        sess.rating ?? s.rating,
+      sessionId:     String(sess._id || ""),
+      hasInsight:    !!sess.hasInsight,
     };
   });
 }
@@ -250,7 +254,7 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
   );
 }
 
-function SessionCard({ s, accent, dateLabel }) {
+function SessionCard({ s, accent, dateLabel, onViewSummary }) {
   return (
     <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderLeft:`3px solid ${accent}`, borderRadius:14, padding:"1.1rem 1.25rem" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"0.75rem", marginBottom:"0.9rem", flexWrap:"wrap" }}>
@@ -260,18 +264,27 @@ function SessionCard({ s, accent, dateLabel }) {
             {[shortBranch(s.branch), s.year && `Year ${s.year}`, s.cgpa && `CGPA ${s.cgpa}`].filter(Boolean).join(" · ")}
           </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
           {s.rating > 0 && (
             <span style={{ display:"inline-flex", alignItems:"center", gap:3, fontSize:"0.8rem", fontWeight:700, color:C.text }}>
               <Star size={13} fill="#F59E0B" stroke="#F59E0B" />{s.rating}
             </span>
           )}
           <StatusBadge status={s.status} />
+          {onViewSummary && (
+            <button
+              onClick={() => onViewSummary(s)}
+              title={s.hasInsight ? "See what happened in this interview" : "No AI summary generated for this session"}
+              style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 12px", borderRadius:8, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, fontSize:"0.76rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}
+            >
+              <FileText size={13} /> View Summary
+            </button>
+          )}
         </div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:"0.65rem" }}>
         {[
-          { label:"Company",  value:s.company },
+          { label:"Company",  value:s.mentorCompany },
           { label:"Mentor",   value:s.mentor  },
           { label:"Type",     value:s.type    },
           { label:dateLabel,  value:s.date    },
@@ -281,6 +294,156 @@ function SessionCard({ s, accent, dateLabel }) {
             <div style={{ fontSize:"0.82rem", color:C.text, wordBreak:"break-word" }}>{value || "—"}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Session Summary Modal — what actually happened in the interview ───────────
+function SummaryModal({ student, onClose }) {
+  const [state, setState] = useState({ loading:true, error:"", session:null, insight:null });
+
+  useEffect(() => {
+    let alive = true;
+    if (!student.sessionId) {
+      setState({ loading:false, error:"This session has no record on the server yet.", session:null, insight:null });
+      return;
+    }
+    tpoAPI.sessionInsight(student.sessionId)
+      .then(res => { if (alive) setState({ loading:false, error:"", session:res.session, insight:res.insight }); })
+      .catch(err => { if (alive) setState({ loading:false, error:err.message || "Could not load the summary.", session:null, insight:null }); });
+    return () => { alive = false; };
+  }, [student.sessionId]);
+
+  const { loading, error, session, insight } = state;
+
+  const List = ({ title, items, color }) => (
+    !items?.length ? null : (
+      <div>
+        <div style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:7 }}>{title}</div>
+        <ul style={{ margin:0, paddingLeft:0, listStyle:"none", display:"grid", gap:6 }}>
+          {items.map((it, i) => (
+            <li key={i} style={{ display:"flex", gap:8, fontSize:"0.83rem", color:C.text, lineHeight:1.5 }}>
+              <span style={{ color:color || C.accent, flexShrink:0, marginTop:1 }}>•</span>
+              <span>{typeof it === "string" ? it : it.point}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  );
+
+  return (
+    <div className="tpo-modal-overlay" style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="tpo-modal" style={{ background:"var(--c-sidebar)", border:`1px solid ${C.cardBorder}`, borderRadius:20, padding:"1.75rem", width:600, maxWidth:"100%", position:"relative", maxHeight:"88vh", overflowY:"auto" }}>
+        <button onClick={onClose} style={{ position:"absolute", top:14, right:14, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:"50%", width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:C.textSub }}>
+          <X size={14} />
+        </button>
+
+        <div style={{ marginBottom:"1.25rem", paddingRight:36 }}>
+          <div style={{ fontWeight:700, fontSize:"1.05rem", color:C.text }}>Interview Summary</div>
+          <div style={{ fontSize:"0.8rem", color:C.textMuted, marginTop:3 }}>
+            {student.name}{student.mentor ? ` · with ${student.mentor}` : ""}{student.date ? ` · ${student.date}` : ""}
+          </div>
+        </div>
+
+        {loading && (
+          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"2.5rem", justifyContent:"center", color:C.textMuted, fontSize:"0.85rem" }}>
+            <Spin size={16} /> Loading summary…
+          </div>
+        )}
+
+        {!loading && error && (
+          <div style={{ padding:"0.85rem 1rem", borderRadius:10, background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.3)", color:"#f87171", fontSize:"0.83rem" }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && !insight && (
+          <div style={{ padding:"2.5rem 1.5rem", textAlign:"center", background:C.active, border:`1px dashed ${C.cardBorder}`, borderRadius:12 }}>
+            <div style={{ fontSize:"0.88rem", color:C.text, fontWeight:600, marginBottom:6 }}>No AI summary for this session</div>
+            <div style={{ fontSize:"0.8rem", color:C.textMuted, lineHeight:1.6 }}>
+              {session?.pipelineStatus === "no_audio"
+                ? "The recording had no usable audio, so no summary was generated."
+                : "Summaries are generated after a recorded session is processed."}
+            </div>
+            {session?.notes && (
+              <div style={{ marginTop:"1.25rem", textAlign:"left" }}>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:6 }}>Mentor Notes</div>
+                <div style={{ fontSize:"0.83rem", color:C.text, lineHeight:1.6 }}>{session.notes}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!loading && !error && insight && (
+          <div style={{ display:"grid", gap:"1.4rem" }}>
+            {/* Signal chips */}
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {insight.studentSentiment && (
+                <span style={{ fontSize:"0.72rem", fontWeight:600, padding:"5px 11px", borderRadius:999,
+                  background: insight.studentSentiment === "positive" ? "rgba(61,190,130,0.14)" : insight.studentSentiment === "negative" ? "rgba(248,113,113,0.14)" : C.active,
+                  color: insight.studentSentiment === "positive" ? C.green : insight.studentSentiment === "negative" ? "#f87171" : C.textSub }}>
+                  Sentiment: {insight.studentSentiment}
+                </span>
+              )}
+              {insight.mentorQualityScore != null && (
+                <span title={insight.mentorQualityReason || ""} style={{ fontSize:"0.72rem", fontWeight:600, padding:"5px 11px", borderRadius:999, background:"rgba(117,103,201,0.14)", color:C.accent }}>
+                  Mentor quality: {insight.mentorQualityScore}/10
+                </span>
+              )}
+              {insight.careerContext && (
+                <span style={{ fontSize:"0.72rem", fontWeight:600, padding:"5px 11px", borderRadius:999, background:C.active, color:C.textSub }}>
+                  {insight.careerContext.replace(/_/g, " ")}
+                </span>
+              )}
+            </div>
+
+            {(insight.detailedSummary || insight.summary) && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:7 }}>Summary</div>
+                <div style={{ fontSize:"0.86rem", color:C.text, lineHeight:1.7, whiteSpace:"pre-wrap" }}>
+                  {insight.detailedSummary || insight.summary}
+                </div>
+              </div>
+            )}
+
+            {!!insight.topics?.length && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:7 }}>Topics</div>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {insight.topics.map(t => (
+                    <span key={t} style={{ fontSize:"0.75rem", padding:"4px 10px", borderRadius:7, background:C.active, border:`1px solid ${C.cardBorder}`, color:C.textSub }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <List title="Key Discussion Points" items={insight.keyDiscussionPoints} />
+            <List title="Strengths"             items={insight.strengths} color={C.green} />
+            <List title="Areas to Improve"      items={insight.areasToImprove} color={C.orange} />
+            <List title="Pain Points"           items={insight.studentPainPoints} color={C.orange} />
+            <List title="Action Items · Student" items={insight.actionItems?.student} />
+            <List title="Action Items · Mentor"  items={insight.actionItems?.mentor} />
+            <List title="Recommended Resources" items={insight.recommendedResources} />
+            <List title="Next Session Focus"    items={insight.nextSessionFocus} />
+
+            {session?.notes && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:7 }}>Mentor Notes</div>
+                <div style={{ fontSize:"0.83rem", color:C.text, lineHeight:1.6 }}>{session.notes}</div>
+              </div>
+            )}
+
+            {session?.review?.comment && (
+              <div>
+                <div style={{ fontSize:"0.66rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:7 }}>Student Review</div>
+                <div style={{ fontSize:"0.83rem", color:C.text, lineHeight:1.6, fontStyle:"italic" }}>“{session.review.comment}”</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -533,6 +696,7 @@ export default function TPODashboard() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [showModal,    setShowModal]    = useState(false);
   const [scheduleFor,  setScheduleFor]  = useState(null);   // student id to preselect
+  const [summaryFor,   setSummaryFor]   = useState(null);   // student row to show a summary for
   const [expandedId,   setExpandedId]   = useState(null);
   const [page,         setPage]         = useState(1);
   const PAGE_SIZE = 10;
@@ -610,8 +774,16 @@ export default function TPODashboard() {
     );
   }
 
-  const completed     = students.filter(s => s.status === "completed");
-  const booked        = students.filter(s => s.status === "booked");
+  // Newest first for completed (most recent interview on top),
+  // soonest first for upcoming (next session on top).
+  const byDate = (dir) => (a, b) => {
+    const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+    const tb = b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+    return dir * (tb - ta);
+  };
+
+  const completed     = students.filter(s => s.status === "completed").sort(byDate(1));
+  const booked        = students.filter(s => s.status === "booked").sort(byDate(-1));
   const pending       = students.filter(s => s.status === "pending");
   const avgRating     = completed.length
     ? (completed.reduce((a, s) => a + s.rating, 0) / completed.length).toFixed(1)
@@ -933,7 +1105,7 @@ export default function TPODashboard() {
               No completed sessions yet.
             </div>
           )}
-          {completed.map(s => <SessionCard key={s.id} s={s} accent={C.green} dateLabel="Completed on" />)}
+          {completed.map(s => <SessionCard key={s.id} s={s} accent={C.green} dateLabel="Completed on" onViewSummary={setSummaryFor} />)}
         </div>
       )}
 
@@ -1035,6 +1207,10 @@ export default function TPODashboard() {
             })}
           </div>
         </div>
+      )}
+
+      {summaryFor && (
+        <SummaryModal student={summaryFor} onClose={() => setSummaryFor(null)} />
       )}
 
       {showModal && (

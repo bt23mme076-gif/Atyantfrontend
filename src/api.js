@@ -226,9 +226,11 @@ export const roadmapAPI = {
 //   GET  /api/tpo/students  → { students: [{ _id, name, email, branch, year, cgpa, targetCompany }] }
 //   GET  /api/tpo/mentors   → { mentors:  [{ _id, name, currentRole, currentCompany }] }
 //   POST /api/tpo/sessions/book → { session: { _id, scheduledAt, studentId, mentorId, topic } }
+//   GET  /api/tpo/sessions/:id/insight → { session, insight }
 export const tpoAPI = {
-  students:    ()        => api.get('/api/tpo/students'),
-  mentors:     ()        => api.get('/api/tpo/mentors'),
-  bookSession: (payload) => api.post('/api/tpo/sessions/book', payload),
-  sessions:    ()        => api.get('/api/tpo/sessions'),
+  students:       ()   => api.get('/api/tpo/students'),
+  mentors:        ()   => api.get('/api/tpo/mentors'),
+  bookSession:    (p)  => api.post('/api/tpo/sessions/book', p),
+  sessions:       ()   => api.get('/api/tpo/sessions'),
+  sessionInsight: (id) => api.get(`/api/tpo/sessions/${id}/insight`),
 };
