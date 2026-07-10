@@ -508,15 +508,25 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
   // Reset mentor selection whenever the student (and thus branch) changes
   useEffect(() => { setMentorId(""); setMentorQuery(""); }, [studentId]);
 
-  // Mentors of the student's branch, then narrowed by the typed query.
-  // If no mentor matches the branch, fall back to all mentors so TPO isn't blocked.
+  // Branch-matched mentors, used as the default suggestion list when the
+  // search box is empty. If no mentor matches the branch, fall back to all
+  // mentors so TPO isn't blocked.
   const branchMentors = mentors.filter(m => sameBranch(selected?.branch, m.branch));
-  const pool          = branchMentors.length ? branchMentors : mentors;
   const noBranchMatch = branchMentors.length === 0;
-  const mentorMatches = pool.filter(m => {
-    const q = mentorQuery.trim().toLowerCase();
-    return !q || m.name.toLowerCase().includes(q) || m.displayName.toLowerCase().includes(q);
-  });
+
+  const q = mentorQuery.trim().toLowerCase();
+  // Typing a name must always be able to find ANY mentor — branch is a
+  // suggestion, not a hard filter, otherwise a mentor with missing/mismatched
+  // branch data becomes permanently unfindable by search.
+  const pool = q ? mentors : (branchMentors.length ? branchMentors : mentors);
+  const mentorMatches = pool
+    .filter(m => !q || m.name.toLowerCase().includes(q) || m.displayName.toLowerCase().includes(q))
+    .sort((a, b) => {
+      if (!q) return 0; // keep default order when just browsing branch suggestions
+      const aIn = sameBranch(selected?.branch, a.branch) ? 0 : 1;
+      const bIn = sameBranch(selected?.branch, b.branch) ? 0 : 1;
+      return aIn - bIn; // branch-matching mentors surface first while searching
+    });
 
   const inp = { width:"100%", background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:9, padding:"9px 12px", color:C.text, fontSize:"0.88rem", outline:"none", fontFamily:"inherit", boxSizing:"border-box" };
 
