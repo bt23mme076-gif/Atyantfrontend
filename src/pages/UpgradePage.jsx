@@ -137,7 +137,7 @@ function SessionPricingNote() {
       {/* Must match backend config/serviceCatalog.js prices */}
       {[
         { label: "Text Q&A",      sub: "48hr async", price: "₹49"  },
-        { label: "Audio Call",    sub: "25 min",     price: "₹99"  },
+        { label: "Audio Call",    sub: "15 min",     price: "₹99"  },
         { label: "Resume Review", sub: "48hr async", price: "₹199" },
         { label: "Video Call",    sub: "45 min",     price: "₹299" },
       ].map((s) => (

@@ -88,7 +88,7 @@ const SESSIONS = [
     subtitle: "Resume talk, strategy, no video needed",
     price: 99,
     originalPrice: 199,
-    duration: "25 min",
+    duration: "15 min",
     icon: FiPhone,
     badge: "Voice call",
     color: "blue",
