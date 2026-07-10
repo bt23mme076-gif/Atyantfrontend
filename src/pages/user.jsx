@@ -42,6 +42,10 @@ import { HiSparkles } from "react-icons/hi2";
 import { RiMedalLine } from "react-icons/ri";
 import { api, paymentAPI, servicesAPI } from "../api";
 import { toast } from "react-toastify";
+import { Calendar } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 // Lazily inject the Razorpay Checkout script (once).
 function loadRazorpay() {
@@ -641,7 +645,7 @@ function fmtDateLabel(ds) {
   return new Date(ds + "T12:00:00").toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refreshKey }) {
+function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refreshKey, user }) {
   const todayObj   = useMemo(() => new Date(), []);
   const todayStr   = useMemo(() => `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`, [todayObj]);
 
@@ -651,6 +655,19 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
   const [slots,    setSlots]    = useState(null);   // null=loading, []=[none]
   const [bookedSlots, setBookedSlots] = useState([]);
   const [slotErr,  setSlotErr]  = useState(false);
+  const [mySessions, setMySessions] = useState([]);
+
+  // Fetch student's own sessions to highlight booked days
+  useEffect(() => {
+    if (user) {
+      api.get('/api/sessions/my')
+        .then(r => {
+          const list = Array.isArray(r) ? r : [...(r?.upcoming || []), ...(r?.past || [])];
+          setMySessions(list);
+        })
+        .catch(() => {});
+    }
+  }, [user, refreshKey]);
 
   // Fetch the mentor's weekly availability template once (to highlight calendar days)
   useEffect(() => {
@@ -679,6 +696,32 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
         setSlotErr(true);
       });
   }, [date, mentorId, refreshKey]);
+
+  const hasBookingOnDate = useCallback((ds) => {
+    return mySessions.some(s => {
+      if (s.status === 'cancelled') return false;
+      const sId = s.mentorId?._id || s.mentorId || '';
+      const mId = mentorId?._id || mentorId || '';
+      if (sId.toString() !== mId.toString()) return false;
+      const sDateStr = new Date(s.scheduledAt).toLocaleDateString('sv-SE').slice(0, 10);
+      return sDateStr === ds;
+    });
+  }, [mySessions, mentorId]);
+
+  const getBookingForSlot = useCallback((ds, hhmm) => {
+    return mySessions.find(s => {
+      if (s.status === 'cancelled') return false;
+      const sId = s.mentorId?._id || s.mentorId || '';
+      const mId = mentorId?._id || mentorId || '';
+      if (sId.toString() !== mId.toString()) return false;
+      const sDateStr = new Date(s.scheduledAt).toLocaleDateString('sv-SE').slice(0, 10);
+      if (sDateStr !== ds) return false;
+      
+      const t = new Date(new Date(s.scheduledAt).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const sHhmm = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+      return sHhmm === hhmm;
+    });
+  }, [mySessions, mentorId]);
 
   const maxWeeks  = avail?.maxWeeksAhead ?? 4;
   const cutoffObj = useMemo(() => { const d = new Date(todayObj); d.setDate(d.getDate() + maxWeeks * 7); return d; }, [todayObj, maxWeeks]);
@@ -731,197 +774,113 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
           </div>
           <div>
             <h2 className="text-[1rem] font-black text-[var(--c-text)] leading-tight">Pick a date & time</h2>
-            <p className="text-xs text-[var(--c-textMuted)] mt-0.5">
-              {avail === null ? "Loading availability…" : availDaysThisMonth === 0 ? "No slots this month — try next month" : `${availDaysThisMonth} available day${availDaysThisMonth !== 1 ? 's' : ''} this month`}
-            </p>
           </div>
         </div>
       </div>
 
       <div style={{ padding: "18px 20px" }}>
-        {/* ── Calendar ── */}
-        <div style={{ background: "var(--c-active)", borderRadius: 16, padding: "14px 16px", marginBottom: 18 }}>
-          {/* Month nav */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <button onClick={prevMo} disabled={!canPrev}
-              style={{ width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid var(--c-cardBorder)", background: canPrev ? "var(--c-card)" : "transparent", color: canPrev ? "var(--c-textSub)" : "var(--c-textMuted)", cursor: canPrev ? "pointer" : "default", transition: "all .15s" }}>
-              <FiArrowLeft size={13} />
-            </button>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontWeight: 800, fontSize: ".9rem", color: "var(--c-text)" }}>{CAL_MONTHS[calMonth]}</div>
-              <div style={{ fontSize: ".65rem", color: "var(--c-textMuted)", marginTop: 1 }}>{calYear}</div>
-            </div>
-            <button onClick={nextMo}
-              style={{ width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", color: "var(--c-textSub)", cursor: "pointer", transition: "all .15s" }}>
-              <FiArrowLeft size={13} style={{ transform: "rotate(180deg)" }} />
-            </button>
+        <div className="flex max-sm:flex-col border border-border rounded-2xl overflow-hidden bg-background">
+          {/* ── Left Side: DayPicker Calendar ── */}
+          <div className="flex-1 flex justify-center p-4 bg-background">
+            <Calendar
+              mode="single"
+              selected={date ? new Date(date + "T12:00:00") : undefined}
+              onSelect={(d) => {
+                if (d) {
+                  setDate(format(d, "yyyy-MM-dd"));
+                  setTime("");
+                }
+              }}
+              className="p-0 bg-background"
+              disabled={(d) => {
+                const ds = format(d, "yyyy-MM-dd");
+                return !isAvailDay(ds);
+              }}
+              modifiers={{
+                available: (d) => {
+                  const ds = format(d, "yyyy-MM-dd");
+                  return isAvailDay(ds);
+                },
+                booked: (d) => {
+                  const ds = format(d, "yyyy-MM-dd");
+                  return hasBookingOnDate(ds);
+                }
+              }}
+              modifiersClassNames={{
+                available: "bg-red-500/20 text-red-500 font-bold border border-red-500/40 rounded-lg hover:bg-red-500/30",
+                booked: "border-2 border-red-500 rounded-lg"
+              }}
+            />
           </div>
 
-          {/* Day headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
-            {CAL_DAYS.map(d => (
-              <div key={d} style={{ textAlign: "center", fontSize: ".6rem", fontWeight: 700, color: "var(--c-textMuted)", padding: "3px 0", letterSpacing: ".06em" }}>{d}</div>
-            ))}
-          </div>
+          {/* ── Right Side: Scrollable Slots list ── */}
+          <div className="relative w-full max-sm:h-64 sm:w-60 border-t sm:border-t-0 sm:border-s border-border bg-background">
+            <ScrollArea className="h-64 sm:h-[320px]">
+              <div className="space-y-3 py-4">
+                <div className="flex h-5 shrink-0 items-center px-3">
+                  <p className="text-sm font-semibold text-foreground">
+                    {date ? format(new Date(date + "T12:00:00"), "EEEE, d MMM") : "Select a date"}
+                  </p>
+                </div>
+                
+                {/* Loader */}
+                {date && slots === null && (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2">
+                    <FiRefreshCw className="animate-spin text-muted-foreground" size={20} />
+                    <span className="text-xs text-muted-foreground">Loading slots...</span>
+                  </div>
+                )}
 
-          {/* Calendar cells */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
-            {cells.map((d, i) => {
-              if (!d) return <div key={i} />;
-              const ds       = toDs(d);
-              const avlDay   = isAvailDay(ds);
-              const isPast   = ds < todayStr;
-              const isSel    = ds === date;
-              const isToday  = ds === todayStr;
-              return (
-                <button key={i} type="button"
-                  disabled={!avlDay || isPast}
-                  onClick={() => setDate(ds)}
-                  style={{
-                    width: "100%", aspectRatio: "1", borderRadius: 9, border: "none",
-                    background: isSel
-                      ? "linear-gradient(135deg,#7567C9,#5a52a8)"
-                      : isToday && avlDay
-                        ? "rgba(117,103,201,0.12)"
-                        : avlDay
-                          ? "var(--c-card)"
-                          : "transparent",
-                    color: isSel ? "#fff" : avlDay && !isPast ? "var(--c-text)" : "var(--c-textMuted)",
-                    fontSize: ".8rem", fontWeight: isSel || isToday ? 800 : 400,
-                    cursor: avlDay && !isPast ? "pointer" : "default",
-                    opacity: isPast ? 0.3 : 1,
-                    boxShadow: isSel ? "0 3px 12px rgba(117,103,201,0.4)" : avlDay && !isPast ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    transition: "all .12s ease",
-                    position: "relative",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {d}
-                  {/* Green dot for available days */}
-                  {avlDay && !isPast && !isSel && (
-                    <span style={{ position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)", width: 4, height: 4, borderRadius: "50%", background: "#3DBE82", display: "block" }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                {/* Error */}
+                {date && slots !== null && slotErr && (
+                  <div className="px-4 text-xs text-red-500">
+                    Failed to load slots.
+                  </div>
+                )}
 
-          {/* Legend */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--c-cardBorder)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3DBE82", display: "inline-block" }} />
-              <span style={{ fontSize: ".62rem", color: "var(--c-textMuted)" }}>Available</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 16, height: 16, borderRadius: 4, background: "linear-gradient(135deg,#7567C9,#5a52a8)", display: "inline-block" }} />
-              <span style={{ fontSize: ".62rem", color: "var(--c-textMuted)" }}>Selected</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 16, height: 16, borderRadius: 4, background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", display: "inline-block", opacity: 0.4 }} />
-              <span style={{ fontSize: ".62rem", color: "var(--c-textMuted)" }}>Unavailable</span>
-            </div>
+                {/* No Slots */}
+                {date && slots !== null && !slotErr && slots.length === 0 && (
+                  <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                    No slots available
+                  </div>
+                )}
+
+                {/* Slots list */}
+                {date && slots !== null && !slotErr && slots.length > 0 && (
+                  <div className="grid gap-1.5 px-3 max-sm:grid-cols-2">
+                    {slots.map((slot) => {
+                      const isBooked = bookedSlots.includes(slot);
+                      const isSelected = time === slot;
+                      const myBooking = getBookingForSlot(date, slot);
+                      return (
+                        <Button
+                          key={slot}
+                          variant={isSelected ? "default" : (myBooking ? "destructive" : "outline")}
+                          size="sm"
+                          className={cn(
+                            "w-full text-xs font-semibold rounded-lg",
+                            myBooking && !isSelected && "bg-red-500/10 text-red-500 border-red-500/40 hover:bg-red-500/20"
+                          )}
+                          onClick={() => {
+                            if (!myBooking && !isBooked) setTime(isSelected ? "" : slot);
+                          }}
+                          disabled={isBooked && !myBooking}
+                        >
+                          {fmtSlot(slot)} {myBooking ? "(Yours)" : (isBooked && "(Booked)")}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         </div>
-
-        {/* ── Time Slots ── */}
-        {date && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <FiClock size={13} color="#7567C9" />
-              <span style={{ fontWeight: 700, fontSize: ".84rem", color: "var(--c-text)" }}>
-                {fmtDateLabel(date)}
-              </span>
-            </div>
-
-            {/* Loading skeleton */}
-            {slots === null && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                {[...Array(6)].map((_,i) => (
-                  <div key={i} style={{ height: 52, borderRadius: 12, background: "var(--c-active)", animation: "pulse 1.4s ease-in-out infinite" }} />
-                ))}
-              </div>
-            )}
-
-            {/* Error */}
-            {slots !== null && slotErr && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 12, padding: "12px 14px", color: "#F87171", fontSize: ".8rem" }}>
-                <FiAlertCircle size={14} style={{ flexShrink: 0 }} />
-                Could not load slots — please try again.
-              </div>
-            )}
-
-            {/* No slots */}
-            {slots !== null && !slotErr && slots.length === 0 && (
-              <div style={{ textAlign: "center", padding: "20px 16px", background: "var(--c-active)", borderRadius: 14 }}>
-                <div style={{ fontSize: "1.6rem", marginBottom: 6 }}>😔</div>
-                <div style={{ fontWeight: 700, fontSize: ".85rem", color: "var(--c-text)", marginBottom: 4 }}>No slots on this day</div>
-                <div style={{ fontSize: ".75rem", color: "var(--c-textMuted)" }}>Try another highlighted date on the calendar</div>
-              </div>
-            )}
-
-            {/* Grouped slot sections */}
-            {slots !== null && !slotErr && slotGroups.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {slotGroups.map(group => (
-                  <div key={group.label}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                      <span style={{ fontSize: ".85rem" }}>{group.icon}</span>
-                      <span style={{ fontWeight: 700, fontSize: ".75rem", color: "var(--c-textSub)" }}>{group.label}</span>
-                      <span style={{ fontSize: ".68rem", color: "var(--c-textMuted)" }}>· {group.range}</span>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-                      {group.items.map(slot => {
-                        const sel = time === slot;
-                        const isBooked = bookedSlots.includes(slot);
-                        return (
-                          <button key={slot} type="button"
-                            disabled={isBooked}
-                            onClick={() => !isBooked && setTime(sel ? '' : slot)}
-                            style={{
-                              background: isBooked
-                                ? "rgba(239, 68, 68, 0.07)"
-                                : sel
-                                  ? "linear-gradient(135deg,#7567C9,#5a52a8)"
-                                  : "var(--c-active)",
-                              border: `1.5px solid ${isBooked ? "rgba(239, 68, 68, 0.25)" : sel ? "#7567C9" : "var(--c-cardBorder)"}`,
-                              borderRadius: 12, padding: "9px 6px 7px",
-                              color: isBooked ? "#EF4444" : sel ? "#fff" : "var(--c-text)",
-                              fontWeight: sel ? 800 : 500, fontSize: ".82rem",
-                              cursor: isBooked ? "not-allowed" : "pointer", fontFamily: "inherit",
-                              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                              boxShadow: sel && !isBooked ? "0 4px 14px rgba(117,103,201,0.35)" : "none",
-                              transform: sel && !isBooked ? "translateY(-1px)" : "none",
-                              transition: "all .15s ease",
-                              opacity: isBooked ? 0.8 : 1,
-                            }}>
-                            <FiClock size={11} style={{ opacity: sel ? 1 : 0.5 }} />
-                            <span>{fmtSlot(slot)}</span>
-                            {isBooked && (
-                              <span style={{ fontSize: "9px", fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.05em" }}>Booked</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── No date selected hint ── */}
-        {!date && avail !== null && (
-          <div style={{ textAlign: "center", padding: "16px 0 4px" }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: 6 }}>👆</div>
-            <div style={{ fontWeight: 600, fontSize: ".82rem", color: "var(--c-textSub)" }}>Tap a highlighted date to see slots</div>
-          </div>
-        )}
 
         {/* ── Confirmation banner ── */}
         {date && time && (
           <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12, background: "rgba(61,190,130,0.08)", border: "1.5px solid rgba(61,190,130,0.3)", borderRadius: 14, padding: "13px 16px" }}>
-            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(61,190,130,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(61,190,130,0.15)", display: "flex", alignItems: "center", justifyItems: "center", flexShrink: 0 }}>
               <FiCheckCircle size={17} color="#3DBE82" />
             </div>
             <div>
@@ -1802,7 +1761,7 @@ function PaymentPanel({
   selectedSession, mentorId, date, setDate, time, setTime, today, refreshSlots,
   name, setName, email, setEmail, phone, setPhone, brief, setBrief,
   couponCode, setCouponCode, couponApplied, couponDiscount, couponMeta,
-  applyCoupon, removeCoupon, isFormValid, isBooking, handleBooking,
+  applyCoupon, removeCoupon, isFormValid, isBooking, handleBooking, user,
 }) {
   if (!selectedSession) return null;
   const packagePrice = selectedSession.originalPrice;
@@ -1916,6 +1875,7 @@ function PaymentPanel({
         setTime={setTime}
         today={today}
         refreshKey={refreshSlots}
+        user={user}
       />
 
       {/* Confirm Payment */}
@@ -2372,6 +2332,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                 isFormValid={isFormValid}
                 isBooking={isBooking}
                 handleBooking={handleBooking}
+                user={user}
               />
               )}
             </aside>

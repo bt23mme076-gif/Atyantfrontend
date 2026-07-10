@@ -1291,8 +1291,7 @@ export default function App() {
 
   const MENTOR_PROFILE_NAV = [
     { key: 'overview',     Icon: Activity,      label: 'Overview' },
-    { key: 'services',     Icon: IndianRupee,   label: 'Services' },
-    { key: 'availability', Icon: CalendarClock, label: 'Availability' },
+    { key: 'booking',      Icon: CalendarClock, label: 'Availability' },
     { key: 'basic',        Icon: UserRound,     label: 'Basic Information' },
     { key: 'education',    Icon: GraduationCap, label: 'Education' },
     { key: 'experience',   Icon: Briefcase,     label: 'Experience' },

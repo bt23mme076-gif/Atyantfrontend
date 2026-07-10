@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Pencil, Camera, X, Loader2, Check, FileText, Sparkles,
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
   CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
   Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
-  CalendarClock, Clock, IndianRupee, Rocket, Star, Upload, Globe, Copy,
-  Mic, Video, Heart, Settings,
+  CalendarClock, Upload, Globe, Copy, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import useIsMobile from "../hooks/useIsMobile";
 import { profileAPI, servicesAPI, availabilityAPI, mentorAPI } from "../api";
+import InteractiveCalendar from "../components/ui/visualize-booking";
+import TimeClockPicker from "../components/ui/time-clock-picker";
 import Avatar from "../components/Avatar";
 import ShareProfile from "../components/ShareProfile";
 import AnswerCardManager from "../components/AnswerCardManager";
@@ -117,15 +118,6 @@ const PageStyles = () => (
   `}</style>
 );
 
-/* ─── Service card icon map ─────────────────────────────────────────────────── */
-const SVC_ICONS = {
-  'text-qa':       { Icon: MessageSquareText, color: '#3B82F6', bg: 'rgba(59,130,246,0.12)'  },
-  'audio-call':    { Icon: Mic,               color: '#10B981', bg: 'rgba(16,185,129,0.12)'  },
-  'video-call':    { Icon: Video,             color: '#7567C9', bg: 'rgba(117,103,201,0.12)' },
-  'resume-review': { Icon: FileText,          color: '#F59E0B', bg: 'rgba(245,158,11,0.12)'  },
-  'free-help':     { Icon: Heart,             color: '#EF4444', bg: 'rgba(239,68,68,0.12)'   },
-};
-
 /* ─── Completion ring (SVG) ─────────────────────────────────────────────────── */
 function Ring({ pct, size = 76, stroke = 7 }) {
   const r = (size - stroke) / 2;
@@ -162,8 +154,17 @@ function StatCard({ Icon, label, value, hint, delay }) {
 
 /* ─── Section card shell ────────────────────────────────────────────────────── */
 function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2, id }) {
+  const tapToEdit = !!onEdit && !editing;
+  // Tapping anywhere on a read-only card starts editing — on mobile the tiny
+  // pencil is an awkward target. Real controls inside keep their own behaviour.
+  const handleCardClick = (e) => {
+    if (!tapToEdit) return;
+    if (e.target.closest("button, a, input, textarea, select, label")) return;
+    onEdit();
+  };
   return (
-    <section id={id} className={`pf-card pf-anim pf-anim-${delay}`} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1.35rem 1.4rem", minWidth: 0 }}>
+    <section id={id} className={`pf-card pf-anim pf-anim-${delay}`} onClick={handleCardClick}
+      style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1.35rem 1.4rem", minWidth: 0, cursor: tapToEdit ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.2rem", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
           <div style={{
@@ -188,6 +189,93 @@ function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2, 
       </div>
       {children}
     </section>
+  );
+}
+
+/* ─── Horizontally scrollable section tabs (mobile) ──────────────────────────
+   Chevrons + edge fades tell the mentor there's more to the left/right; they
+   only appear on the side that actually has overflow left to scroll. */
+function ScrollTabs({ items, activeKey, onSelect }) {
+  const scrollerRef = useRef(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const syncEdges = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setEdges({ left: el.scrollLeft > 4, right: el.scrollLeft < maxScroll - 4 });
+  };
+
+  useEffect(() => {
+    syncEdges();
+    const el = scrollerRef.current;
+    if (!el) return;
+    window.addEventListener("resize", syncEdges);
+    return () => window.removeEventListener("resize", syncEdges);
+  }, [items.length]);
+
+  // Keep the active tab in view when the section changes from elsewhere (e.g. a
+  // completion chip jumping the mentor to a different section).
+  useEffect(() => {
+    const el = scrollerRef.current?.querySelector(`[data-tab="${activeKey}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const t = setTimeout(syncEdges, 300);
+    return () => clearTimeout(t);
+  }, [activeKey]);
+
+  const nudge = (dir) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const target = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, el.scrollLeft + dir * 160));
+    el.scrollTo({ left: target, behavior: "smooth" });
+    // Engines that ignore smooth scrolling never fire the scroll event, so land
+    // the scroll ourselves and refresh the arrows rather than stalling.
+    setTimeout(() => {
+      if (Math.abs(el.scrollLeft - target) > 1) el.scrollLeft = target;
+      syncEdges();
+    }, 300);
+  };
+
+  const arrowStyle = (side) => ({
+    position: "absolute", top: "50%", [side]: 0, transform: "translateY(-50%)",
+    zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center",
+    width: 26, height: 26, borderRadius: "50%", border: `1px solid ${C.cardBorder}`,
+    background: C.card, color: C.textSub, cursor: "pointer", padding: 0,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
+  });
+
+  const fadeStyle = (side) => ({
+    position: "absolute", top: 0, bottom: 4, [side]: 0, width: 44, zIndex: 1,
+    pointerEvents: "none",
+    background: `linear-gradient(to ${side === "left" ? "right" : "left"}, var(--c-bg), transparent)`,
+  });
+
+  return (
+    <div style={{ position: "relative", marginBottom: 14 }}>
+      {edges.left && <>
+        <div style={fadeStyle("left")} />
+        <button type="button" onClick={() => nudge(-1)} aria-label="Scroll sections left" style={arrowStyle("left")}>
+          <ChevronLeft size={15} />
+        </button>
+      </>}
+
+      <div ref={scrollerRef} onScroll={syncEdges} className="hide-scrollbar"
+        style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollPaddingInline: 32 }}>
+        {items.map(({ key, label }) => (
+          <button key={key} data-tab={key} onClick={() => onSelect(key)}
+            style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, border: activeKey === key ? "none" : `1px solid ${C.cardBorder}`, background: activeKey === key ? C.accent : C.card, color: activeKey === key ? "#fff" : C.textSub, fontSize: ".74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {edges.right && <>
+        <div style={fadeStyle("right")} />
+        <button type="button" onClick={() => nudge(1)} aria-label="Scroll sections right" style={arrowStyle("right")}>
+          <ChevronRight size={15} />
+        </button>
+      </>}
+    </div>
   );
 }
 
@@ -286,6 +374,83 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
   );
 }
 
+/* ─── Work Experience Editor — company + duration (months), multiple entries ───── */
+function WorkExperienceEditor({ items, editing, onChange, placeholder, emptyText }) {
+  const [company, setCompany] = useState("");
+  const [months, setMonths] = useState("");
+
+  const add = () => {
+    const c = company.trim();
+    const m = Number(months);
+    if (!c || !Number.isFinite(m) || m <= 0) return;
+    onChange([...items, { company: c, months: m }]);
+    setCompany(""); setMonths("");
+  };
+  const remove = (idx) => onChange(items.filter((_, i) => i !== idx));
+
+  const fmtDuration = (m) => {
+    const y = Math.floor(m / 12), rem = m % 12;
+    const parts = [];
+    if (y) parts.push(`${y} yr${y > 1 ? "s" : ""}`);
+    if (rem) parts.push(`${rem} mo${rem > 1 ? "s" : ""}`);
+    return parts.join(" ") || "0 mo";
+  };
+
+  const canAdd = company.trim() && Number(months) > 0;
+
+  if (items.length === 0 && !editing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 13px", background: C.active, borderRadius: 10, border: `1px dashed ${C.cardBorder}` }}>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Plus size={12} style={{ color: C.accentText }} />
+        </div>
+        <span style={{ fontSize: ".8rem", color: C.textMuted, lineHeight: 1.5 }}>{emptyText}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {items.map((it, i) => {
+          const clr = CHIP_PALETTE[i % CHIP_PALETTE.length];
+          return (
+            <div key={i} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              background: clr.bg, border: `1px solid ${clr.border}`, borderRadius: 10, padding: "9px 13px",
+            }}>
+              <span style={{ fontSize: ".85rem", fontWeight: 700, color: clr.text }}>{it.company}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: ".75rem", fontWeight: 600, color: clr.text + "cc" }}>{fmtDuration(it.months)}</span>
+                {editing && (
+                  <button type="button" onClick={() => remove(i)} aria-label={`Remove ${it.company}`}
+                    style={{ background: "transparent", border: "none", color: clr.text + "99", cursor: "pointer", padding: 0, display: "flex" }}>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {editing && (
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <input className="pf-input" style={{ flex: 2, border: `1.5px solid ${company.trim() ? "#3DBE82" : C.cardBorder}`, outline: "none", transition: "border-color .15s" }}
+            value={company} placeholder={placeholder} onChange={e => setCompany(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+          <input className="pf-input" type="number" min="1" style={{ flex: 1, border: `1.5px solid ${months ? "#3DBE82" : C.cardBorder}`, outline: "none", transition: "border-color .15s" }}
+            value={months} placeholder="Months" onChange={e => setMonths(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+          <button type="button" onClick={add} disabled={!canAdd}
+            style={{ background: canAdd ? "#3DBE82" : C.active, border: `1px solid ${canAdd ? "#3DBE82" : C.cardBorder}`, color: canAdd ? "#fff" : C.textMuted, borderRadius: 10, padding: "0 16px", cursor: canAdd ? "pointer" : "not-allowed", fontSize: ".82rem", fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, transition: "all .15s" }}>
+            <Plus size={13} /> Add
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Availability Editor — Topmate-style weekly list (day toggle + time ranges) ───── */
 const DOW_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const SLOT_INTERVAL_MIN = 30; // a saved range expands into discrete bookable slots on this grid
@@ -294,173 +459,235 @@ const fmtSlot = (s) => { const [h,m] = s.split(':').map(Number); const p = h >= 
 const toMin   = (hhmm) => { const [h,m] = hhmm.split(':').map(Number); return h*60+m; };
 const toHHMM  = (min)  => `${String(Math.floor(min/60)).padStart(2,'0')}:${String(min%60).padStart(2,'0')}`;
 
-// Expand a start/end range into discrete "HH:MM" slots at SLOT_INTERVAL_MIN steps.
-// End is exclusive of the final partial step (so "09:00–10:00" → ["09:00","09:30"]).
-function expandRange(start, end) {
+// Expand a start/end range into discrete "HH:MM" slots at `stepMin` steps.
+// End is exclusive of the final partial step (so "09:00–10:00" @30min → ["09:00","09:30"]).
+function expandRange(start, end, stepMin = SLOT_INTERVAL_MIN) {
   const startMin = toMin(start), endMin = toMin(end);
   const out = [];
-  for (let m = startMin; m + SLOT_INTERVAL_MIN <= endMin; m += SLOT_INTERVAL_MIN) out.push(toHHMM(m));
+  for (let m = startMin; m + stepMin <= endMin; m += stepMin) out.push(toHHMM(m));
   return out;
 }
 
 // Collapse a sorted list of discrete slots back into contiguous [start,end] ranges,
 // so ranges saved earlier still display as ranges instead of a flat slot list.
-function collapseToRanges(slots) {
+function collapseToRanges(slots, stepMin = SLOT_INTERVAL_MIN) {
   if (!slots.length) return [];
   const sorted = [...new Set(slots)].sort();
   const ranges = [];
   let rangeStart = sorted[0], prev = sorted[0];
   for (let i = 1; i < sorted.length; i++) {
-    if (toMin(sorted[i]) - toMin(prev) === SLOT_INTERVAL_MIN) { prev = sorted[i]; continue; }
-    ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + SLOT_INTERVAL_MIN) });
+    if (toMin(sorted[i]) - toMin(prev) === stepMin) { prev = sorted[i]; continue; }
+    ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + stepMin) });
     rangeStart = prev = sorted[i];
   }
-  ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + SLOT_INTERVAL_MIN) });
+  ranges.push({ start: rangeStart, end: toHHMM(toMin(prev) + stepMin) });
   return ranges;
 }
 
-function AvailabilityEditor({ userId }) {
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+// A mentor picks a date, taps the services they offer, adds one or more time
+// ranges, and picks how it repeats — then hits Save once. "Every Monday" keeps
+// applying to every future Monday on its own; nothing is ever re-entered.
+function AvailabilityEditor({ userId, serviceCatalog, servicesOffered, toggleService, customService = { enabled: false, label: "", description: "", price: "", durationMin: "30" }, setCustomService, anySvcDirty, saveServices }) {
   const [weekly, setWeekly] = useState(null); // [{ day, slots: ["HH:MM",...] }]
+  const [exceptions, setExceptions] = useState([]); // kept as-is, not editable from this screen
+  const [dateOverrides, setDateOverrides] = useState([]); // [{ date, slots }] — "only this day"
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
+  const [monthDate, setMonthDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(todayISO);
+
+  const [ranges, setRanges] = useState([]); // [{start,end}] being edited for selectedDate
+  const [rangeStart, setRangeStart] = useState('09:00');
+  const [rangeEnd, setRangeEnd] = useState('10:00');
+  const [repeat, setRepeat] = useState('weekly'); // 'once' | 'weekly' | 'everyday'
+
+  // Nudges that guide a first-time mentor forward: picking a date draws the eye
+  // to Services next; adding a slot or picking a service draws the eye to Save.
+  const [svcPop, setSvcPop] = useState(0);
+  const [savePop, setSavePop] = useState(0);
 
   useEffect(() => {
     availabilityAPI.getSchedule(userId)
-      .then(d => setWeekly(d.availability?.weekly || []))
-      .catch(() => setWeekly([]));
+      .then(d => {
+        setWeekly(d.availability?.weekly || []);
+        setExceptions(d.availability?.exceptions || []);
+        setDateOverrides(d.availability?.dateOverrides || []);
+      })
+      .catch(() => { setWeekly([]); setExceptions([]); setDateOverrides([]); });
   }, [userId]);
 
-  const dayEntry  = (dow) => (weekly||[]).find(d => d.day === dow);
-  const dayRanges = (dow) => collapseToRanges(dayEntry(dow)?.slots || []);
+  const selectedDow = new Date(selectedDate + 'T00:00:00').getDay();
+  const selectedWeekdayName = DOW_LABELS[selectedDow];
 
-  const toggleDay = (dow) => {
-    setWeekly(prev => {
-      if (prev.some(d => d.day === dow)) return prev.filter(d => d.day !== dow);
-      return [...prev, { day: dow, slots: expandRange("09:00", "18:00") }];
-    });
-  };
+  // Populate the editor from whatever's already saved for the selected date —
+  // a one-off override takes precedence over the weekday's recurring schedule.
+  useEffect(() => {
+    if (weekly === null) return;
+    const override = dateOverrides.find(o => o.date === selectedDate);
+    const weeklyEntry = weekly.find(w => w.day === selectedDow);
+    if (override) {
+      setRanges(collapseToRanges(override.slots));
+      setRepeat('once');
+    } else if (weeklyEntry?.slots?.length) {
+      setRanges(collapseToRanges(weeklyEntry.slots));
+      setRepeat('weekly');
+    } else {
+      setRanges([]);
+      setRepeat('weekly');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
-  const setDaySlots = (dow, slots) => {
-    setWeekly(prev => prev.map(d => d.day === dow ? { ...d, slots } : d));
+  const addRange = () => {
+    if (!rangeStart || !rangeEnd || toMin(rangeEnd) <= toMin(rangeStart)) return;
+    setRanges(prev => [...prev, { start: rangeStart, end: rangeEnd }]);
+    setSavePop(k => k + 1);
   };
+  const removeRange = (idx) => setRanges(prev => prev.filter((_, i) => i !== idx));
 
-  const addRange = (dow) => {
-    const existing = dayEntry(dow)?.slots || [];
-    setDaySlots(dow, [...new Set([...existing, ...expandRange("09:00","10:00")])].sort());
-  };
-
-  const removeRange = (dow, idx) => {
-    const ranges = dayRanges(dow);
-    const next = ranges.filter((_, i) => i !== idx).flatMap(r => expandRange(r.start, r.end));
-    setDaySlots(dow, next);
-  };
-
-  const updateRange = (dow, idx, field, value) => {
-    const ranges = dayRanges(dow);
-    const updated = ranges.map((r, i) => i === idx ? { ...r, [field]: value } : r);
-    const next = updated
-      .filter(r => toMin(r.end) > toMin(r.start))
-      .flatMap(r => expandRange(r.start, r.end));
-    setDaySlots(dow, next);
-  };
+  const handleSelectDate = (d) => { setSelectedDate(d); setSvcPop(k => k + 1); };
+  const handleToggleService = (id) => { toggleService(id); setSavePop(k => k + 1); };
+  const handleToggleCustom = () => { setCustomService({ enabled: !customService.enabled }); setSavePop(k => k + 1); };
 
   const handleSave = async () => {
+    const validRanges = ranges.filter(r => toMin(r.end) > toMin(r.start));
+    const slots = [...new Set(validRanges.flatMap(r => expandRange(r.start, r.end)))].sort();
+
+    let nextWeekly = weekly;
+    let nextOverrides = dateOverrides;
+
+    if (repeat === 'once') {
+      const others = dateOverrides.filter(o => o.date !== selectedDate);
+      nextOverrides = slots.length ? [...others, { date: selectedDate, slots }] : others;
+    } else {
+      const days = repeat === 'everyday' ? [0, 1, 2, 3, 4, 5, 6] : [selectedDow];
+      const map = new Map((weekly || []).map(w => [w.day, w]));
+      for (const day of days) {
+        if (slots.length) map.set(day, { day, slots }); else map.delete(day);
+      }
+      nextWeekly = [...map.values()].sort((a, b) => a.day - b.day);
+    }
+
+    setWeekly(nextWeekly);
+    setDateOverrides(nextOverrides);
     setSaving(true);
     try {
-      await availabilityAPI.save({ weekly });
+      await Promise.all([
+        availabilityAPI.save({
+          weekly: nextWeekly.filter(w => w.slots?.length > 0),
+          exceptions,
+          dateOverrides: nextOverrides.filter(o => o.slots?.length > 0),
+        }),
+        anySvcDirty ? saveServices() : Promise.resolve(),
+      ]);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    } catch (e) { alert(e.message || 'Save failed'); }
-    finally { setSaving(false); }
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      alert(e.message || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const totalSlots = (weekly||[]).reduce((s,d)=>s+d.slots.length,0);
-  const activeDays  = (weekly||[]).length;
-
   if (weekly === null) return (
-    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      {[0,1,2,3].map(i=><div key={i} className="pf-skel" style={{ height:52, borderRadius:10 }} />)}
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {[0, 1, 2, 3].map(i => <div key={i} className="pf-skel" style={{ height: 52, borderRadius: 10 }} />)}
     </div>
   );
 
-  return (
-    <div>
-      {/* ── Weekly day list ── */}
-      <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:14 }}>
-        {DOW_LABELS.map((label, dow) => {
-          const entry  = dayEntry(dow);
-          const on     = !!entry;
-          const ranges = dayRanges(dow);
-          return (
-            <div key={dow} style={{ background:C.card, border:`1px solid ${on?C.accent+"55":C.cardBorder}`, borderRadius:12, padding:"12px 14px" }}>
-              {/* Day row: toggle + label */}
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <button type="button" onClick={()=>toggleDay(dow)} role="switch" aria-checked={on}
-                    style={{
-                      width:38, height:22, borderRadius:999, border:"none", cursor:"pointer", position:"relative",
-                      background: on ? C.accent : C.active, transition:"background .15s", flexShrink:0, padding:0,
-                    }}>
-                    <span style={{
-                      position:"absolute", top:2, left: on ? 18 : 2, width:18, height:18, borderRadius:"50%",
-                      background:"#fff", transition:"left .15s", boxShadow:"0 1px 3px rgba(0,0,0,.3)",
-                    }} />
-                  </button>
-                  <span style={{ fontSize:".84rem", fontWeight:700, color: on ? C.text : C.textMuted, minWidth:84 }}>{label}</span>
-                </div>
-                {!on && <span style={{ fontSize:".72rem", color:C.textMuted }}>Unavailable</span>}
-                {on && (
-                  <button type="button" onClick={()=>addRange(dow)}
-                    style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:`1px solid ${C.cardBorder}`, borderRadius:8, padding:"5px 9px", color:C.accentText, fontSize:".7rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-                    <Plus size={12} /> Add range
-                  </button>
-                )}
-              </div>
+  const selectedShortLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-              {/* Time ranges for this day */}
-              {on && (
-                <div style={{ display:"flex", flexDirection:"column", gap:7, marginTop:10 }}>
-                  {ranges.map((r, idx) => (
-                    <div key={idx} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <input type="time" value={r.start} onChange={e=>updateRange(dow, idx, 'start', e.target.value)}
-                        style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 9px", color:C.text, fontSize:".76rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
-                      <span style={{ color:C.textMuted, fontSize:".75rem" }}>to</span>
-                      <input type="time" value={r.end} onChange={e=>updateRange(dow, idx, 'end', e.target.value)}
-                        style={{ background:C.active, border:`1.5px solid ${C.cardBorder}`, borderRadius:8, padding:"6px 9px", color:C.text, fontSize:".76rem", fontFamily:"inherit", outline:"none", cursor:"pointer" }} />
-                      <span style={{ fontSize:".68rem", color:C.textMuted, marginLeft:2 }}>
-                        {fmtSlot(r.start)} – {fmtSlot(r.end)}
-                      </span>
-                      <button type="button" onClick={()=>removeRange(dow, idx)}
-                        style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", color:C.textMuted, padding:4, display:"flex" }}>
-                        <X size={13} />
-                      </button>
-                    </div>
-                  ))}
-                  {ranges.length === 0 && (
-                    <span style={{ fontSize:".72rem", color:C.textMuted }}>No time ranges yet — tap "Add range"</span>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+  return (
+    <div className="flex max-lg:flex-col gap-10 lg:gap-14">
+      <style>{`
+        @keyframes avail-pop {
+          0%   { transform: scale(1);     box-shadow: 0 0 0 0 var(--c-accent, #7567C9); }
+          40%  { transform: scale(1.02);  box-shadow: 0 0 0 6px rgba(117,103,201,0.18); }
+          100% { transform: scale(1);     box-shadow: 0 0 0 0 rgba(117,103,201,0); }
+        }
+        .avail-pop { animation: avail-pop .5s ease-out; border-radius: 20px; }
+      `}</style>
+      <div className="lg:pt-1">
+        <InteractiveCalendar
+          monthDate={monthDate}
+          onMonthChange={setMonthDate}
+          availableDaysOfWeek={(weekly || []).filter(w => w.slots?.length).map(w => w.day)}
+          exceptionDates={exceptions}
+          overrideDates={dateOverrides.filter(o => o.slots?.length).map(o => o.date)}
+          selectedDate={selectedDate}
+          onSelectDate={handleSelectDate}
+        />
       </div>
 
-      {activeDays === 0 && (
-        <div style={{ display:"flex", alignItems:"center", gap:10, background:C.active, borderRadius:10, border:`1px dashed ${C.cardBorder}`, padding:"11px 14px", marginBottom:12 }}>
-          <CalendarClock size={14} style={{ color:C.textMuted, flexShrink:0 }} />
-          <span style={{ fontSize:".78rem", color:C.textMuted }}>Turn on the days you're available, then set your hours</span>
-        </div>
-      )}
+      <div className="flex-1 flex flex-col gap-8 max-w-md">
+        <div className="text-2xl font-semibold text-[var(--c-text)]">{selectedShortLabel}</div>
 
-      {/* ── Save ── */}
-      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-        <button type="button" onClick={handleSave} disabled={saving || activeDays===0}
-          style={{ display:"flex", alignItems:"center", gap:6, background:activeDays>0?C.green:C.active, border:"none", borderRadius:10, padding:"9px 18px", color:activeDays>0?"#fff":C.textMuted, fontSize:".8rem", fontWeight:700, cursor:activeDays>0?"pointer":"not-allowed", fontFamily:"inherit", opacity:saving?.7:1 }}>
-          {saving?<><Spin size={13}/>Saving…</>:<><Check size={12}/>Save schedule</>}
+        {/* Services */}
+        <div key={`svc-${svcPop}`} className={`grid grid-cols-2 gap-2.5 ${svcPop > 0 ? 'avail-pop' : ''}`}>
+          {(serviceCatalog || []).map(s => {
+            const on = servicesOffered.includes(s.id);
+            return (
+              <button key={s.id} type="button" onClick={() => handleToggleService(s.id)}
+                className={`text-left rounded-2xl px-4 py-3.5 text-sm font-medium transition-colors ${on ? 'bg-[#7567C9] text-white' : 'bg-[var(--c-active)] text-[var(--c-text)] hover:bg-[var(--c-cardHover)]'}`}>
+                {s.label}
+              </button>
+            );
+          })}
+          <button type="button" onClick={handleToggleCustom}
+            className={`text-left rounded-2xl px-4 py-3.5 text-sm font-medium transition-colors ${customService.enabled ? 'bg-[#7567C9] text-white' : 'bg-[var(--c-active)] text-[var(--c-text)] hover:bg-[var(--c-cardHover)]'}`}>
+            Custom Service
+          </button>
+        </div>
+
+        {customService.enabled && (
+          <div className="grid grid-cols-2 gap-2.5 -mt-3">
+            <input value={customService.label} onChange={e => setCustomService({ label: e.target.value })} placeholder="Service name"
+              className="bg-[var(--c-active)] border border-[var(--c-cardBorder)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--c-text)] outline-none focus:bg-[var(--c-cardHover)] placeholder:text-[var(--c-textMuted)]" />
+            <input type="number" min="0" value={customService.price} onChange={e => setCustomService({ price: e.target.value })} placeholder="Price (₹)"
+              className="bg-[var(--c-active)] border border-[var(--c-cardBorder)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--c-text)] outline-none focus:bg-[var(--c-cardHover)] placeholder:text-[var(--c-textMuted)]" />
+            <input type="number" min="5" max="180" value={customService.durationMin} onChange={e => setCustomService({ durationMin: e.target.value })} placeholder="Duration (min)"
+              className="bg-[var(--c-active)] border border-[var(--c-cardBorder)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--c-text)] outline-none focus:bg-[var(--c-cardHover)] placeholder:text-[var(--c-textMuted)]" />
+            <input value={customService.description} onChange={e => setCustomService({ description: e.target.value })} placeholder="Short description"
+              className="bg-[var(--c-active)] border border-[var(--c-cardBorder)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--c-text)] outline-none focus:bg-[var(--c-cardHover)] placeholder:text-[var(--c-textMuted)]" />
+          </div>
+        )}
+
+        {/* Time */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2.5">
+            <TimeClockPicker value={rangeStart} onChange={setRangeStart} />
+            <span className="text-[var(--c-textMuted)]">→</span>
+            <TimeClockPicker value={rangeEnd} onChange={setRangeEnd} />
+            <button type="button" onClick={addRange} className="shrink-0 rounded-xl bg-[var(--c-active)] hover:bg-[var(--c-cardHover)] px-4 py-2.5 text-sm font-medium text-[var(--c-text)] transition-colors">
+              + Add
+            </button>
+          </div>
+          {ranges.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {ranges.map((r, i) => (
+                <span key={i} className="inline-flex items-center gap-2 bg-[var(--c-active)] border border-[var(--c-cardBorder)] rounded-full pl-3.5 pr-2.5 py-1.5 text-sm text-[var(--c-text)]">
+                  {fmtSlot(r.start)} – {fmtSlot(r.end)}
+                  <button type="button" onClick={() => removeRange(i)} className="text-[var(--c-textMuted)] hover:text-[var(--c-text)]">✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Repeat */}
+        <select value={repeat} onChange={e => setRepeat(e.target.value)}
+          className="w-full bg-[var(--c-active)] border border-[var(--c-cardBorder)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--c-text)] outline-none focus:bg-[var(--c-cardHover)]">
+          <option value="once">Only this day</option>
+          <option value="weekly">Every {selectedWeekdayName}</option>
+          <option value="everyday">Everyday</option>
+        </select>
+
+        <button key={`save-${savePop}`} type="button" onClick={handleSave} disabled={saving}
+          className={`w-full rounded-2xl bg-[#7567C9] text-white font-semibold py-3.5 text-sm transition-opacity disabled:opacity-60 ${savePop > 0 && !saving && !saved ? 'avail-pop' : ''}`}>
+          {saving ? 'Saving…' : saved ? 'Saved' : 'Save Availability'}
         </button>
-        {saved && <span style={{ fontSize:".78rem", color:C.green, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}><Check size={12}/>Saved</span>}
-        {activeDays>0 && <span style={{ fontSize:".72rem", color:C.textMuted }}>{totalSlots} slots/week</span>}
       </div>
     </div>
   );
@@ -561,7 +788,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   const [serviceCatalog, setServiceCatalog] = useState(null); // null = loading
   const [form, setForm] = useState({
     name: "", phone: "", college: "", branch: "", year: "", cgpa: "", bio: "", goals: [], skills: [],
-    expertise: [], topCompanies: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
+    expertise: [], topCompanies: [], workExperience: [], specialTags: [], city: "", linkedinProfile: "", price: "", yearsOfExperience: "",
     primaryDomain: "", companyDomain: "", servicesOffered: [],
     customService: { enabled: false, label: "", description: "", price: "", durationMin: "30" },
   });
@@ -655,6 +882,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       skills: user.skills || [],
       expertise: user.expertise || [],
       topCompanies: user.topCompanies || [],
+      workExperience: user.workExperience || [],
       specialTags: user.specialTags || [],
       city: user.city || "",
       linkedinProfile: user.linkedinProfile || "",
@@ -738,7 +966,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       const base = { username: form.name, phone: cleanPhone, bio: form.bio, college: form.college, branch: form.branch, year: form.year, cgpa: form.cgpa };
       const payload = isMentor
         ? {
-          ...base, expertise: form.expertise, topCompanies: form.topCompanies, specialTags: form.specialTags,
+          ...base, expertise: form.expertise, workExperience: form.workExperience, specialTags: form.specialTags,
           city: form.city, linkedinProfile: form.linkedinProfile, price: Number(form.price) || 0, yearsOfExperience: Number(form.yearsOfExperience) || 0,
           primaryDomain: form.primaryDomain, companyDomain: form.companyDomain, servicesOffered: form.servicesOffered
         }
@@ -771,7 +999,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         bio:             form.bio             || d.bio || "",
         city:            form.city            || d.city || "",
         linkedinProfile: form.linkedinProfile || d.linkedinProfile || "",
-        topCompanies:    form.topCompanies.length ? form.topCompanies : (d.topCompanies || []),
+        workExperience:  form.workExperience.length ? form.workExperience : (d.topCompanies || []).map(c => ({ company: c, months: 0 })),
         expertise:       form.expertise.length    ? form.expertise    : (d.expertise || []),
         specialTags:     Array.from(new Set([...form.specialTags, ...(d.specialTags || [])])),
         primaryDomain:   form.primaryDomain   || d.primaryDomain || "",
@@ -780,7 +1008,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       setForm(merged);
       const payload = {
         username: merged.name, bio: merged.bio, college: merged.college, branch: merged.branch,
-        year: merged.year, cgpa: merged.cgpa, expertise: merged.expertise, topCompanies: merged.topCompanies,
+        year: merged.year, cgpa: merged.cgpa, expertise: merged.expertise, workExperience: merged.workExperience,
         specialTags: merged.specialTags, city: merged.city, linkedinProfile: merged.linkedinProfile,
         price: Number(merged.price) || 0, yearsOfExperience: Number(merged.yearsOfExperience) || 0,
         primaryDomain: merged.primaryDomain, companyDomain: merged.companyDomain, servicesOffered: merged.servicesOffered,
@@ -812,7 +1040,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         bio:             form.bio             || d.bio      || "",
         city:            form.city            || d.city     || "",
         linkedinProfile: form.linkedinProfile || d.linkedinProfile || importUrl.trim(),
-        topCompanies:    form.topCompanies.length ? form.topCompanies : (d.topCompanies || []),
+        workExperience:  form.workExperience.length ? form.workExperience : (d.topCompanies || []).map(c => ({ company: c, months: 0 })),
         expertise:       form.expertise.length    ? form.expertise    : (d.expertise   || []),
         primaryDomain:   form.primaryDomain   || d.primaryDomain || "",
         companyDomain:   form.companyDomain   || d.companyDomain || "",
@@ -822,7 +1050,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       const payload = {
         username: merged.name, bio: merged.bio, college: merged.college, branch: merged.branch,
         year: merged.year, city: merged.city, linkedinProfile: merged.linkedinProfile,
-        expertise: merged.expertise, topCompanies: merged.topCompanies,
+        expertise: merged.expertise, workExperience: merged.workExperience,
         primaryDomain: merged.primaryDomain, companyDomain: merged.companyDomain,
         servicesOffered: merged.servicesOffered, price: Number(merged.price) || 0,
         yearsOfExperience: Number(merged.yearsOfExperience) || 0,
@@ -849,7 +1077,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
     { key: "exp", label: "Experience", pts: 8, done: Number(form.yearsOfExperience) > 0 },
     { key: "domain", label: "Mentoring domain", pts: 6, done: has(form.primaryDomain) },
     { key: "expertise", label: "Expertise", pts: 10, done: has(form.expertise) },
-    { key: "companies", label: "Companies", pts: 8, done: has(form.topCompanies) },
+    { key: "companies", label: "Companies", pts: 8, done: has(form.workExperience) },
     { key: "tags", label: "Achievements", pts: 6, done: has(form.specialTags) },
     { key: "services", label: "Services", pts: 6, done: has(form.servicesOffered) },
   ] : [
@@ -888,8 +1116,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
 
   const MENTOR_NAV = [
     { key: 'overview',     Icon: Activity,      label: 'Overview' },
-    { key: 'services',     Icon: IndianRupee,   label: 'Services' },
-    { key: 'availability', Icon: CalendarClock, label: 'Availability' },
+    { key: 'booking',      Icon: CalendarClock, label: 'Availability' },
     { key: 'basic',        Icon: UserRound,     label: 'Basic Information' },
     { key: 'education',    Icon: GraduationCap, label: 'Education' },
     { key: 'experience',   Icon: Briefcase,     label: 'Experience' },
@@ -908,7 +1135,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
 
   // Maps completion chip keys → sidebar section keys
   const CHIP_TO_SECTION = {
-    services: 'services', bio: 'basic', photo: 'basic', city: 'basic',
+    services: 'booking', bio: 'basic', photo: 'basic', city: 'basic',
     college: 'education', branch: 'education', year: 'education', cgpa: 'education',
     exp: 'experience', companies: 'experience', linkedin: 'experience',
     expertise: 'expertise', tags: 'achievements', domain: 'preferences',
@@ -1040,14 +1267,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
 
       {/* ════════ MOBILE TABS ════════ */}
       {isMobileView && (
-        <div className="hide-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14 }}>
-          {navItems.map(({ key, label }) => (
-            <button key={key} onClick={() => setActiveSection(key)}
-              style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, border: activeSection === key ? "none" : `1px solid ${C.cardBorder}`, background: activeSection === key ? C.accent : C.card, color: activeSection === key ? "#fff" : C.textSub, fontSize: ".74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <ScrollTabs items={navItems} activeKey={activeSection} onSelect={setActiveSection} />
       )}
 
       {/* ════════ CONTENT ════════ */}
@@ -1209,7 +1429,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                   onClick={() => {
                     const sec = CHIP_TO_SECTION[it.key] || 'basic';
                     setActiveSection(sec);
-                    if (sec !== 'services') startEdit();
+                    if (sec !== 'booking') startEdit();
                   }}
                   title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
                   style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1223,195 +1443,25 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         </>)}
         {/* end overview */}
 
-        {/* ── SERVICES ── */}
-        {activeSection === 'services' && isMentor && (
-        <div id="services-section" className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
-
-          {/* Setup reminder — shows when nothing is selected yet */}
-          {form.servicesOffered.length === 0 && !form.customService.enabled && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(248,113,113,0.08)", border: "1.5px solid rgba(248,113,113,0.4)", borderRadius: 14, padding: "12px 16px", marginBottom: 10 }}>
-              <span style={{ fontSize: "1.1rem" }}>⚠️</span>
-              <div>
-                <div style={{ fontSize: ".84rem", fontWeight: 800, color: "#f87171" }}>Students can't book you yet</div>
-                <div style={{ fontSize: ".73rem", color: "#fca5a5", marginTop: 2 }}>Select at least one service below · then set your availability to go live</div>
-              </div>
-            </div>
+        {/* ── BOOKING (services + recurring availability + real bookings) ── */}
+        {activeSection === 'booking' && isMentor && (
+        <div className="pf-anim pf-anim-2" style={{ marginBottom: 18 }}>
+          {serviceCatalog === null ? (
+            <div className="pf-skel" style={{ height: 420, borderRadius: 16 }} />
+          ) : (
+            <AvailabilityEditor
+              userId={user._id}
+              serviceCatalog={serviceCatalog}
+              servicesOffered={form.servicesOffered}
+              toggleService={toggleService}
+              customService={form.customService}
+              setCustomService={patch => setForm(f => ({ ...f, customService: { ...f.customService, ...patch } }))}
+              anySvcDirty={anySvcDirty}
+              saveServices={saveServices}
+            />
           )}
-
-          {/* Earnings banner */}
-          <div style={{ borderRadius: "16px 16px 0 0", background: "linear-gradient(120deg, var(--c-accentSoft) 0%, rgba(61,190,130,0.06) 100%)", borderBottom: `1px solid ${C.cardBorder}`, padding: "18px 22px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 11, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 3px 10px rgba(117,103,201,0.3)" }}>
-                  <IndianRupee size={20} style={{ color: "#fff" }} />
-                </div>
-                <div>
-                  {(() => {
-                    const prices = (serviceCatalog || []).filter(s => form.servicesOffered.includes(s.id) && s.price > 0).map(s => s.price);
-                    const csPrice = form.customService.enabled && Number(form.customService.price) > 0 ? Number(form.customService.price) : null;
-                    if (csPrice) prices.push(csPrice);
-                    const lo = prices.length ? Math.min(...prices) : null;
-                    const hi = prices.length ? Math.max(...prices) : null;
-                    const hasFree = form.servicesOffered.includes('free-help');
-                    const headline = lo
-                      ? `Earn ₹${lo}${lo !== hi ? ` – ₹${hi}` : ''} per session${hasFree ? ' · + free sessions' : ''}`
-                      : hasFree ? "Offering free help to students" : "Select your services below";
-                    return <div style={{ fontSize: "1rem", fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>{headline}</div>;
-                  })()}
-                  <div style={{ fontSize: ".73rem", color: C.textSub, marginTop: 3 }}>
-                    Atyant keeps 25% on paid sessions · you keep 75%
-                  </div>
-                </div>
-              </div>
-              {(form.servicesOffered.length > 0 || form.customService.enabled) && (user?.availability?.weekly?.length || 0) > 0 ? (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(61,190,130,0.14)", border: `1px solid ${C.green}55`, borderRadius: 999, padding: "6px 14px", color: C.green, fontSize: ".76rem", fontWeight: 700, flexShrink: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Live & Bookable
-                </span>
-              ) : (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "6px 14px", color: C.accentText, fontSize: ".76rem", fontWeight: 700, flexShrink: 0 }}>
-                  <Rocket size={12} /> Setup required
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Service type grid — Topmate style */}
-          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderTop: "none", borderRadius: "0 0 16px 16px", padding: "20px 22px", boxShadow: "var(--shadow)" }}>
-            <div style={{ fontSize: ".65rem", fontWeight: 700, letterSpacing: ".1em", color: C.textMuted, marginBottom: 14, textTransform: "uppercase" }}>Select type</div>
-
-            {serviceCatalog === null ? (
-              <div className="pf-svc-grid">
-                {[0,1,2,3,4,5].map(i => <div key={i} className="pf-skel" style={{ height: 118, borderRadius: 14 }} />)}
-              </div>
-            ) : (
-              <div className="pf-svc-grid">
-                {/* Platform catalog cards */}
-                {serviceCatalog.map(s => {
-                  const on = form.servicesOffered.includes(s.id);
-                  const { Icon: SvcIcon, color, bg } = SVC_ICONS[s.id] || { Icon: Star, color: C.accent, bg: C.accentSoft };
-                  return (
-                    <div key={s.id} role="button" tabIndex={0} aria-pressed={on}
-                      className={`pf-svc-card${on ? " on" : ""}`}
-                      onClick={() => toggleService(s.id)}
-                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleService(s.id); } }}
-                      style={{ position: "relative", background: on ? "rgba(117,103,201,0.06)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 14, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 118, userSelect: "none" }}>
-                      {/* Check badge */}
-                      {on && (
-                        <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(117,103,201,0.4)" }}>
-                          <Check size={11} style={{ color: "#fff" }} />
-                        </div>
-                      )}
-                      {/* Icon */}
-                      <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? `${color}22` : bg, border: `1px solid ${color}33`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <SvcIcon size={18} style={{ color: on ? color : C.textSub }} />
-                      </div>
-                      {/* Info */}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: ".88rem", color: on ? C.text : C.textSub }}>{s.label}</div>
-                        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 3, lineHeight: 1.45 }}>{s.description}</div>
-                      </div>
-                      {/* Price + duration */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
-                        <span style={{ fontWeight: 800, fontSize: ".86rem", color: s.price === 0 ? C.green : on ? C.accentText : C.textSub }}>
-                          {s.price === 0 ? "Free" : `₹${s.price}`}
-                        </span>
-                        <span style={{ fontSize: ".64rem", color: C.textMuted }}>{s.duration}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Custom Service card */}
-                {(() => {
-                  const on = form.customService.enabled;
-                  return (
-                    <div role="button" tabIndex={0} aria-pressed={on}
-                      className={`pf-svc-card${on ? " on" : ""}`}
-                      onClick={() => setForm(f => ({ ...f, customService: { ...f.customService, enabled: !f.customService.enabled } }))}
-                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setForm(f => ({ ...f, customService: { ...f.customService, enabled: !f.customService.enabled } })); } }}
-                      style={{ position: "relative", background: on ? "rgba(117,103,201,0.06)" : C.active, border: `1.5px solid ${on ? C.accent : C.cardBorder}`, borderRadius: 14, padding: "16px 14px", display: "flex", flexDirection: "column", gap: 10, minHeight: 118, userSelect: "none" }}>
-                      {on && (
-                        <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(117,103,201,0.4)" }}>
-                          <Check size={11} style={{ color: "#fff" }} />
-                        </div>
-                      )}
-                      <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? "rgba(117,103,201,0.18)" : C.accentSoft, border: "1px solid rgba(117,103,201,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Settings size={18} style={{ color: on ? C.accentText : C.textSub }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: ".88rem", color: on ? C.text : C.textSub }}>Custom</div>
-                        <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 3, lineHeight: 1.45 }}>Your own service & price</div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto" }}>
-                        <span style={{ fontWeight: 800, fontSize: ".86rem", color: on && form.customService.price ? C.accentText : C.textMuted }}>
-                          {on && form.customService.price ? `₹${form.customService.price}` : "Set price"}
-                        </span>
-                        <span style={{ fontSize: ".64rem", color: C.textMuted }}>
-                          {on && form.customService.durationMin ? `${form.customService.durationMin} min` : "custom"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            {/* Custom service inline editor */}
-            {form.customService.enabled && (
-              <div style={{ marginTop: 16, background: C.active, border: `1.5px solid ${C.accent}33`, borderRadius: 14, padding: "16px 18px" }}>
-                <div style={{ fontSize: ".65rem", fontWeight: 700, letterSpacing: ".1em", color: C.accentText, marginBottom: 12 }}>CONFIGURE CUSTOM SERVICE</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                  <div>
-                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>SERVICE NAME</label>
-                    <input className="pf-input" value={form.customService.label} placeholder="e.g. Career Chat" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, label: e.target.value } }))} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>SHORT DESCRIPTION</label>
-                    <input className="pf-input" value={form.customService.description} placeholder="What will you help with?" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, description: e.target.value } }))} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>PRICE (₹)</label>
-                    <input className="pf-input" type="number" min="0" value={form.customService.price} placeholder="e.g. 199" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, price: e.target.value } }))} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".08em", color: C.textMuted, display: "block", marginBottom: 5 }}>DURATION (min)</label>
-                    <input className="pf-input" type="number" min="5" max="180" value={form.customService.durationMin} placeholder="30" onChange={e => setForm(f => ({ ...f, customService: { ...f.customService, durationMin: e.target.value } }))} />
-                  </div>
-                </div>
-                <div style={{ fontSize: ".68rem", color: C.textMuted }}>Atyant keeps 25% commission on your custom service · you keep 75%</div>
-              </div>
-            )}
-
-            {/* Save button */}
-            {anySvcDirty ? (
-              <button onClick={saveServices} disabled={savingServices}
-                style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.accent, border: "none", borderRadius: 11, padding: "11px 0", color: "#fff", fontSize: ".86rem", fontWeight: 700, cursor: savingServices ? "default" : "pointer", fontFamily: "inherit", opacity: savingServices ? 0.7 : 1, boxShadow: "0 4px 12px rgba(117,103,201,0.3)" }}>
-                {savingServices ? <><Spin size={14} /> Saving…</> : <><Check size={15} /> Save services</>}
-              </button>
-            ) : servicesSaved ? (
-              <div style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "rgba(61,190,130,0.12)", border: `1px solid ${C.green}55`, borderRadius: 11, padding: "10px 0", color: C.green, fontSize: ".82rem", fontWeight: 700 }}>
-                <Check size={14} /> Services saved
-              </div>
-            ) : null}
-          </div>
         </div>
-        )} {/* end services */}
-
-        {/* ── AVAILABILITY ── */}
-        {activeSection === 'availability' && isMentor && (
-          <div className="pf-card pf-anim" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "20px 22px", boxShadow: "var(--shadow)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 18 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, rgba(61,190,130,0.2), rgba(61,190,130,0.07))", border: "1px solid rgba(61,190,130,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <CalendarClock size={15} style={{ color: C.green }} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: ".9rem", color: C.text }}>Your Availability</div>
-                <div style={{ fontSize: ".72rem", color: C.textMuted, marginTop: 1 }}>Set when students can book sessions with you</div>
-              </div>
-            </div>
-            <AvailabilityEditor userId={user._id} />
-          </div>
-        )}
+        )} {/* end booking */}
 
         {/* ── BASIC INFORMATION ── */}
         {activeSection === 'basic' && (
@@ -1445,8 +1495,8 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           <Section id="field-exp" Icon={Briefcase} title="Professional Experience" subtitle="Where you've worked & for how long" onEdit={startEdit} editing={editing} delay={1}>
             <FieldRow label="YEARS OF EXPERIENCE" value={form.yearsOfExperience} onChange={v => setForm(f => ({ ...f, yearsOfExperience: v }))} editing={editing} placeholder="2" />
             <div>
-              <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 8 }}>TOP COMPANIES</label>
-              <ChipEditor items={form.topCompanies} editing={editing} onChange={v => setForm(f => ({ ...f, topCompanies: v }))}
+              <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 8 }}>COMPANIES YOU'VE WORKED AT</label>
+              <WorkExperienceEditor items={form.workExperience} editing={editing} onChange={v => setForm(f => ({ ...f, workExperience: v }))}
                 placeholder="Add a company, e.g. Amazon" emptyText="No companies yet — add where you worked or interned." />
             </div>
           </Section>

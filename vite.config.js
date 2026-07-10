@@ -1,8 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   // Keep base at '/' so the app works at the bare root when proxied to atyant.in.
   // Emit hashed JS/CSS into /product-assets/ instead of the default /assets/
   // to avoid colliding with the content site's own /assets/ folder.

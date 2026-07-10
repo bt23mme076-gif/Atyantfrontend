@@ -4,8 +4,14 @@ import {
   CalendarDays, Clock, Zap, Video, MessageSquare, Mic,
   FileText, ArrowRight, BadgeCheck,
 } from "lucide-react";
-import { availabilityAPI, paymentAPI } from "../api";
+import { api, availabilityAPI, paymentAPI } from "../api";
 import Avatar from "./Avatar";
+import { useAuth } from "../context/AuthContext";
+import { Calendar } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const C = {
   bg:          "var(--c-bg)",
@@ -114,6 +120,7 @@ function ServiceStep({ services, selected, onSelect, onNext }) {
 
 // ─── Step 2 ─ Calendar + Time Slots ─────────────────────────────────────────
 function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
+  const { user } = useAuth();
   const today = new Date();
   const [calYear, setCalYear]     = useState(today.getFullYear());
   const [calMonth, setCalMonth]   = useState(today.getMonth());
@@ -121,7 +128,45 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
   const [slots, setSlots]         = useState(null); // null=loading, []=[none], [...]
   const [bookedSlots, setBookedSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [mySessions, setMySessions] = useState([]);
   const maxWeeks = availability?.maxWeeksAhead ?? 3;
+
+  useEffect(() => {
+    if (user) {
+      api.get('/api/sessions/my')
+        .then(r => {
+          const list = Array.isArray(r) ? r : [...(r?.upcoming || []), ...(r?.past || [])];
+          setMySessions(list);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  const hasBookingOnDate = (ds) => {
+    return mySessions.some(s => {
+      if (s.status === 'cancelled') return false;
+      const sId = s.mentorId?._id || s.mentorId || '';
+      const mId = mentorId?._id || mentorId || '';
+      if (sId.toString() !== mId.toString()) return false;
+      const sDateStr = new Date(s.scheduledAt).toLocaleDateString('sv-SE').slice(0, 10);
+      return sDateStr === ds;
+    });
+  };
+
+  const getBookingForSlot = (ds, hhmm) => {
+    return mySessions.find(s => {
+      if (s.status === 'cancelled') return false;
+      const sId = s.mentorId?._id || s.mentorId || '';
+      const mId = mentorId?._id || mentorId || '';
+      if (sId.toString() !== mId.toString()) return false;
+      const sDateStr = new Date(s.scheduledAt).toLocaleDateString('sv-SE').slice(0, 10);
+      if (sDateStr !== ds) return false;
+      
+      const t = new Date(new Date(s.scheduledAt).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const sHhmm = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+      return sHhmm === hhmm;
+    });
+  };
 
   useEffect(() => {
     if (!selectedDate) { setSlots(null); setBookedSlots([]); setSelectedSlot(null); return; }
@@ -181,8 +226,8 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
   };
 
   return (
-    <div className="bk-in">
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+    <div className="bk-in space-y-4">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <CalendarDays size={15} style={{ color: C.accentText }} />
         </div>
@@ -192,92 +237,96 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
         </div>
       </div>
 
-      {/* Calendar */}
-      <div style={{ background: C.active, borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <button onClick={prevMonth} disabled={!canPrev}
-            style={{ background: "none", border: "none", cursor: canPrev ? "pointer" : "default", color: canPrev ? C.textSub : C.textMuted, padding: "4px 6px", borderRadius: 6, display: "flex" }}>
-            <ChevronLeft size={16} />
-          </button>
-          <span style={{ fontWeight: 700, fontSize: ".84rem", color: C.text }}>{MONTHS[calMonth]} {calYear}</span>
-          <button onClick={nextMonth}
-            style={{ background: "none", border: "none", cursor: "pointer", color: C.textSub, padding: "4px 6px", borderRadius: 6, display: "flex" }}>
-            <ChevronRight size={16} />
-          </button>
+      <div className="flex max-sm:flex-col border border-border rounded-xl overflow-hidden bg-background">
+        {/* Left: DayPicker Calendar with Available highlight */}
+        <div className="flex-1 flex justify-center p-3 bg-background">
+          <Calendar
+            mode="single"
+            selected={selectedDate ? new Date(selectedDate + "T12:00:00") : undefined}
+            onSelect={(d) => {
+              if (d) {
+                setSelectedDate(format(d, "yyyy-MM-dd"));
+                setSelectedSlot(null);
+              }
+            }}
+            className="p-0 bg-background"
+            disabled={(d) => {
+              const ds = format(d, "yyyy-MM-dd");
+              return !isAvailableDay(ds);
+            }}
+            modifiers={{
+              available: (d) => {
+                const ds = format(d, "yyyy-MM-dd");
+                return isAvailableDay(ds);
+              },
+              booked: (d) => {
+                const ds = format(d, "yyyy-MM-dd");
+                return hasBookingOnDate(ds);
+              }
+            }}
+            modifiersClassNames={{
+              available: "bg-red-500/20 text-red-500 font-bold border border-red-500/40 rounded-lg hover:bg-red-500/30",
+              booked: "border-2 border-red-500 rounded-lg"
+            }}
+          />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "3px", textAlign: "center" }}>
-          {DAY_HEADERS.map(d => (
-            <div key={d} style={{ fontSize: ".62rem", fontWeight: 700, color: C.textMuted, padding: "4px 0", letterSpacing: ".04em" }}>{d}</div>
-          ))}
-          {cells.map((d, i) => {
-            if (!d) return <div key={i} />;
-            const ds = toDateStr(d);
-            const avail = isAvailableDay(ds);
-            const isPast = new Date(ds + "T23:59:59") < today;
-            const isSelected = ds === selectedDate;
-            const isToday = ds === `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-            return (
-              <button key={i} className="bk-day" disabled={!avail || isPast}
-                onClick={() => setSelectedDate(ds)}
-                style={{
-                  width: "100%", aspectRatio: "1", border: isSelected ? `2px solid ${C.accent}` : `1.5px solid ${avail && !isPast ? C.accent + "44" : "transparent"}`,
-                  borderRadius: 7, background: isSelected ? C.accent : isToday && avail ? "rgba(117,103,201,0.08)" : "transparent",
-                  color: isSelected ? "#fff" : avail && !isPast ? C.text : C.textMuted, fontSize: ".78rem", fontWeight: isSelected || isToday ? 700 : 400,
-                  cursor: avail && !isPast ? "pointer" : "default", fontFamily: "inherit",
-                  opacity: isPast ? 0.35 : 1,
-                }}>
-                {d}
-              </button>
-            );
-          })}
+
+        {/* Right: Scrollable slots list */}
+        <div className="relative w-full max-sm:h-48 sm:w-56 border-t sm:border-t-0 sm:border-s border-border bg-background">
+          <ScrollArea className="h-48 sm:h-[260px]">
+            <div className="space-y-2 py-3 px-2">
+              <div className="flex h-5 shrink-0 items-center">
+                <p className="text-xs font-semibold text-foreground">
+                  {selectedDate ? format(new Date(selectedDate + "T12:00:00"), "EEEE, d") : "Select date"}
+                </p>
+              </div>
+
+              {/* Loader */}
+              {selectedDate && slots === null && (
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <Loader2 className="animate-spin text-muted-foreground" size={16} />
+                  <span className="text-[10px] text-muted-foreground">Loading...</span>
+                </div>
+              )}
+
+              {/* No Slots */}
+              {selectedDate && slots !== null && slots.length === 0 && (
+                <p className="text-[11px] text-muted-foreground text-center py-6">No slots available</p>
+              )}
+
+              {/* Slots List */}
+              {selectedDate && slots !== null && slots.length > 0 && (
+                <div className="grid gap-1 px-1">
+                  {slots.map((slot) => {
+                    const isBooked = bookedSlots.includes(slot);
+                    const isSel = selectedSlot === slot;
+                    const myBooking = getBookingForSlot(selectedDate, slot);
+                    return (
+                      <Button
+                        key={slot}
+                        variant={isSel ? "default" : (myBooking ? "destructive" : "outline")}
+                        size="sm"
+                        className={cn(
+                          "w-full text-xs font-semibold rounded-lg",
+                          myBooking && !isSel && "bg-red-500/10 text-red-500 border-red-500/40 hover:bg-red-500/20"
+                        )}
+                        onClick={() => {
+                          if (!myBooking && !isBooked) setSelectedSlot(isSel ? null : slot);
+                        }}
+                        disabled={isBooked && !myBooking}
+                      >
+                        {formatSlot(slot)} {myBooking ? "(Yours)" : (isBooked && "(Booked)")}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
-      {/* Time slots */}
-      {selectedDate && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: ".7rem", fontWeight: 700, color: C.textMuted, letterSpacing: ".08em", marginBottom: 8 }}>
-            TIMES FOR {formatDateLabel(selectedDate).toUpperCase()}
-          </div>
-          {slots === null ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: "18px 0" }}>
-              <Spin size={18} />
-            </div>
-          ) : slots.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "14px 0", fontSize: ".8rem", color: C.textMuted }}>No available slots on this date — try another day.</div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-              {slots.map(slot => {
-                const sel = selectedSlot === slot;
-                const isBooked = bookedSlots.includes(slot);
-                return (
-                  <button key={slot} className={`bk-slot${sel ? " selected" : ""}`}
-                    disabled={isBooked}
-                    onClick={() => !isBooked && setSelectedSlot(slot)}
-                    style={{
-                      background: isBooked ? "rgba(239, 68, 68, 0.05)" : C.active,
-                      border: `1.5px solid ${isBooked ? "rgba(239, 68, 68, 0.2)" : sel ? C.accent : C.cardBorder}`,
-                      borderRadius: 9, padding: "8px 6px 6px",
-                      color: isBooked ? "#EF4444" : C.textSub,
-                      fontSize: ".8rem", fontFamily: "inherit",
-                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-                      cursor: isBooked ? "not-allowed" : "pointer",
-                      opacity: isBooked ? 0.75 : 1
-                    }}>
-                    <Clock size={11} style={{ opacity: sel ? 1 : 0.5 }} />
-                    <span>{formatSlot(slot)}</span>
-                    {isBooked && (
-                      <span style={{ fontSize: "8px", fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.04em" }}>Booked</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
         <button onClick={onBack}
           style={{ flex: "0 0 auto", background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "11px 18px", color: C.textSub, fontWeight: 600, fontSize: ".82rem", cursor: "pointer", fontFamily: "inherit" }}>
           Back
