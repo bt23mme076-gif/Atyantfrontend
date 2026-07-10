@@ -486,6 +486,8 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
   const pending = students.filter(s => s.status === "pending");
 
   const [studentId,     setStudentId]     = useState(preselectId || pending[0]?.id || "");
+  const [studentQuery,  setStudentQuery]  = useState("");
+  const [studentOpen,   setStudentOpen]   = useState(false);
 
   // Honour the student the TPO clicked "Schedule" on (may change between opens)
   useEffect(() => { if (preselectId) setStudentId(preselectId); }, [preselectId]);
@@ -501,6 +503,15 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
   const selected      = students.find(s => s.id === studentId);
   const selectedMentor = mentors.find(m => m._id === mentorId);
   const canSubmit     = studentId && mentorId && date && !saving;
+
+  // Type-to-search over pending students (name / email / branch), so all
+  // students don't dump into one dropdown at once.
+  const sq = studentQuery.trim().toLowerCase();
+  const studentMatches = pending.filter(s =>
+    !sq || s.name.toLowerCase().includes(sq)
+        || (s.email || "").toLowerCase().includes(sq)
+        || (s.branch || "").toLowerCase().includes(sq)
+  );
 
   // Auto-detected branch from the chosen student
   const studentBranch = normalizeBranch(selected?.branch) || selected?.branch || "";
@@ -587,15 +598,36 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
         ) : (
           <div style={{ display:"grid", gap:"1rem" }}>
 
-            <div>
+            <div style={{ position:"relative" }}>
               <label style={{ fontSize:"0.72rem", color:C.textSub, display:"block", marginBottom:5, fontWeight:700, letterSpacing:"0.05em" }}>STUDENT</label>
-              <select value={studentId} onChange={e => setStudentId(e.target.value)} style={{ ...inp, cursor:"pointer" }}>
-                {pending.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}{s.branch ? ` · ${shortBranch(s.branch)}` : ""}{s.company ? ` · ${s.company}` : ""}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                value={studentId ? (selected?.name || "") : studentQuery}
+                onChange={e => { setStudentId(""); setStudentQuery(e.target.value); setStudentOpen(true); }}
+                onFocus={() => setStudentOpen(true)}
+                onBlur={() => setTimeout(() => setStudentOpen(false), 150)}
+                placeholder="Type student name…"
+                style={{ ...inp, cursor:"text" }}
+              />
+
+              {studentOpen && (
+                <div style={{ position:"absolute", top:"100%", left:0, right:0, marginTop:4, zIndex:30, background:"var(--c-sidebar)", border:`1px solid ${C.cardBorder}`, borderRadius:10, boxShadow:"0 10px 30px rgba(0,0,0,0.35)", maxHeight:220, overflowY:"auto" }}>
+                  {studentMatches.length === 0 ? (
+                    <div style={{ padding:"10px 12px", fontSize:"0.82rem", color:C.textMuted }}>No students match “{studentQuery}”.</div>
+                  ) : studentMatches.map(s => (
+                    <div
+                      key={s.id}
+                      onMouseDown={() => { setStudentId(s.id); setStudentQuery(""); setStudentOpen(false); }}
+                      style={{ padding:"9px 12px", fontSize:"0.85rem", color:C.text, cursor:"pointer", borderBottom:`1px solid ${C.cardBorder}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.active}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <span>{s.name}</span>
+                      {s.branch && <span style={{ fontSize:"0.66rem", color:C.textMuted, flexShrink:0 }}>{shortBranch(s.branch)}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {selected && (
