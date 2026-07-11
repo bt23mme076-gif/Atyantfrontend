@@ -177,19 +177,15 @@ export default function MeetPage({ sessionId: propSessionId }) {
                 dynacast: true,
                 videoCaptureDefaults: { resolution: VideoPresets.h540.resolution },
             }}
-            // Force ALL media through the TURN relay (TURN-over-TLS-443, verified
-            // working on the LiveKit VPS). Students on Tier-2/3 college WiFi / mobile
-            // data can't hold a direct (srflx) path — it connects, then drops
-            // ("short ice connection"), and every reconnect recreates the room, which
-            // orphans the audio egress so the recording captures only the first few
-            // silent seconds (this is exactly why real sessions came out as
-            // `no_audio` even though the two people could hear each other). Relaying
-            // every call through the always-reachable TURN keeps the connection — and
-            // the room — stable for the whole session, so egress records it end to
-            // end. 'all' let ICE pick the fragile direct path; 'relay' removes it.
-            // rtcConfig belongs on connectOptions, not options — RoomOptions has no
-            // rtcConfig field, so it was silently dropped here before.
-            connectOptions={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
+            // NOT forcing iceTransportPolicy: 'relay' here (2026-07-12): tried it,
+            // and on the current TURN-over-TLS-443 setup every call's DTLS data
+            // channel died within ~1-90s ("dtls timeout: read/write timeout") on
+            // every single test join — a full disconnect, not just lag. Direct
+            // (host/srflx) connections are what's actually been running in
+            // production all along (the July 9 fix was silently a no-op — rtcConfig
+            // was on the wrong prop, options instead of connectOptions), so this
+            // restores known-working behavior. Re-enable relay via connectOptions
+            // only after the data-channel failure is root-caused and fixed.
         >
             <VideoConference />
             <MeetTools hasVideo={roomData.callType !== 'audio'} />
