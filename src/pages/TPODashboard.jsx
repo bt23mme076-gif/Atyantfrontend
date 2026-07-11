@@ -168,7 +168,7 @@ function applySessions(students, sessions) {
   byStudent.forEach((sess, uid) => {
     if (knownIds.has(uid)) return;
     const base = {
-      id: uid, name: sess.userId?.name || "Unknown student", email: sess.userId?.email || "",
+      id: uid, name: sess.userId?.name || sess.userId?.username || "Unknown student", email: sess.userId?.email || "",
       branch: "", year: "", cgpa: "", company: "", status: "pending",
       mentor: "", mentorId: "", date: "", rating: 0, type: "",
       unverified: true, // not in the VNIT-verified student roster
