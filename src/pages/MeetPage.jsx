@@ -73,6 +73,10 @@ export default function MeetPage({ sessionId: propSessionId }) {
     const { sessionId: paramSessionId } = useParams();
     const sessionId = propSessionId || paramSessionId;
     const navigate = useNavigate();
+    // TEMP diagnostic: append ?relay=1 to the URL to force this ONE session
+    // through the TURN relay (tests whether mobile/CGNAT can connect via relay).
+    // Off by default so normal users are unaffected. Remove after testing.
+    const forceRelay = new URLSearchParams(window.location.search).get('relay') === '1';
     const [roomData, setRoomData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -199,15 +203,13 @@ export default function MeetPage({ sessionId: propSessionId }) {
                 dynacast: true,
                 videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
             }}
-            // NOT forcing iceTransportPolicy: 'relay' here (2026-07-12): tried it,
-            // and on the current TURN-over-TLS-443 setup every call's DTLS data
-            // channel died within ~1-90s ("dtls timeout: read/write timeout") on
-            // every single test join — a full disconnect, not just lag. Direct
-            // (host/srflx) connections are what's actually been running in
-            // production all along (the July 9 fix was silently a no-op — rtcConfig
-            // was on the wrong prop, options instead of connectOptions), so this
-            // restores known-working behavior. Re-enable relay via connectOptions
-            // only after the data-channel failure is root-caused and fixed.
+            // Relay is NOT forced by default (direct/srflx is what works for WiFi).
+            // ?relay=1 forces THIS session through TURN relay — a temporary
+            // diagnostic to test whether mobile/CGNAT can connect + stay stable
+            // via relay. connectOptions is the correct prop (RoomOptions has no
+            // rtcConfig field, which is why an earlier attempt on options was a
+            // silent no-op).
+            connectOptions={forceRelay ? { rtcConfig: { iceTransportPolicy: 'relay' } } : undefined}
         >
             <VideoConference />
             <MeetTools hasVideo={roomData.callType !== 'audio'} />
