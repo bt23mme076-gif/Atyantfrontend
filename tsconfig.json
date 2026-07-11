@@ -24,6 +24,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
+    "ignoreDeprecations": "6.0",
+
     /* Path mapping */
     "baseUrl": ".",
     "paths": {

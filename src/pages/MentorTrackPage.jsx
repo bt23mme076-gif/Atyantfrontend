@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { API_URL } from "../api";
 
 import {
@@ -16,18 +17,42 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-// ── Theme ──────────────────────────────────────────────────────────────────
-const C = {
-  bg: "#0b1120",
-  bgGlow1: "rgba(99, 102, 241, 0.18)",
-  bgGlow2: "rgba(16, 185, 129, 0.10)",
-  card: "rgba(255, 255, 255, 0.035)",
-  cardBorder: "rgba(255, 255, 255, 0.08)",
-  cardHoverBorder: "rgba(165, 180, 252, 0.35)",
-  text: "#f8fafc",
-  textSub: "#94a3b8",
-  textMuted: "#64748b",
-};
+// ── Theme (light + dark) ─────────────────────────────────────────────────
+// Derived per-render from ThemeContext so this page reacts to the
+// dark-mode toggle instead of always rendering dark.
+function getPalette(isDark) {
+  return isDark
+    ? {
+        bg: "#0b1120",
+        bgGlow1: "rgba(99, 102, 241, 0.18)",
+        bgGlow2: "rgba(16, 185, 129, 0.10)",
+        card: "rgba(255, 255, 255, 0.035)",
+        cardBorder: "rgba(255, 255, 255, 0.08)",
+        cardHoverBorder: "rgba(165, 180, 252, 0.35)",
+        text: "#f8fafc",
+        textSub: "#94a3b8",
+        textMuted: "#64748b",
+        headingGradient: "linear-gradient(135deg,#ffffff,#cbd5e1)",
+        skeletonBase: "rgba(255,255,255,0.06)",
+        skeletonSoft: "rgba(255,255,255,0.05)",
+        cardShadow: "0 4px 14px -8px rgba(0,0,0,0.4)",
+      }
+    : {
+        bg: "#F6F6FB",
+        bgGlow1: "rgba(99, 102, 241, 0.10)",
+        bgGlow2: "rgba(16, 185, 129, 0.08)",
+        card: "rgba(255, 255, 255, 0.75)",
+        cardBorder: "#E3E0EC",
+        cardHoverBorder: "rgba(117, 103, 201, 0.4)",
+        text: "#1B1830",
+        textSub: "#5A5470",
+        textMuted: "#8A8399",
+        headingGradient: "linear-gradient(135deg,#1B1830,#5A4CB0)",
+        skeletonBase: "rgba(27,24,48,0.07)",
+        skeletonSoft: "rgba(27,24,48,0.05)",
+        cardShadow: "0 4px 14px -8px rgba(20,18,40,0.12)",
+      };
+}
 
 const ACCENTS = {
   indigo: { bg: "linear-gradient(135deg,#6366f1,#4f46e5)", glow: "rgba(99,102,241,0.35)", text: "#a5b4fc" },
@@ -41,6 +66,9 @@ const ACCENTS = {
 };
 
 function StatCard({ Icon, label, value, accent = "indigo", big, trend }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const C = getPalette(isDark);
   const a = ACCENTS[accent];
   const [hover, setHover] = useState(false);
 
@@ -60,7 +88,7 @@ function StatCard({ Icon, label, value, accent = "indigo", big, trend }) {
         transform: hover ? "translateY(-3px)" : "translateY(0)",
         boxShadow: hover
           ? `0 14px 28px -10px ${a.glow}, 0 0 0 1px ${a.glow}`
-          : "0 4px 14px -8px rgba(0,0,0,0.4)",
+          : C.cardShadow,
         transition: "all 0.25s cubic-bezier(.4,0,.2,1)",
       }}
     >
@@ -75,7 +103,7 @@ function StatCard({ Icon, label, value, accent = "indigo", big, trend }) {
           borderRadius: "50%",
           background: a.glow,
           filter: "blur(36px)",
-          opacity: hover ? 0.9 : 0.5,
+          opacity: hover ? 0.9 : isDark ? 0.5 : 0.35,
           transition: "opacity 0.25s",
           pointerEvents: "none",
         }}
@@ -148,6 +176,8 @@ function StatCard({ Icon, label, value, accent = "indigo", big, trend }) {
 }
 
 function SkeletonCard() {
+  const { theme } = useTheme();
+  const C = getPalette(theme === "dark");
   return (
     <div
       style={{
@@ -158,14 +188,16 @@ function SkeletonCard() {
         height: 118,
       }}
     >
-      <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.06)", marginBottom: 14, animation: "atyantPulse 1.4s ease-in-out infinite" }} />
-      <div style={{ width: "55%", height: 22, borderRadius: 6, background: "rgba(255,255,255,0.06)", marginBottom: 8, animation: "atyantPulse 1.4s ease-in-out infinite" }} />
-      <div style={{ width: "70%", height: 12, borderRadius: 6, background: "rgba(255,255,255,0.05)", animation: "atyantPulse 1.4s ease-in-out infinite" }} />
+      <div style={{ width: 40, height: 40, borderRadius: 12, background: C.skeletonBase, marginBottom: 14, animation: "atyantPulse 1.4s ease-in-out infinite" }} />
+      <div style={{ width: "55%", height: 22, borderRadius: 6, background: C.skeletonBase, marginBottom: 8, animation: "atyantPulse 1.4s ease-in-out infinite" }} />
+      <div style={{ width: "70%", height: 12, borderRadius: 6, background: C.skeletonSoft, animation: "atyantPulse 1.4s ease-in-out infinite" }} />
     </div>
   );
 }
 
 function SectionTitle({ title, subtitle }) {
+  const { theme } = useTheme();
+  const C = getPalette(theme === "dark");
   return (
     <div style={{ marginBottom: 18, display: "flex", alignItems: "baseline", gap: 10 }}>
       <h2 style={{ fontSize: "1.15rem", fontWeight: 700, color: C.text, margin: 0 }}>{title}</h2>
@@ -176,6 +208,9 @@ function SectionTitle({ title, subtitle }) {
 
 export default function MentorTrackPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const C = getPalette(isDark);
 
   const [stats, setStats] = useState({
     totalEarnings: 0,
@@ -258,6 +293,7 @@ export default function MentorTrackPage() {
         color: C.text,
         position: "relative",
         overflow: "hidden",
+        transition: "background 0.2s ease, color 0.2s ease",
       }}
     >
       <style>{`
@@ -284,9 +320,7 @@ export default function MentorTrackPage() {
               fontWeight: 800,
               letterSpacing: "-0.03em",
               margin: 0,
-              background: "linear-gradient(135deg,#ffffff,#cbd5e1)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: C.text,
             }}
           >
             Welcome back{user?.username ? `, ${user.username}` : ""} 👋
