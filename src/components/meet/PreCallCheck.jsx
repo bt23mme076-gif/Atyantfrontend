@@ -1,26 +1,81 @@
 import { useEffect, useState, useCallback } from 'react';
 
 // Pre-call network check. Runs BEFORE the LiveKit room connects and measures
-// the user's real connection quality — not raw speed (which lies: a "20 Mbps"
-// WiFi can still drop packets and jitter badly), but the two things that
-// actually break real-time video: round-trip latency and jitter, plus how many
-// probes are lost outright. It does this by pinging the backend /api/health a
-// handful of times and looking at the timing spread.
+// the user's real connection quality on two levels:
 //
-// It can't force a user onto a better network. What it does is catch a weak
-// connection BEFORE a paid session starts, so the student fixes their WiFi /
-// moves closer to the router / reschedules — instead of paying for a laggy call
-// and blaming the platform. Good networks just pass through in ~2s.
+// 1. HTTPS latency/jitter/loss (pinging /api/health) — cheap signal, catches
+//    generally bad networks.
+// 2. A REAL WebRTC/UDP reachability probe against the actual LiveKit media
+//    server (187.127.133.111:3478, STUN). This is the one that matters: on
+//    2026-07-11 a mobile-data (CGNAT) user's HTTPS ping graded "great" (76ms,
+//    0% loss) yet the call never connected — the server sent 8 ICE checks and
+//    got 0 responses back, because CGNAT blocks the exact UDP path video
+//    needs, which an HTTPS ping can't see at all (HTTPS is TCP, video is UDP).
+//    This probe opens a real RTCPeerConnection and checks whether ANY
+//    server-reflexive (srflx) UDP candidate comes back — if not, this network
+//    cannot carry video no matter how good the HTTPS ping looked, so we grade
+//    it "weak" regardless of latency numbers.
+//
+// It can't force a user onto a better network. What it does is catch this
+// BEFORE a paid session starts, so the student switches to WiFi instead of
+// paying for a call that will never even connect. Good networks pass both
+// checks in ~2-3s.
 //
 // Fully self-contained + gated by a flag in MeetPage, so it can be turned off
 // (or reverted) without touching the call flow.
 
 const PROBE_COUNT = 8;        // number of health pings
 const PROBE_TIMEOUT_MS = 3000; // a probe slower than this counts as lost
+const UDP_PROBE_TIMEOUT_MS = 4000; // how long to wait for a srflx candidate
+// Same server your calls actually use (docker/livekit config: turn.udp_port).
+// STUN Binding doesn't need TURN credentials, so this needs no token/signaling.
+const STUN_URL = 'stun:187.127.133.111:3478';
+
+// Real UDP/WebRTC reachability check. Resolves true if the browser manages to
+// gather a server-reflexive candidate (proof this network can get UDP packets
+// to and from your media server) or false if gathering finishes/times out
+// with none — the exact signature of the CGNAT/mobile-data failure.
+function checkUdpReachability() {
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = (ok) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            pc.close();
+            resolve(ok);
+        };
+
+        let pc;
+        try {
+            pc = new RTCPeerConnection({ iceServers: [{ urls: STUN_URL }] });
+        } catch {
+            resolve(false); // WebRTC unavailable — treat as unable to verify
+            return;
+        }
+
+        const timer = setTimeout(() => finish(false), UDP_PROBE_TIMEOUT_MS);
+
+        pc.onicecandidate = (e) => {
+            if (e.candidate && e.candidate.type === 'srflx') finish(true);
+        };
+        pc.onicegatheringstatechange = () => {
+            if (pc.iceGatheringState === 'complete') finish(false);
+        };
+
+        pc.createDataChannel('probe');
+        pc.createOffer()
+            .then((offer) => pc.setLocalDescription(offer))
+            .catch(() => finish(false));
+    });
+}
 
 // Thresholds tuned for a video call. avgRtt = latency, jitter = spread between
-// probes (instability), loss = probes that timed out.
-function classify({ avgRtt, jitter, loss, effectiveType }) {
+// probes (instability), loss = probes that timed out. udpOk = false means the
+// real media path is blocked — that overrides everything else to "weak",
+// since a great ping means nothing if the video transport can't connect.
+function classify({ avgRtt, jitter, loss, effectiveType, udpOk }) {
+    if (!udpOk) return 'udpBlocked';
     if (effectiveType === '2g' || effectiveType === 'slow-2g') return 'weak';
     if (loss >= 2 || avgRtt > 400 || jitter > 200) return 'weak';
     if (loss === 1 || avgRtt > 220 || jitter > 110) return 'fair';
@@ -54,6 +109,11 @@ async function runNetworkTest(apiBase) {
     // fire one throwaway probe first and don't count it.
     await probeOnce(url);
 
+    // Run the HTTPS probes and the real UDP/media reachability check in
+    // parallel — they measure independent things and neither should wait on
+    // the other.
+    const udpPromise = checkUdpReachability();
+
     const rtts = [];
     let loss = 0;
     for (let i = 0; i < PROBE_COUNT; i++) {
@@ -61,6 +121,8 @@ async function runNetworkTest(apiBase) {
         if (rtt === null) loss++;
         else rtts.push(rtt);
     }
+
+    const udpOk = await udpPromise;
 
     const avgRtt = rtts.length
         ? rtts.reduce((a, b) => a + b, 0) / rtts.length
@@ -70,8 +132,8 @@ async function runNetworkTest(apiBase) {
         : 0;
     const effectiveType = navigator.connection?.effectiveType;
 
-    const grade = classify({ avgRtt, jitter, loss, effectiveType });
-    return { grade, avgRtt: Math.round(avgRtt), jitter: Math.round(jitter), loss };
+    const grade = classify({ avgRtt, jitter, loss, effectiveType, udpOk });
+    return { grade, avgRtt: Math.round(avgRtt), jitter: Math.round(jitter), loss, udpOk };
 }
 
 const GRADE_UI = {
@@ -89,6 +151,11 @@ const GRADE_UI = {
         color: '#f87171',
         title: 'Your connection is weak',
         sub: 'This session will likely lag or freeze. Move closer to your router, switch WiFi, or use a stronger network before joining.',
+    },
+    udpBlocked: {
+        color: '#f87171',
+        title: 'This network won’t connect for video calls',
+        sub: 'Your network is blocking the connection video calls need — this is common on mobile data. Please switch to WiFi before joining; the call will not connect otherwise.',
     },
 };
 
@@ -149,11 +216,12 @@ export default function PreCallCheck({ apiBase, onProceed }) {
                     <span>Latency: {result.avgRtt || '—'} ms</span>
                     <span>Jitter: {result.jitter} ms</span>
                     <span>Loss: {Math.round((result.loss / PROBE_COUNT) * 100)}%</span>
+                    <span>Video path: {result.udpOk ? 'reachable' : 'blocked'}</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
                     <button className="meet-btn" onClick={onProceed}>
-                        {result.grade === 'weak' ? 'Join anyway' : 'Join session'}
+                        {result.grade === 'good' ? 'Join session' : 'Join anyway'}
                     </button>
                     <button
                         className="meet-btn"
