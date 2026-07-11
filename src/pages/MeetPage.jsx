@@ -170,12 +170,14 @@ export default function MeetPage({ sessionId: propSessionId }) {
                 if (reason === DisconnectReason.CLIENT_INITIATED) navigate('/');
                 else setEnded(true);
             }}
-            // adaptiveStream/dynacast reduce load on weak connections; capping capture
-            // at 540p means less data has to survive a lossy WiFi hop before it stalls.
+            // Capture at 720p for a sharp (non-blurry) image. adaptiveStream +
+            // dynacast + simulcast still protect weak connections automatically:
+            // the SFU drops to lower layers when a viewer's network can't keep up,
+            // so 720p is the ceiling on good networks, not a floor forced on bad ones.
             options={{
                 adaptiveStream: true,
                 dynacast: true,
-                videoCaptureDefaults: { resolution: VideoPresets.h540.resolution },
+                videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
             }}
             // NOT forcing iceTransportPolicy: 'relay' here (2026-07-12): tried it,
             // and on the current TURN-over-TLS-443 setup every call's DTLS data
