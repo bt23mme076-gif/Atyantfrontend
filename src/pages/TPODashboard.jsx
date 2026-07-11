@@ -124,6 +124,12 @@ function fmtSessionDate(iso) {
 
 // Merge backend sessions onto student rows — latest session per student wins.
 // Without this every student stays "pending" no matter what's in the DB.
+//
+// A session's student may not be in `students` at all (e.g. they signed up
+// with a personal Gmail instead of their @vnit.ac.in address, so /students'
+// VNIT-domain filter excluded them) — that used to make the session vanish
+// silently even though the mentor genuinely held it. Those are synthesized
+// into their own row instead of being dropped, flagged `unverified: true`.
 function applySessions(students, sessions) {
   const byStudent = new Map();
   sessions.forEach(sess => {
@@ -133,9 +139,7 @@ function applySessions(students, sessions) {
     if (!prev || new Date(sess.scheduledAt) > new Date(prev.scheduledAt)) byStudent.set(uid, sess);
   });
 
-  return students.map(s => {
-    const sess = byStudent.get(String(s.id));
-    if (!sess) return s;
+  const applyFields = (s, sess) => {
     const mentorName = sess.mentorName || sess.mentorId?.name || sess.mentorId?.username || "";
     return {
       ...s,
@@ -150,7 +154,29 @@ function applySessions(students, sessions) {
       sessionId:     String(sess._id || ""),
       hasInsight:    !!sess.hasInsight,
     };
+  };
+
+  const knownIds = new Set(students.map(s => String(s.id)));
+  const merged = students.map(s => {
+    const sess = byStudent.get(String(s.id));
+    return sess ? applyFields(s, sess) : s;
   });
+
+  // Sessions whose student never appeared in /students — add them as their
+  // own row so the mentor's work is never invisible to the TPO.
+  const orphanRows = [];
+  byStudent.forEach((sess, uid) => {
+    if (knownIds.has(uid)) return;
+    const base = {
+      id: uid, name: sess.userId?.name || "Unknown student", email: sess.userId?.email || "",
+      branch: "", year: "", cgpa: "", company: "", status: "pending",
+      mentor: "", mentorId: "", date: "", rating: 0, type: "",
+      unverified: true, // not in the VNIT-verified student roster
+    };
+    orphanRows.push(applyFields(base, sess));
+  });
+
+  return [...merged, ...orphanRows];
 }
 
 const BRANCHES = [
@@ -259,9 +285,17 @@ function SessionCard({ s, accent, dateLabel, onViewSummary }) {
     <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderLeft:`3px solid ${accent}`, borderRadius:14, padding:"1.1rem 1.25rem" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"0.75rem", marginBottom:"0.9rem", flexWrap:"wrap" }}>
         <div style={{ minWidth:0 }}>
-          <div style={{ fontWeight:700, color:C.text, fontSize:"0.95rem" }}>{s.name}</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+            <span style={{ fontWeight:700, color:C.text, fontSize:"0.95rem" }}>{s.name}</span>
+            {s.unverified && (
+              <span title="Not in the VNIT-verified roster — email/college didn't match, but a real session exists for them"
+                style={{ fontSize:"0.6rem", fontWeight:700, color:C.orange, background:"rgba(245,158,11,0.12)", border:"1px solid rgba(245,158,11,0.3)", borderRadius:999, padding:"1px 7px", letterSpacing:"0.03em" }}>
+                UNVERIFIED
+              </span>
+            )}
+          </div>
           <div style={{ fontSize:"0.75rem", color:C.textMuted, marginTop:2 }}>
-            {[shortBranch(s.branch), s.year && `Year ${s.year}`, s.cgpa && `CGPA ${s.cgpa}`].filter(Boolean).join(" · ")}
+            {[shortBranch(s.branch), s.year && `Year ${s.year}`, s.cgpa && `CGPA ${s.cgpa}`, s.email].filter(Boolean).join(" · ")}
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
@@ -1037,7 +1071,15 @@ export default function TPODashboard() {
                   onMouseLeave={e => { if (expandedId !== s.id) e.currentTarget.style.background = "transparent"; }}
                 >
                   <div className="tpo-cell" style={{ minWidth:0 }}>
-                    <div style={{ fontWeight:600, color:C.text, fontSize:"0.88rem" }}>{s.name}</div>
+                    <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                      <span style={{ fontWeight:600, color:C.text, fontSize:"0.88rem" }}>{s.name}</span>
+                      {s.unverified && (
+                        <span title="Not in the VNIT-verified roster — email/college didn't match, but a real session exists for them"
+                          style={{ fontSize:"0.6rem", fontWeight:700, color:C.orange, background:"rgba(245,158,11,0.12)", border:"1px solid rgba(245,158,11,0.3)", borderRadius:999, padding:"1px 7px", letterSpacing:"0.03em" }}>
+                          UNVERIFIED
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize:"0.71rem", color:C.textMuted, marginTop:1, wordBreak:"break-word" }}>Year {s.year}{s.email ? ` · ${s.email}` : ""}</div>
                   </div>
                   <div className="tpo-cell" data-label="Branch" style={{ fontSize:"0.83rem", color:C.textSub }}>{shortBranch(s.branch) || <span style={{ color:C.textMuted }}>—</span>}</div>
