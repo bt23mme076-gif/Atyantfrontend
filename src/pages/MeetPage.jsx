@@ -12,6 +12,11 @@ import ResumePanel from '../components/meet/ResumePanel';
 import NetworkAlerts from '../components/meet/NetworkAlerts';
 import AdvancedMicrophoneCheck from '../components/LiveKit/AdvancedMicrophoneCheck';
 import '../components/LiveKit/MicrophoneCheck.css';
+import PreCallCheck from '../components/meet/PreCallCheck';
+
+// Feature flag: gate the pre-call network check. Flip to false (or revert this
+// commit) to fully disable it and go straight from "join" to the room.
+const ENABLE_PRECALL_CHECK = true;
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
@@ -74,6 +79,10 @@ export default function MeetPage({ sessionId: propSessionId }) {
 
     const [needsAuth, setNeedsAuth] = useState(false);
     const [ended, setEnded] = useState(false);
+    // Pre-call network check: once roomData is loaded we show the check first,
+    // and only render the LiveKitRoom after the user proceeds. Skipped entirely
+    // when the flag is off.
+    const [netCheckPassed, setNetCheckPassed] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -142,6 +151,17 @@ export default function MeetPage({ sessionId: propSessionId }) {
             )}
         </MeetScreen>
     );
+
+    // Gate: run the network check once, before connecting. onProceed flips the
+    // flag so the room renders. Disabled → render the room immediately.
+    if (ENABLE_PRECALL_CHECK && !netCheckPassed) {
+        return (
+            <PreCallCheck
+                apiBase={API_BASE}
+                onProceed={() => setNetCheckPassed(true)}
+            />
+        );
+    }
 
     return (
         <LiveKitRoom
