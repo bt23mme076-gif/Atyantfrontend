@@ -3,7 +3,7 @@ import '@livekit/components-styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DisconnectReason, ConnectionState } from 'livekit-client';
+import { DisconnectReason, ConnectionState, VideoPresets } from 'livekit-client';
 import BackgroundControl from '../components/meet/BackgroundControl';
 import Whiteboard from '../components/meet/Whiteboard';
 import SessionTimer from '../components/meet/SessionTimer';
@@ -170,6 +170,13 @@ export default function MeetPage({ sessionId: propSessionId }) {
                 if (reason === DisconnectReason.CLIENT_INITIATED) navigate('/');
                 else setEnded(true);
             }}
+            // adaptiveStream/dynacast reduce load on weak connections; capping capture
+            // at 540p means less data has to survive a lossy WiFi hop before it stalls.
+            options={{
+                adaptiveStream: true,
+                dynacast: true,
+                videoCaptureDefaults: { resolution: VideoPresets.h540.resolution },
+            }}
             // Force ALL media through the TURN relay (TURN-over-TLS-443, verified
             // working on the LiveKit VPS). Students on Tier-2/3 college WiFi / mobile
             // data can't hold a direct (srflx) path — it connects, then drops
@@ -180,7 +187,9 @@ export default function MeetPage({ sessionId: propSessionId }) {
             // every call through the always-reachable TURN keeps the connection — and
             // the room — stable for the whole session, so egress records it end to
             // end. 'all' let ICE pick the fragile direct path; 'relay' removes it.
-            options={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
+            // rtcConfig belongs on connectOptions, not options — RoomOptions has no
+            // rtcConfig field, so it was silently dropped here before.
+            connectOptions={{ rtcConfig: { iceTransportPolicy: 'relay' } }}
         >
             <VideoConference />
             <MeetTools hasVideo={roomData.callType !== 'audio'} />
