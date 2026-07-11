@@ -73,10 +73,18 @@ export default function MeetPage({ sessionId: propSessionId }) {
     const { sessionId: paramSessionId } = useParams();
     const sessionId = propSessionId || paramSessionId;
     const navigate = useNavigate();
-    // TEMP diagnostic: append ?relay=1 to the URL to force this ONE session
-    // through the TURN relay (tests whether mobile/CGNAT can connect via relay).
-    // Off by default so normal users are unaffected. Remove after testing.
-    const forceRelay = new URLSearchParams(window.location.search).get('relay') === '1';
+    // Force all media through the TURN relay. Verified on 5G mobile data
+    // (2026-07-12): forced relay gathered a relay candidate and held a stable
+    // call for the full duration — mobile/CGNAT users can't connect reliably on
+    // the direct (srflx) path (symmetric NAT drops them), so relay is the only
+    // path that works for them every time. WiFi users are unaffected in practice
+    // (the VPS is ~idle and TURN relay is just packet forwarding). The earlier
+    // "dtls timeout" scare was leave/teardown noise, not mid-call failure.
+    // Flip FORCE_RELAY to false to instantly disable and go back to direct ICE.
+    // ?relay=0 on the URL disables it for one session (for A/B testing direct).
+    const FORCE_RELAY = true;
+    const relayParam = new URLSearchParams(window.location.search).get('relay');
+    const forceRelay = relayParam === '0' ? false : (FORCE_RELAY || relayParam === '1');
     const [roomData, setRoomData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
