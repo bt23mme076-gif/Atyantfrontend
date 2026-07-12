@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useDataChannel } from '@livekit/components-react';
 import { livekitAPI } from '../../api';
 
 // Shows the STUDENT's resume during the call — for both the student and the
@@ -7,6 +8,13 @@ import { livekitAPI } from '../../api';
 //
 // The iframe points straight at the Cloudinary URL — allowed because
 // vercel.json's CSP frame-src explicitly whitelists res.cloudinary.com.
+//
+// Opening/closing is synced to the other participant over the LiveKit data
+// channel (same approach as the whiteboard) — so when the mentor pulls up the
+// resume, it opens on the student's side too, and vice-versa.
+const TOPIC = 'atyant-resume';
+const enc = new TextEncoder();
+const dec = new TextDecoder();
 
 export default function ResumePanel({ top = 14, left = 14, sessionId }) {
     const [open, setOpen] = useState(false);
@@ -23,11 +31,28 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
             .finally(() => setChecked(true));
     }, [open, checked, sessionId]);
 
+    // Mirror the peer's open/close.
+    const onMessage = useCallback((msg) => {
+        let d;
+        try { d = JSON.parse(dec.decode(msg.payload)); } catch { return; }
+        if (d.t === 'open') setOpen(true);
+        else if (d.t === 'close') setOpen(false);
+    }, []);
+
+    const { send } = useDataChannel(TOPIC, onMessage);
+    const toggle = () => {
+        setOpen((v) => {
+            const next = !v;
+            send(enc.encode(JSON.stringify({ t: next ? 'open' : 'close' })), { reliable: true }).catch(() => {});
+            return next;
+        });
+    };
+
     return (
         <>
             <button
                 type="button"
-                onClick={() => setOpen((v) => !v)}
+                onClick={toggle}
                 title="Student's resume"
                 aria-label="Student's resume"
                 style={{ ...fabBtn(top, left), ...(open ? fabActive : null) }}
@@ -44,7 +69,7 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
                                 Open in new tab ↗
                             </a>
                         )}
-                        <button type="button" onClick={() => setOpen(false)} style={closeBtn} aria-label="Close">
+                        <button type="button" onClick={toggle} style={closeBtn} aria-label="Close">
                             <CloseIcon />
                         </button>
                     </div>

@@ -7,7 +7,6 @@ import { DisconnectReason, ConnectionState, VideoPresets } from 'livekit-client'
 import BackgroundControl from '../components/meet/BackgroundControl';
 import Whiteboard from '../components/meet/Whiteboard';
 import SessionTimer from '../components/meet/SessionTimer';
-import SessionNotes from '../components/meet/SessionNotes';
 import ResumePanel from '../components/meet/ResumePanel';
 import NetworkAlerts from '../components/meet/NetworkAlerts';
 import AdvancedMicrophoneCheck from '../components/LiveKit/AdvancedMicrophoneCheck';
@@ -21,7 +20,7 @@ const ENABLE_PRECALL_CHECK = true;
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 
 // In-call tools (session timer, network alerts, background effects, shared
-// whiteboard/notes, resume panel). Rendered only once the room is connected,
+// whiteboard, resume panel). Rendered only once the room is connected,
 // so the local camera track and data channel are ready. `hasVideo` hides
 // camera-only effects on audio-only calls. Right-side tools stack below the
 // timer pill; ResumePanel and NetworkAlerts don't compete for that space
@@ -37,7 +36,6 @@ function MeetTools({ hasVideo, sessionId }) {
             <ResumePanel top={14} left={14} sessionId={sessionId} />
             {hasVideo && <BackgroundControl top={14} right={14} />}
             <Whiteboard top={hasVideo ? 66 : 14} right={14} />
-            <SessionNotes top={hasVideo ? 118 : 66} right={14} />
         </>
     );
 }
