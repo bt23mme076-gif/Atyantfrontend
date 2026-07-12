@@ -1,4 +1,4 @@
-import { LiveKitRoom, VideoConference, useConnectionState } from '@livekit/components-react';
+import { LiveKitRoom, VideoConference, useConnectionState, formatChatMessageLinks } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -217,7 +217,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
             // silent no-op).
             connectOptions={forceRelay ? { rtcConfig: { iceTransportPolicy: 'relay' } } : undefined}
         >
-            <VideoConference />
+            <VideoConference chatMessageFormatter={formatChatMessageLinks} />
             <MeetTools hasVideo={roomData.callType !== 'audio'} sessionId={sessionId} />
         </LiveKitRoom>
     );

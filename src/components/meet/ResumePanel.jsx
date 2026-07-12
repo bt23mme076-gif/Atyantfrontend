@@ -16,9 +16,8 @@ const TOPIC = 'atyant-resume';
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// Base (100%) preview box. Zoom just CSS-scales this — no PDF library, so
-// there's no extra load; the browser's own PDF renderer does the work.
-const BASE_H = 480;
+// Zoom widens the iframe so the browser's own PDF renderer redraws sharp —
+// no PDF library, no extra load.
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3;
 const STEP = 0.2;
@@ -117,20 +116,20 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
                         )}
                         {!loading && resumeUrl && (
                             <div ref={scrollRef} style={scrollWrap}>
-                                <div style={{ width: `${zoom * 100}%`, height: `${BASE_H * zoom}px` }}>
-                                    <iframe
-                                        src={resumeUrl}
-                                        title="Resume preview"
-                                        style={{
-                                            width: `${100 / zoom}%`,
-                                            height: BASE_H,
-                                            border: 'none',
-                                            background: '#fff',
-                                            transform: `scale(${zoom})`,
-                                            transformOrigin: '0 0',
-                                        }}
-                                    />
-                                </div>
+                                {/* Zoom by widening the iframe (not CSS transform) so the
+                                    browser's PDF viewer re-renders sharp instead of
+                                    up-scaling a blurry bitmap. */}
+                                <iframe
+                                    src={resumeUrl}
+                                    title="Resume preview"
+                                    style={{
+                                        width: `${zoom * 100}%`,
+                                        height: '100%',
+                                        border: 'none',
+                                        background: '#fff',
+                                        display: 'block',
+                                    }}
+                                />
                             </div>
                         )}
                     </div>
@@ -223,7 +222,7 @@ const body = {
 const scrollWrap = {
     flex: 1,
     minWidth: 0,
-    maxHeight: 'min(70vh, 480px)',
+    height: 'min(70vh, 480px)',
     overflow: 'auto',
     background: '#fff',
 };
