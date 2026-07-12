@@ -1,27 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { authAPI } from '../../api';
+import { livekitAPI } from '../../api';
 
-// Lets a participant pull up their OWN resume during the call instead of
-// switching tabs to find it. Reads whatever the profile API returns — the
-// backend doesn't currently expose the exact field name to this repo, so a
-// few common shapes are checked defensively and it falls back to an empty
-// state rather than guessing wrong.
-//
-// NOTE on scope: this shows "my resume", not "the other participant's resume".
-// Surfacing the mentor's view of the *student's* resume would need the
-// backend to attach a resumeUrl to the LiveKit participant metadata at token
-// mint (or a lookup-by-userId endpoint) — neither exists yet in this repo.
-function extractResumeUrl(user) {
-    if (!user) return null;
-    return (
-        user.resumeUrl ||
-        user.resumePdfUrl ||
-        user.resumeLink ||
-        user.resume?.url ||
-        user.profile?.resumeUrl ||
-        null
-    );
-}
+// Shows the STUDENT's resume during the call — for both the student and the
+// mentor of that session, via GET /api/livekit/session/:sessionId/resume
+// (backend checks the requester is one of the two session participants).
 
 // PDF viewers in an <iframe>/<embed> pointed straight at a Cloudinary URL are
 // blocked by this app's CSP (vercel.json's frame-src only allows Razorpay).
@@ -59,7 +41,7 @@ function useBlobUrl(sourceUrl) {
     return { blobUrl, failed };
 }
 
-export default function ResumePanel({ top = 14, left = 14 }) {
+export default function ResumePanel({ top = 14, left = 14, sessionId }) {
     const [open, setOpen] = useState(false);
     const [resumeUrl, setResumeUrl] = useState(null);
     const [checked, setChecked] = useState(false);
@@ -69,29 +51,29 @@ export default function ResumePanel({ top = 14, left = 14 }) {
 
     // Fetch lazily — only once the panel is opened the first time.
     useEffect(() => {
-        if (!open || checked) return;
-        authAPI.me()
-            .then((user) => setResumeUrl(extractResumeUrl(user)))
+        if (!open || checked || !sessionId) return;
+        livekitAPI.resume(sessionId)
+            .then((res) => setResumeUrl(res.resumeUrl || null))
             .catch(() => setResumeUrl(null))
             .finally(() => setChecked(true));
-    }, [open, checked]);
+    }, [open, checked, sessionId]);
 
     return (
         <>
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                title="My resume"
-                aria-label="My resume"
+                title="Student's resume"
+                aria-label="Student's resume"
                 style={{ ...fabBtn(top, left), ...(open ? fabActive : null) }}
             >
                 <ResumeIcon />
             </button>
 
             {open && (
-                <div style={drawer(top + 52, left)} role="dialog" aria-label="My resume">
+                <div style={drawer(top + 52, left)} role="dialog" aria-label="Student's resume">
                     <div style={header}>
-                        <span style={title}>My resume</span>
+                        <span style={title}>Student's resume</span>
                         {resumeUrl && (
                             <a href={resumeUrl} target="_blank" rel="noopener noreferrer" style={openLink}>
                                 Open in new tab ↗
@@ -103,10 +85,10 @@ export default function ResumePanel({ top = 14, left = 14 }) {
                     </div>
 
                     <div style={body}>
-                        {loading && <div style={muted}>Loading your resume…</div>}
+                        {loading && <div style={muted}>Loading resume…</div>}
                         {!loading && checked && !resumeUrl && (
                             <div style={muted}>
-                                No resume on file yet. Upload one from your profile to view it here during calls.
+                                No resume on file for this student yet.
                             </div>
                         )}
                         {!loading && resumeUrl && !blobUrl && !failed && (

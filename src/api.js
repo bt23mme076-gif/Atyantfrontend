@@ -171,6 +171,11 @@ export const sessionAPI = {
   insight:  (id)                                => api.get(`/api/sessions/${id}/transcript`),
 };
 
+// LiveKit meet
+export const livekitAPI = {
+  resume: (sessionId) => api.get(`/api/livekit/session/${sessionId}/resume`),
+};
+
 // Payments (Razorpay) — book a paid session + auto Meet link
 export const paymentAPI = {
   // Returns { free, keyId, orderId, amount, currency, sessionId, mentorName, topic } | { free:true, session }

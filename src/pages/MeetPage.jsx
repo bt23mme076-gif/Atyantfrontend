@@ -26,7 +26,7 @@ const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 // camera-only effects on audio-only calls. Right-side tools stack below the
 // timer pill; ResumePanel and NetworkAlerts don't compete for that space
 // (left side / top-center respectively).
-function MeetTools({ hasVideo }) {
+function MeetTools({ hasVideo, sessionId }) {
     const state = useConnectionState();
     if (state !== ConnectionState.Connected) return null;
     return (
@@ -34,7 +34,7 @@ function MeetTools({ hasVideo }) {
             <AdvancedMicrophoneCheck />
             <SessionTimer />
             <NetworkAlerts />
-            <ResumePanel top={14} left={14} />
+            <ResumePanel top={14} left={14} sessionId={sessionId} />
             {hasVideo && <BackgroundControl top={14} right={14} />}
             <Whiteboard top={hasVideo ? 66 : 14} right={14} />
             <SessionNotes top={hasVideo ? 118 : 66} right={14} />
@@ -220,7 +220,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
             connectOptions={forceRelay ? { rtcConfig: { iceTransportPolicy: 'relay' } } : undefined}
         >
             <VideoConference />
-            <MeetTools hasVideo={roomData.callType !== 'audio'} />
+            <MeetTools hasVideo={roomData.callType !== 'audio'} sessionId={sessionId} />
         </LiveKitRoom>
     );
 }
