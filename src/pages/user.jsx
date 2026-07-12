@@ -45,6 +45,7 @@ import { toast } from "react-toastify";
 import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 // Lazily inject the Razorpay Checkout script (once).
