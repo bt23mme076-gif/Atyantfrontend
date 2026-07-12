@@ -43,7 +43,6 @@ import { RiMedalLine } from "react-icons/ri";
 import { api, paymentAPI, servicesAPI } from "../api";
 import { toast } from "react-toastify";
 import { Calendar } from "@/components/ui/calendar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -780,9 +779,9 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
       </div>
 
       <div style={{ padding: "18px 20px" }}>
-        <div className="flex max-sm:flex-col border border-border rounded-2xl overflow-hidden bg-background">
-          {/* ── Left Side: DayPicker Calendar ── */}
-          <div className="flex-1 flex justify-center p-4 bg-background">
+        <div className="rounded-2xl border border-border overflow-hidden bg-background">
+          {/* ── Calendar ── */}
+          <div className="flex justify-center p-3">
             <Calendar
               mode="single"
               selected={date ? new Date(date + "T12:00:00") : undefined}
@@ -808,17 +807,16 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
                 }
               }}
               modifiersClassNames={{
-                available: "bg-red-500/20 text-red-500 font-bold border border-red-500/40 rounded-lg hover:bg-red-500/30",
-                booked: "border-2 border-red-500 rounded-lg"
+                available: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/30 rounded-lg hover:bg-emerald-500/20",
+                booked: "ring-2 ring-inset ring-[#7567C9] rounded-lg font-bold"
               }}
             />
           </div>
 
-          {/* ── Right Side: Scrollable Slots list ── */}
-          <div className="relative w-full max-sm:h-64 sm:w-60 border-t sm:border-t-0 sm:border-s border-border bg-background">
-            <ScrollArea className="h-64 sm:h-[320px]">
-              <div className="space-y-3 py-4">
-                <div className="flex h-5 shrink-0 items-center px-3">
+          {/* ── Slots ── */}
+          <div className="border-t border-border px-3 py-3">
+            <div className="space-y-2.5">
+              <div className="flex h-5 items-center">
                   <p className="text-sm font-semibold text-foreground">
                     {date ? format(new Date(date + "T12:00:00"), "EEEE, d MMM") : "Select a date"}
                   </p>
@@ -848,7 +846,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
 
                 {/* Slots list */}
                 {date && slots !== null && !slotErr && slots.length > 0 && (
-                  <div className="grid gap-1.5 px-3 max-sm:grid-cols-2">
+                  <div className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(124px,1fr))] max-h-[280px] overflow-y-auto pr-0.5">
                     {slots.map((slot) => {
                       const isBooked = bookedSlots.includes(slot);
                       const isSelected = time === slot;
@@ -856,11 +854,11 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
                       return (
                         <Button
                           key={slot}
-                          variant={isSelected ? "default" : (myBooking ? "destructive" : "outline")}
+                          variant={isSelected ? "default" : "outline"}
                           size="sm"
                           className={cn(
                             "w-full text-xs font-semibold rounded-lg",
-                            myBooking && !isSelected && "bg-red-500/10 text-red-500 border-red-500/40 hover:bg-red-500/20"
+                            myBooking && !isSelected && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/20"
                           )}
                           onClick={() => {
                             if (!myBooking && !isBooked) setTime(isSelected ? "" : slot);
@@ -873,8 +871,7 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
                     })}
                   </div>
                 )}
-              </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
 
