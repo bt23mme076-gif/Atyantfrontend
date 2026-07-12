@@ -1,53 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { livekitAPI } from '../../api';
 
 // Shows the STUDENT's resume during the call — for both the student and the
 // mentor of that session, via GET /api/livekit/session/:sessionId/resume
 // (backend checks the requester is one of the two session participants).
-
-// PDF viewers in an <iframe>/<embed> pointed straight at a Cloudinary URL are
-// blocked by this app's CSP (vercel.json's frame-src only allows Razorpay).
-// Fetching the bytes ourselves (res.cloudinary.com IS allowed in connect-src)
-// and framing the resulting same-origin blob: URL sidesteps that without
-// loosening the CSP. If a browser still won't render the blob inline, the
-// "Open in new tab" link (the real https URL) always works as a fallback.
-function useBlobUrl(sourceUrl) {
-    const [blobUrl, setBlobUrl] = useState(null);
-    const [failed, setFailed] = useState(false);
-    const revokeRef = useRef(null);
-
-    useEffect(() => {
-        if (!sourceUrl) return;
-        let cancelled = false;
-        fetch(sourceUrl)
-            .then((res) => {
-                if (!res.ok) throw new Error('fetch failed');
-                return res.blob();
-            })
-            .then((blob) => {
-                if (cancelled) return;
-                const url = URL.createObjectURL(blob);
-                revokeRef.current = url;
-                setBlobUrl(url);
-            })
-            .catch(() => { if (!cancelled) setFailed(true); });
-        return () => { cancelled = true; };
-    }, [sourceUrl]);
-
-    useEffect(() => () => {
-        if (revokeRef.current) URL.revokeObjectURL(revokeRef.current);
-    }, []);
-
-    return { blobUrl, failed };
-}
+//
+// The iframe points straight at the Cloudinary URL — allowed because
+// vercel.json's CSP frame-src explicitly whitelists res.cloudinary.com.
 
 export default function ResumePanel({ top = 14, left = 14, sessionId }) {
     const [open, setOpen] = useState(false);
     const [resumeUrl, setResumeUrl] = useState(null);
     const [checked, setChecked] = useState(false);
     const loading = open && !checked;
-
-    const { blobUrl, failed } = useBlobUrl(resumeUrl);
 
     // Fetch lazily — only once the panel is opened the first time.
     useEffect(() => {
@@ -91,16 +56,8 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
                                 No resume on file for this student yet.
                             </div>
                         )}
-                        {!loading && resumeUrl && !blobUrl && !failed && (
-                            <div style={muted}>Preparing preview…</div>
-                        )}
-                        {!loading && resumeUrl && failed && (
-                            <div style={muted}>
-                                Couldn't preview it inline — use "Open in new tab" above.
-                            </div>
-                        )}
-                        {!loading && blobUrl && (
-                            <iframe src={blobUrl} title="Resume preview" style={frame} />
+                        {!loading && resumeUrl && (
+                            <iframe src={resumeUrl} title="Resume preview" style={frame} />
                         )}
                     </div>
                 </div>
