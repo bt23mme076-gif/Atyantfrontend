@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDataChannel } from '@livekit/components-react';
 import { livekitAPI } from '../../api';
 
@@ -16,10 +16,20 @@ const TOPIC = 'atyant-resume';
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
+// Base (100%) preview box. Zoom just CSS-scales this — no PDF library, so
+// there's no extra load; the browser's own PDF renderer does the work.
+const BASE_H = 480;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3;
+const STEP = 0.2;
+const clampZoom = (z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(z * 100) / 100));
+
 export default function ResumePanel({ top = 14, left = 14, sessionId }) {
     const [open, setOpen] = useState(false);
     const [resumeUrl, setResumeUrl] = useState(null);
     const [checked, setChecked] = useState(false);
+    const [zoom, setZoom] = useState(1);
+    const scrollRef = useRef(null);
     const loading = open && !checked;
 
     // Fetch lazily — only once the panel is opened the first time.
@@ -48,6 +58,23 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
         });
     };
 
+    const zoomIn = () => setZoom((z) => clampZoom(z + STEP));
+    const zoomOut = () => setZoom((z) => clampZoom(z - STEP));
+
+    // Ctrl/⌘ + wheel zoom. Native listener (non-passive) so preventDefault works;
+    // plain wheel is left alone so the panel still scrolls normally.
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const onWheel = (e) => {
+            if (!e.ctrlKey && !e.metaKey) return;
+            e.preventDefault();
+            setZoom((z) => clampZoom(z + (e.deltaY < 0 ? STEP : -STEP)));
+        };
+        el.addEventListener('wheel', onWheel, { passive: false });
+        return () => el.removeEventListener('wheel', onWheel);
+    }, [resumeUrl, open]);
+
     return (
         <>
             <button
@@ -64,6 +91,13 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
                 <div style={drawer(top + 52, left)} role="dialog" aria-label="Student's resume">
                     <div style={header}>
                         <span style={title}>Student's resume</span>
+                        {resumeUrl && (
+                            <div style={zoomGroup}>
+                                <button type="button" onClick={zoomOut} style={zoomBtn} title="Zoom out" aria-label="Zoom out" disabled={zoom <= MIN_ZOOM}>−</button>
+                                <span style={zoomLabel}>{Math.round(zoom * 100)}%</span>
+                                <button type="button" onClick={zoomIn} style={zoomBtn} title="Zoom in" aria-label="Zoom in" disabled={zoom >= MAX_ZOOM}>+</button>
+                            </div>
+                        )}
                         {resumeUrl && (
                             <a href={resumeUrl} target="_blank" rel="noopener noreferrer" style={openLink}>
                                 Open in new tab ↗
@@ -82,7 +116,22 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
                             </div>
                         )}
                         {!loading && resumeUrl && (
-                            <iframe src={resumeUrl} title="Resume preview" style={frame} />
+                            <div ref={scrollRef} style={scrollWrap}>
+                                <div style={{ width: `${zoom * 100}%`, height: `${BASE_H * zoom}px` }}>
+                                    <iframe
+                                        src={resumeUrl}
+                                        title="Resume preview"
+                                        style={{
+                                            width: `${100 / zoom}%`,
+                                            height: BASE_H,
+                                            border: 'none',
+                                            background: '#fff',
+                                            transform: `scale(${zoom})`,
+                                            transformOrigin: '0 0',
+                                        }}
+                                    />
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -150,6 +199,14 @@ const header = {
     borderBottom: '1px solid rgba(255,255,255,0.1)',
 };
 const title = { color: '#fff', fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', flex: 1 };
+const zoomGroup = { display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 };
+const zoomBtn = {
+    width: 22, height: 22, borderRadius: 6, cursor: 'pointer', flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#fff', fontSize: 15, lineHeight: 1, fontWeight: 700,
+    border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.06)',
+};
+const zoomLabel = { color: 'rgba(255,255,255,0.7)', fontSize: 11, minWidth: 34, textAlign: 'center' };
 const openLink = { color: '#a99ee0', fontSize: 11.5, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' };
 const closeBtn = {
     width: 26, height: 26, borderRadius: 7, cursor: 'pointer', flexShrink: 0,
@@ -163,6 +220,13 @@ const body = {
     alignItems: 'stretch',
     justifyContent: 'stretch',
 };
+const scrollWrap = {
+    flex: 1,
+    minWidth: 0,
+    maxHeight: 'min(70vh, 480px)',
+    overflow: 'auto',
+    background: '#fff',
+};
 const muted = {
     margin: 'auto',
     padding: 20,
@@ -171,4 +235,3 @@ const muted = {
     lineHeight: 1.5,
     textAlign: 'center',
 };
-const frame = { width: '100%', height: 'min(70vh, 480px)', border: 'none', background: '#fff' };
