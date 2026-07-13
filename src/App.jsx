@@ -1687,7 +1687,7 @@ tpo:   <TPODashboard />,
           mentorPic={bookingTarget.mentorPic}
           services={bookingTarget.services?.filter(s => (bookingTarget.servicesOffered || bookingTarget.services?.map(x=>x.id))?.includes(s.id)) || bookingTarget.services || []}
           onClose={() => setBookingTarget(null)}
-          onBooked={() => { setBookingTarget(null); setActivePage("sessions"); }}
+          onBooked={() => setActivePage("sessions")}
         />
       )}
 

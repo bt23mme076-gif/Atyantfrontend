@@ -188,13 +188,16 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
   cutoffDate.setDate(cutoffDate.getDate() + maxWeeks * 7);
 
   const isAvailableDay = (dateStr) => {
-    if (!availability?.weekly?.length) return false;
+    if (!availability) return false;
     const d = new Date(dateStr + "T12:00:00");
-    const dow = d.getDay();
-    const entry = availability.weekly.find(w => w.day === dow);
-    if (!entry?.slots?.length) return false;
-    const dObj = new Date(dateStr);
-    return dObj >= new Date(today.toDateString()) && dObj <= cutoffDate;
+    if (d < new Date(today.toDateString()) || d > cutoffDate) return false;
+    // Blocked dates (mentor marked unavailable) win over everything
+    if ((availability.exceptions || []).includes(dateStr)) return false;
+    // A date override (one-off slots) makes the day bookable even outside the weekly template
+    const override = (availability.dateOverrides || []).find(o => o.date === dateStr);
+    if (override) return !!override.slots?.length;
+    const entry = (availability.weekly || []).find(w => w.day === d.getDay());
+    return !!entry?.slots?.length;
   };
 
   // Build calendar grid
@@ -265,8 +268,8 @@ function ScheduleStep({ mentorId, service, availability, onDateSlot, onBack }) {
               }
             }}
             modifiersClassNames={{
-              available: "bg-red-500/20 text-red-500 font-bold border border-red-500/40 rounded-lg hover:bg-red-500/30",
-              booked: "border-2 border-red-500 rounded-lg"
+              available: "bg-violet-500/15 text-violet-600 dark:text-violet-300 font-bold border border-violet-500/40 rounded-lg hover:bg-violet-500/25",
+              booked: "border-2 border-emerald-500 rounded-lg"
             }}
           />
         </div>
@@ -483,16 +486,10 @@ export default function BookingModal({ mentorId, mentorName, mentorPic, services
     if (!service || !date || !slot) return;
     setBooking(true); setError('');
     try {
-      // Convert slot "HH:MM" → "H:MM AM/PM" for the backend parser
-      const [h, m] = slot.split(':').map(Number);
-      const period = h >= 12 ? 'PM' : 'AM';
-      const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      const timeStr = `${hour12}:${String(m).padStart(2,'0')} ${period}`;
-      const dateObj = new Date(date + "T12:00:00");
-      const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
+      // Send raw "YYYY-MM-DD" + "HH:MM" — backend anchors them to IST explicitly,
+      // so the stored time no longer depends on the server's local timezone.
       const order = await paymentAPI.createOrder({
-        mentorId, date: dateStr, time: timeStr,
+        mentorId, date, time: slot,
         topic: service.label, durationMin: service.durationMin, serviceId: service.id,
       });
 

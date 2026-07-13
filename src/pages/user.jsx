@@ -1995,13 +1995,14 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
 
   // 2. Initialize states
   const [selectedSession, setSelectedSession] = useState(null);
-  // Keep selected session in sync with mentor's offered services
+  // The user must consciously pick a session type before scheduling — we do NOT
+  // auto-select one. (Auto-picking the "popular" service let people book without
+  // ever choosing a format.) Only drop a stale selection if the mentor's
+  // offered services change so it no longer exists.
   useEffect(() => {
-    if (!sessionOptions.length) { setSelectedSession(null); return; }
-    setSelectedSession(prev => {
-      if (prev && sessionOptions.find(s => s.id === prev.id)) return prev; // keep current if still valid
-      return sessionOptions.find(s => s.popular) || sessionOptions[0];
-    });
+    setSelectedSession(prev =>
+      prev && sessionOptions.find(s => s.id === prev.id) ? prev : null
+    );
   }, [sessionOptions]);
   const [date, setDate] = useState(""); // start empty — let user pick from calendar
   const [time, setTime] = useState("");
