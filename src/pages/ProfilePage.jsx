@@ -970,7 +970,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           city: form.city, linkedinProfile: form.linkedinProfile, price: Number(form.price) || 0, yearsOfExperience: Number(form.yearsOfExperience) || 0,
           primaryDomain: form.primaryDomain, companyDomain: form.companyDomain, servicesOffered: form.servicesOffered
         }
-        : { ...base, goals: form.goals, skills: form.skills };
+        : { ...base, city: form.city, goals: form.goals, skills: form.skills };
       const res = await profileAPI.update(payload);
       setUser(res.user || res);
       setEditing(false);
@@ -1468,6 +1468,9 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         <Section id="field-bio" Icon={UserRound} title="Basic Information" subtitle="Who you are on Atyant" onEdit={startEdit} editing={editing} delay={1}>
           <FieldRow label="DISPLAY NAME" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} editing={editing} placeholder="Your name" />
           <FieldRow label="MOBILE NUMBER" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} editing={editing} placeholder="9876543210" error={phoneError} />
+          {!isMentor && (
+            <FieldRow label="CITY" value={form.city} onChange={v => setForm(f => ({ ...f, city: v }))} editing={editing} placeholder="Bengaluru" />
+          )}
           <div style={{ marginBottom: 0 }}>
             <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 6 }}>BIO</label>
             {editing

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link2, X, Check } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -161,8 +162,11 @@ export default function ShareProfile({ publicUrl }) {
         Share profile
       </button>
 
-      {/* Overlay + panel */}
-      {open && (
+      {/* Overlay + panel — portaled to <body> so it centers on the viewport
+          instead of getting clipped by an ancestor's containing block
+          (e.g. the profile hero's fade-in animation leaves a non-"none"
+          transform behind, which makes position:fixed relative to it). */}
+      {open && createPortal(
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
           onClick={() => setOpen(false)}
@@ -243,7 +247,8 @@ export default function ShareProfile({ publicUrl }) {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
