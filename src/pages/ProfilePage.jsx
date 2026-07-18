@@ -860,7 +860,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   };
 
   const APP_BASE = import.meta.env.VITE_APP_URL || window.location.origin;
-  const publicUrl = user?.slug ? `${APP_BASE}/${user.slug}` : "";
+  const publicUrl = user?.slug ? `${APP_BASE}${import.meta.env.MODE === 'production' ? '/atyantEngine' : ''}/${user.slug}` : "";
 
   // Load the platform service catalog once (mentors pick from it)
   useEffect(() => {
@@ -1602,7 +1602,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                   <div style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, marginBottom: 8, textTransform: "uppercase" }}>CUSTOM SLUG</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 13px", flex: 1 }}>
-                      <span style={{ color: C.textMuted, fontSize: ".88rem", marginRight: 4 }}>{window.location.origin}/</span>
+                      <span style={{ color: C.textMuted, fontSize: ".88rem", marginRight: 4 }}>{window.location.origin}{import.meta.env.MODE === 'production' ? '/atyantEngine' : ''}/</span>
                       <input
                         type="text"
                         value={slugValue}
