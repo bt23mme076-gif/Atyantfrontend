@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, Sparkles, ArrowRight } from "lucide-react";
+import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI } from "../../api";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -137,11 +137,81 @@ const MessageActions = ({ message, onRegenerate }) => {
   );
 };
 
+// Turns a real `progress` SSE event (see AtyantEngineService.processAtyantMessage
+// and aiRoutes.js POST /atyant-chat) into one human-readable line. These are the
+// ACTUAL stages completing on the server, not a guessed/paced sequence.
+function describeProgress(event) {
+  switch (event.stage) {
+    case "reading":
+      return "Reading your message…";
+    case "context": {
+      const id = event.context?.identity || {};
+      const parts = [];
+      if (id.college) parts.push(id.college);
+      if (id.branch) parts.push(id.branch);
+      if (event.context?.target) parts.push(`aiming for ${event.context.target}`);
+      return parts.length
+        ? `Got it — ${parts.join(", ")}`
+        : "Still building your profile from what you've shared…";
+    }
+    case "drafting":
+      return "Putting together a reply…";
+    case "searching_mentors":
+      return "Searching verified seniors who match your profile…";
+    case "mentors_found":
+      return event.count > 0
+        ? `Found ${event.count} verified senior${event.count === 1 ? "" : "s"} matching your background…`
+        : "No exact match yet — widening the search…";
+    default:
+      return null;
+  }
+}
+
+// Kimi/Claude-style "Thinking" block — lightbulb + label + chevron, expands to
+// show real backend checkpoints (`lines`) as they actually complete.
+const ThinkingIndicator = ({ lines }) => {
+  const [expanded, setExpanded] = useState(true);
+  const shown = lines.length ? lines : ["Thinking…"];
+
+  return (
+    <div style={{ marginBottom: "1.25rem", maxWidth: 520, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, overflow: "hidden" }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        aria-expanded={expanded}
+        aria-label="Atyant is thinking — toggle details"
+        style={{ display: "flex", width: "100%", alignItems: "center", gap: 8, padding: "9px 14px", cursor: "pointer", userSelect: "none", background: "transparent", border: "none", font: "inherit", textAlign: "left" }}
+      >
+        <Lightbulb size={14} color={C.accent} style={{ animation: "thinkPulse 1.8s ease-in-out infinite" }} />
+        <span style={{ fontSize: "0.84rem", color: C.text, fontWeight: 500 }}>Thinking</span>
+        <ChevronDown size={14} color={C.textMuted} style={{ marginLeft: "auto", transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }} />
+      </button>
+      {expanded && (
+        <div role="status" aria-live="polite" style={{ padding: "0 14px 12px 36px", display: "flex", flexDirection: "column", gap: 6 }}>
+          <AnimatePresence initial={false}>
+            {shown.map((line, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: i === shown.length - 1 ? 1 : 0.5, y: 0 }}
+                transition={{ duration: 0.25 }}
+                style={{ fontSize: "0.8rem", color: C.textSub, lineHeight: 1.5 }}
+              >
+                {line}
+              </motion.span>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard }) {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [thinkingLines, setThinkingLines] = useState([]);
   const [showContext, setShowContext] = useState(false);
   const [context, setContext] = useState({
     college: "",
@@ -157,6 +227,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const chatInputRef = useRef(null);
   const heroInputRef = useRef(null);
   const sessionIdRef = useRef(getStoredSessionId());
+  const abortRef = useRef(null);  // cancels the in-flight chat stream on unmount
+  const sendingRef = useRef(false);  // synchronous re-entrancy guard — see handleSend
 
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
   const [selectedLang, setSelectedLang] = useState("en-IN");
@@ -326,9 +398,28 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     return () => vv.removeEventListener("resize", onResize);
   }, []);
 
+  // Cancel any in-flight chat stream when this page unmounts (navigating away,
+  // or "New Chat" remounting via the `key` prop) so a late response can't call
+  // setState on a torn-down instance.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
   // Real chat � calls the 2-phase Atyant engine (context intake ? execution).
+  // Streams real progress checkpoints (context extraction, mentor search) into
+  // thinkingLines as the backend actually completes them.
   const sendToEngine = async (text) => {
-    const res = await aiAPI.atyantChat(text, sessionIdRef.current);
+    // Seed with the "reading" line immediately — it's always the first real
+    // stage, so there's no reason to wait on the network round trip to show it
+    // instead of a generic "Thinking…" placeholder.
+    setThinkingLines([describeProgress({ stage: "reading" })]);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const res = await aiAPI.atyantChatStream(text, sessionIdRef.current, (event) => {
+      const line = describeProgress(event);
+      if (!line) return;
+      // The server also emits its own "reading" event right after — dedupe so
+      // the seed line above doesn't show up twice in a row.
+      setThinkingLines(prev => (prev[prev.length - 1] === line ? prev : [...prev, line]));
+    }, controller.signal);
     // Engine is "ready" once it routes to a mentor or has mapped enough context.
     const ready = res.outputMode === "MENTOR_ROUTING" || res.phase === "engine";
     // Keep the page context (and badge) in sync with what the engine extracted.
@@ -349,9 +440,14 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   };
 
   const handleSend = async (textToSend) => {
+    // `isTyping` state isn't visible until React commits it, so two calls fired
+    // in the same tick (e.g. a fast double Enter) would both read it as false —
+    // sendingRef flips synchronously and closes that gap.
+    if (sendingRef.current) return;
     const text = (textToSend || query).trim();
     if (text.length < 1) return;  // allow short but valid answers like "3"
 
+    sendingRef.current = true;
     setMessages(prev => [...prev, { sender: "user", text }]);
     setQuery("");
     setIsTyping(true);
@@ -360,14 +456,18 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       const reply = await sendToEngine(text);
       setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips }]);
     } catch (e) {
+      if (e.name === "AbortError") return;  // page unmounted — nothing to show
       setMessages(prev => [...prev, {
         sender: "atyant",
         text: e?.status === 429
           ? "I'm getting a lot of questions right now � give me a few seconds and try again."
+          : e?.status === 504
+          ? "That took longer than it should have. Try sending it again?"
           : "Something glitched on my end. Try sending that again?",
         showMatch: false,
       }]);
     } finally {
+      sendingRef.current = false;
       setIsTyping(false);
     }
   };
@@ -378,8 +478,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   };
 
   const handleRegenerate = async (msg, index) => {
+    if (sendingRef.current) return;
     const userPrompt = messages[index - 1]?.text || "";
     if (!userPrompt) return;
+    sendingRef.current = true;
     setIsTyping(true);
     try {
       const reply = await sendToEngine(userPrompt);
@@ -391,6 +493,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     } catch {
       // leave the existing message in place on failure
     } finally {
+      sendingRef.current = false;
       setIsTyping(false);
     }
   };
@@ -408,6 +511,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         @keyframes pulse {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 1; }
+        }
+        @keyframes thinkPulse {
+          0%, 100% { opacity: 0.5; transform: scale(0.92); }
+          50% { opacity: 1; transform: scale(1); }
         }
         .msg-row { animation: fadeIn 0.2s ease-out; }
         .msg-row:hover { background: var(--c-rowHover); }
@@ -747,13 +854,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                 );
               })}
 
-              {isTyping && (
-                <div style={{ marginBottom: "1.25rem", display: "flex", gap: 4 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.textSub, animation: "pulse 1.2s infinite 0s" }} />
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.textSub, animation: "pulse 1.2s infinite 0.2s" }} />
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.textSub, animation: "pulse 1.2s infinite 0.4s" }} />
-                </div>
-              )}
+              {isTyping && <ThinkingIndicator lines={thinkingLines} />}
               <div ref={chatEndRef} />
             </div>
           </div>

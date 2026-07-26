@@ -40,6 +40,87 @@ async function request(method, path, body) {
   return data;
 }
 
+// Reads an SSE response body: `data: {...}\n\n` frames. Calls `onProgress` for
+// each `progress` event as the backend actually completes that stage, and
+// resolves with the `done` event's payload. Used by the Atyant chat endpoint
+// so the "thinking" UI can reflect real backend state instead of a guess.
+async function requestStream(path, body, onProgress, signal, timeoutMs = 45000) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  // Own AbortController so a timeout can cancel the fetch even if the caller
+  // never aborts — a hung connection would otherwise leave the UI "thinking"
+  // forever, the exact failure mode this streaming path exists to avoid.
+  const controller = new AbortController();
+  const forwardAbort = () => controller.abort();
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener('abort', forwardAbort);
+  }
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => ({}));
+      const err = new Error(data.message || data.error || 'Request failed');
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done: streamDone, value } = await reader.read();
+      if (streamDone) break;
+      buf += decoder.decode(value, { stream: true });
+
+      let sep;
+      while ((sep = buf.indexOf('\n\n')) !== -1) {
+        const frame = buf.slice(0, sep);
+        buf = buf.slice(sep + 2);
+        const line = frame.split('\n').find(l => l.startsWith('data: '));
+        if (!line) continue;
+
+        const event = JSON.parse(line.slice(6));
+        if (event.type === 'progress') { onProgress?.(event); continue; }
+        if (event.type === 'error') {
+          const err = new Error(event.error || 'Request failed');
+          err.status = event.status;
+          throw err;
+        }
+        if (event.type === 'done') return event;
+      }
+    }
+    throw new Error('Stream ended without a response');
+  } catch (err) {
+    // Distinguish "we gave up waiting" (timeout — a real, user-facing failure)
+    // from "the caller cancelled us" (unmount abort — silent, not an error the
+    // user needs to see). Both surface as AbortError from fetch otherwise.
+    if (timedOut && err.name === 'AbortError') {
+      const timeoutErr = new Error('That took too long. Try again?');
+      timeoutErr.status = 504;
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', forwardAbort);
+  }
+}
+
 export const api = {
   get:    (path)       => request('GET',    path),
   post:   (path, body) => request('POST',   path, body),
@@ -155,6 +236,10 @@ export const clarityAPI = {
 // Atyant AI chat — 2-phase intake + execution engine
 export const aiAPI = {
   atyantChat: (message, sessionId) => api.post('/api/ai/atyant-chat', { message, sessionId }),
+  // Same endpoint, but reads it as a live progress stream — resolves with the
+  // same shape as atyantChat once the `done` event arrives.
+  atyantChatStream: (message, sessionId, onProgress, signal) =>
+    requestStream('/api/ai/atyant-chat', { message, sessionId }, onProgress, signal),
   // Restore an existing conversation (messages + context) so chat survives refresh.
   getSession: (sessionId) => api.get(`/api/ai/atyant-chat/${sessionId}`),
   // Thumbs up/down on a bot reply — value: 'up' | 'down' | null (null = un-vote).

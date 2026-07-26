@@ -7,7 +7,7 @@ import {
   Copy, ExternalLink, Hash, Check, Star,
   Activity, IndianRupee, CalendarClock, UserRound,
   GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, Home,
-  Eye, EyeOff,
+  Eye, EyeOff, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -1326,6 +1326,15 @@ export default function App() {
   const [clarityContext, setClarityContext] = useState(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desktop-only rail collapse (ChatGPT-style) — mobile keeps its own slide-in
+  // drawer behavior via sidebarOpen and is unaffected by this.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('atyant_sidebar_collapsed') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('atyant_sidebar_collapsed', sidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
+  }, [sidebarCollapsed]);
+  const collapsed = !isMobile && sidebarCollapsed;
   const [profileSection, setProfileSection] = useState('overview');
 
   const MENTOR_PROFILE_NAV = [
@@ -1429,7 +1438,8 @@ tpo:   <TPODashboard />,
     const isActive = activePage===item.id;
     return (
       <button onClick={() => { setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
-        style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:500 }}
+        title={collapsed ? item.label : undefined}
+        style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:500 }}
         onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
         onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
         {/* Left accent bar — active only */}
@@ -1440,8 +1450,8 @@ tpo:   <TPODashboard />,
             <span style={{ position:"absolute", top:-3, right:-3, width:9, height:9, borderRadius:"50%", background:"#F04438", border:`1.5px solid ${C.sidebar}`, boxShadow:"0 0 0 2px rgba(240,68,56,0.25)" }} />
           )}
         </span>
-        <span style={{ flex:1 }}>{item.label}</span>
-        {item.id === "sessions" && hasJoinableSession && (
+        {!collapsed && <span style={{ flex:1 }}>{item.label}</span>}
+        {!collapsed && item.id === "sessions" && hasJoinableSession && (
           <span style={{ fontSize:"0.62rem", fontWeight:700, color:"#F04438", letterSpacing:"0.03em", whiteSpace:"nowrap" }}>LIVE</span>
         )}
       </button>
@@ -1465,8 +1475,8 @@ tpo:   <TPODashboard />,
       )}
 
       {/* ── Sidebar ── */}
-      <div style={{ width:254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
-        <div style={{ height:76, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", flexShrink:0 }}>
+      <div style={{ width: collapsed ? 72 : 254, flexShrink:0, background:C.sidebar, borderRight:`1px solid ${C.sidebarBorder}`, display:"flex", flexDirection:"column", height:"100dvh", position:isMobile ? "fixed" : "sticky", top:0, left:0, zIndex:50, transform:isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition:"width 0.2s ease, transform 0.25s ease", boxShadow:isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
+        <div style={{ height: collapsed ? "auto" : 76, minHeight: collapsed ? 76 : undefined, display:"flex", flexDirection: collapsed ? "column" : "row", alignItems:"center", justifyContent: collapsed ? "center" : "space-between", padding: collapsed ? "14px 0" : "0 24px", gap: collapsed ? 10 : 0, flexShrink:0 }}>
           <div
             onClick={() => { window.location.href = "https://atyant.in/"; }}
             title="Back to atyant.in"
@@ -1475,7 +1485,7 @@ tpo:   <TPODashboard />,
             <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 6px 16px -6px #7567C9", flexShrink:0 }}>
               <Sparkles size={17} color="#fff" strokeWidth={2.2} />
             </div>
-            <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
+            {!collapsed && <span style={{ fontWeight:700, fontSize:"1.4rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>}
           </div>
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
@@ -1483,6 +1493,14 @@ tpo:   <TPODashboard />,
               onMouseEnter={e => { e.currentTarget.style.color = C.text; }}
               onMouseLeave={e => { e.currentTarget.style.color = C.textSub; }}>
               <X size={18} />
+            </button>
+          )}
+          {!isMobile && (
+            <button onClick={() => setSidebarCollapsed(c => !c)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              style={{ width:32, height:32, borderRadius:8, border:"none", background:"transparent", color:C.textMuted, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0, transition:"background-color 0.15s ease, color 0.15s ease" }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textMuted; }}>
+              {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
           )}
         </div>
@@ -1495,14 +1513,15 @@ tpo:   <TPODashboard />,
                 setActivePage("ask");
                 if (isMobile) setSidebarOpen(false);
               }}
+              title={collapsed ? "Back Home" : undefined}
               style={{
                 width: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: collapsed ? 0 : 8,
                 height: 46,
-                padding: "0 14px",
+                padding: collapsed ? 0 : "0 14px",
                 borderRadius: 13,
                 border: "none",
                 background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
@@ -1528,7 +1547,7 @@ tpo:   <TPODashboard />,
               }}
             >
               <Home size={17} strokeWidth={2.5} />
-              <span>Back Home</span>
+              {!collapsed && <span>Back Home</span>}
             </button>
           ) : (
             <button
@@ -1539,14 +1558,15 @@ tpo:   <TPODashboard />,
                 setChatSession(prev => prev + 1);  // remount AskAtyantPage clean
                 if (isMobile) setSidebarOpen(false);
               }}
+              title={collapsed ? "New chat" : undefined}
               style={{
                 width: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: collapsed ? 0 : 8,
                 height: 46,
-                padding: "0 14px",
+                padding: collapsed ? 0 : "0 14px",
                 borderRadius: 13,
                 border: "none",
                 background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
@@ -1572,27 +1592,30 @@ tpo:   <TPODashboard />,
               }}
             >
               <Plus size={17} strokeWidth={2.5} />
-              <span>New chat</span>
+              {!collapsed && <span>New chat</span>}
             </button>
           )}
 
           {activePage === "profile" && !isMobile ? (
             /* ── Profile section nav ── */
             <div>
-              <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>
-                {user?.role === "mentor" ? "MENTOR PROFILE" : "MY PROFILE"}
-              </div>
+              {!collapsed && (
+                <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>
+                  {user?.role === "mentor" ? "MENTOR PROFILE" : "MY PROFILE"}
+                </div>
+              )}
               <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
                 {profileNavItems.map(({ key, Icon, label }) => {
                   const isActive = profileSection === key;
                   return (
                     <button key={key} onClick={() => { setProfileSection(key); if (isMobile) setSidebarOpen(false); }}
-                      style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", gap:12, padding:"10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:isActive ? 600 : 500 }}
+                      title={collapsed ? label : undefined}
+                      style={{ position:"relative", width:"100%", display:"flex", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius:10, border:"none", background:isActive ? C.accentSoft : "transparent", color:isActive ? C.text : C.textSub, cursor:"pointer", fontFamily:"inherit", fontSize:"0.9rem", lineHeight:1.2, textAlign:"left", transition:"background-color 0.2s ease, color 0.2s ease", fontWeight:isActive ? 600 : 500 }}
                       onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
                       onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
                       <span style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)", width:3, height:18, borderRadius:"0 3px 3px 0", background:C.accent, opacity:isActive ? 1 : 0, transition:"opacity 0.2s ease" }} />
                       <Icon size={17} strokeWidth={isActive ? 2.2 : 1.8} style={{ color:isActive ? C.accentText : "currentColor", flexShrink:0 }} />
-                      <span>{label}</span>
+                      {!collapsed && <span>{label}</span>}
                     </button>
                   );
                 })}
@@ -1602,13 +1625,13 @@ tpo:   <TPODashboard />,
             /* ── Regular nav ── */
             <>
           <div style={{ marginBottom:"1.5rem" }}>
-            <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>WORKSPACE</div>
+            {!collapsed && <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>WORKSPACE</div>}
             <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
               {workspaceItems.map(item => <NavItem key={item.id} item={item} />)}
             </div>
           </div>
           <div>
-            <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>JOURNEY</div>
+            {!collapsed && <div style={{ fontSize:"0.7rem", fontWeight:600, letterSpacing:"0.12em", color:C.textMuted, padding:"0 12px", marginBottom:8 }}>JOURNEY</div>}
             <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
               {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
             </div>
@@ -1621,37 +1644,44 @@ tpo:   <TPODashboard />,
           {/* Become a mentor — only for logged-out visitors */}
           {!user && (
             <button onClick={() => { setActivePage("mentor-onboard"); if (isMobile) setSidebarOpen(false); }}
-              style={{ width:"100%", marginBottom:10, display:"flex", alignItems:"center", justifyContent:"center", gap:7, background:"transparent", border:`1px solid ${C.accent}55`, borderRadius:10, padding:"9px 12px", color:C.accentText, fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
+              title={collapsed ? "Become a mentor" : undefined}
+              style={{ width:"100%", marginBottom:10, display:"flex", alignItems:"center", justifyContent:"center", gap: collapsed ? 0 : 7, background:"transparent", border:`1px solid ${C.accent}55`, borderRadius:10, padding: collapsed ? "9px 0" : "9px 12px", color:C.accentText, fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}
               onMouseEnter={e => { e.currentTarget.style.background = C.accentSoft; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-              <Sparkles size={13} /> Become a mentor
+              <Sparkles size={13} /> {!collapsed && "Become a mentor"}
             </button>
           )}
           {user ? (
             <div onClick={() => { setActivePage("profile"); if (isMobile) setSidebarOpen(false); }}
-              style={{ background:activePage==="profile" ? C.cardHover : C.active, border:`1px solid ${activePage==="profile" ? C.accent+"55" : C.activeBorder}`, borderRadius:12, padding:"11px 13px", display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}
+              title={collapsed ? (user.username || user.name || "Profile") : undefined}
+              style={{ background:activePage==="profile" ? C.cardHover : C.active, border:`1px solid ${activePage==="profile" ? C.accent+"55" : C.activeBorder}`, borderRadius:12, padding: collapsed ? "9px 0" : "11px 13px", display:"flex", alignItems:"center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 10, cursor:"pointer" }}
               onMouseEnter={e => { e.currentTarget.style.background=C.cardHover; e.currentTarget.style.borderColor=C.accent+"55"; }}
               onMouseLeave={e => { e.currentTarget.style.background=activePage==="profile" ? C.cardHover : C.active; e.currentTarget.style.borderColor=activePage==="profile" ? C.accent+"55" : C.activeBorder; }}>
               <div style={{ position:"relative", flexShrink:0 }}>
                 <Avatar src={user.profilePicture} name={user.username||user.name||"You"} size={34} bg="7567c9" style={{ border:`1.5px solid ${C.accent}70` }} />
                 <span style={{ position:"absolute", bottom:0, right:0, width:9, height:9, borderRadius:"50%", background:C.green, border:`2px solid ${C.sidebar}` }} />
               </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:"0.86rem", fontWeight:500, color:C.text }}>{user.username||user.name||"You"}</div>
-                <div style={{ fontSize:"0.7rem", color:C.textMuted, marginTop:1 }}>{user.education?.[0]?.institutionName||user.education?.[0]?.institution||"Atyant"}</div>
-              </div>
-              <button onClick={(e) => { e.stopPropagation(); logout(); }}
-                style={{ background:"transparent", border:"none", padding:6, borderRadius:6, color:C.textSub, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.active; e.currentTarget.style.color = "#f87171"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; }}
-                title="Sign out">
-                <LogOut size={14} />
-              </button>
+              {!collapsed && (
+                <>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:"0.86rem", fontWeight:500, color:C.text }}>{user.username||user.name||"You"}</div>
+                    <div style={{ fontSize:"0.7rem", color:C.textMuted, marginTop:1 }}>{user.education?.[0]?.institutionName||user.education?.[0]?.institution||"Atyant"}</div>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); logout(); }}
+                    style={{ background:"transparent", border:"none", padding:6, borderRadius:6, color:C.textSub, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C.active; e.currentTarget.style.color = "#f87171"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; }}
+                    title="Sign out">
+                    <LogOut size={14} />
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <button onClick={() => setShowAuth(true)}
-              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:C.accent, border:"none", borderRadius:12, padding:"11px 13px", color:"#fff", fontSize:"0.86rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-              <LogIn size={15} /> Sign in
+              title={collapsed ? "Sign in" : undefined}
+              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap: collapsed ? 0 : 8, background:C.accent, border:"none", borderRadius:12, padding: collapsed ? "11px 0" : "11px 13px", color:"#fff", fontSize:"0.86rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+              <LogIn size={15} /> {!collapsed && "Sign in"}
             </button>
           )}
         </div>
@@ -1671,6 +1701,10 @@ tpo:   <TPODashboard />,
               style={{ width:36, height:36, borderRadius:9, border:`1px solid ${C.cardBorder}`, background:C.active, color:C.textSub, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0, flexShrink:0 }}>
               <Menu size={18} />
             </button>
+          ) : collapsed ? (
+            /* Sidebar rail is icon-only — keep the name visible up here, same
+               place ChatGPT keeps its title when its own rail is collapsed. */
+            <span style={{ fontWeight:700, fontSize:"1.15rem", letterSpacing:"-0.01em", color:C.text, lineHeight:1, fontFamily:"'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
           ) : <div />}
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <ThemeToggle size={16} style={{ padding:7, borderRadius:7 }} />
