@@ -79,21 +79,21 @@ export const VIEW_SEO = {
     title: "Ask Atyant — Career Clarity from Verified Seniors",
     description:
       "Type your exact confusion about internships, placements, MS or a career switch and get a verified answer from a senior who walked your path.",
-    canonical: "/",
+    canonical: "/atyantEngine",
     index: true,
   },
   clarity: {
     title: "Your Career Clarity — Matched Verified Answers | Atyant",
     description:
       "Verified AnswerCards matched to your college, branch and goal by seniors who actually did it. Read the path, then talk to the senior.",
-    canonical: "/",
+    canonical: "/atyantEngine",
     index: true,
   },
   "mentor-onboard": {
     title: "Become a Verified Senior on Atyant",
     description:
       "Share your verified college-to-company path, publish AnswerCards and take paid 1:1 sessions with juniors from your branch.",
-    canonical: "/mentor-onboard",
+    canonical: "/atyantEngine/mentor-onboard",
     index: true,
   },
   // Private surfaces — never index.
