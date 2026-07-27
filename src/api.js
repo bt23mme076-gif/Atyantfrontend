@@ -40,15 +40,10 @@ async function request(method, path, body) {
   return data;
 }
 
-// Reads an SSE response body: `data: {...}\n\n` frames. Calls `onProgress` for
-// each `progress` event as the backend actually completes that stage, and
-// resolves with the `done` event's payload. Used by the Atyant chat endpoint
-// so the "thinking" UI can reflect real backend state instead of a guess.
-async function requestStream(path, body, onProgress, signal, timeoutMs = 45000) {
-  const headers = { 'Content-Type': 'application/json' };
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
+// Shared SSE reader used by both requestStream (JSON body) and
+// requestFormStream (multipart body) below — everything past "make the fetch
+// call" (parsing frames, timeout, abort wiring) is identical either way.
+async function streamRequest(path, fetchInit, onProgress, signal, timeoutMs) {
   // Own AbortController so a timeout can cancel the fetch even if the caller
   // never aborts — a hung connection would otherwise leave the UI "thinking"
   // forever, the exact failure mode this streaming path exists to avoid.
@@ -62,13 +57,7 @@ async function requestStream(path, body, onProgress, signal, timeoutMs = 45000) 
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
 
   try {
-    const res = await fetch(`${BASE}${path}`, {
-      method: 'POST',
-      headers,
-      credentials: 'include',
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    const res = await fetch(`${BASE}${path}`, { ...fetchInit, signal: controller.signal });
 
     if (!res.ok || !res.body) {
       const data = await res.json().catch(() => ({}));
@@ -119,6 +108,25 @@ async function requestStream(path, body, onProgress, signal, timeoutMs = 45000) 
     clearTimeout(timer);
     if (signal) signal.removeEventListener('abort', forwardAbort);
   }
+}
+
+// JSON-body SSE request — used by the Atyant chat endpoint so the "thinking"
+// UI can reflect real backend state instead of a guess.
+function requestStream(path, body, onProgress, signal, timeoutMs = 45000) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return streamRequest(path, { method: 'POST', headers, credentials: 'include', body: JSON.stringify(body) }, onProgress, signal, timeoutMs);
+}
+
+// Multipart SSE request — for the résumé-upload endpoint. Longer default
+// timeout: PDF/vision extraction is real extra work on top of the normal turn.
+function requestFormStream(path, formData, onProgress, signal, timeoutMs = 60000) {
+  const headers = {};
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  // No Content-Type here — the browser sets multipart/form-data with the boundary.
+  return streamRequest(path, { method: 'POST', headers, credentials: 'include', body: formData }, onProgress, signal, timeoutMs);
 }
 
 export const api = {
@@ -240,6 +248,14 @@ export const aiAPI = {
   // same shape as atyantChat once the `done` event arrives.
   atyantChatStream: (message, sessionId, onProgress, signal) =>
     requestStream('/api/ai/atyant-chat', { message, sessionId }, onProgress, signal),
+  // Upload a résumé (PDF or a photo) — same progress-stream shape as atyantChatStream.
+  atyantResumeStream: (file, sessionId, onProgress, signal, message) => {
+    const form = new FormData();
+    form.append('resume', file);
+    form.append('sessionId', sessionId);
+    if (message) form.append('message', message);
+    return requestFormStream('/api/ai/atyant-chat/resume', form, onProgress, signal);
+  },
   // Restore an existing conversation (messages + context) so chat survives refresh.
   getSession: (sessionId) => api.get(`/api/ai/atyant-chat/${sessionId}`),
   // Thumbs up/down on a bot reply — value: 'up' | 'down' | null (null = un-vote).

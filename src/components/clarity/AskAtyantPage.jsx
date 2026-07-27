@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown } from "lucide-react";
+import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI } from "../../api";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -144,6 +144,8 @@ function describeProgress(event) {
   switch (event.stage) {
     case "reading":
       return "Reading your message…";
+    case "reading_resume":
+      return "Reading your résumé…";
     case "context": {
       const id = event.context?.identity || {};
       const parts = [];
@@ -232,6 +234,17 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
 
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
   const [selectedLang, setSelectedLang] = useState("en-IN");
+
+  // "+" attach menu — Upload document / Upload photo / Take photo — and the
+  // hidden file inputs it triggers. Shared by both the landing and footer
+  // input rows (only one of the two is ever mounted at a time).
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  // Staged file — picked but not yet sent. Shown as a preview chip in the
+  // input (ChatGPT-style) so the student can back out before anything uploads.
+  const [pendingFile, setPendingFile] = useState(null);
+  const docInputRef = useRef(null);
+  const photoInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Auto-grow a textarea up to a max height, then scroll internally.
   // Cap lower on mobile so the box never swallows the screen (ChatGPT-style).
@@ -403,6 +416,29 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   // setState on a torn-down instance.
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  // Shared by both the text-chat flow and the résumé-upload flow: apply the
+  // engine's result to page state (context badge, problem statement) and
+  // shape it into what the message bubble needs.
+  const applyEngineResult = (res, fallbackText) => {
+    // Engine is "ready" once it routes to a mentor or has mapped enough context.
+    const ready = res.outputMode === "MENTOR_ROUTING" || res.phase === "engine";
+    // Keep the page context (and badge) in sync with what the engine extracted.
+    const mapped = mapEngineContext(res.context);
+    if (mapped) setContext(prev => ({
+      college: mapped.college || prev.college,
+      branch: mapped.branch || prev.branch,
+      year: mapped.year || prev.year,
+      cgpa: mapped.cgpa || prev.cgpa,
+      goal: mapped.goal || prev.goal,
+    }));
+    if (res.problemStatement) setProblemStatement(res.problemStatement);
+    return {
+      text: res.reply || fallbackText,
+      showMatch: ready,
+      chips: Array.isArray(res.quickReplies) ? res.quickReplies : null,
+    };
+  };
+
   // Real chat � calls the 2-phase Atyant engine (context intake ? execution).
   // Streams real progress checkpoints (context extraction, mentor search) into
   // thinkingLines as the backend actually completes them.
@@ -420,23 +456,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       // the seed line above doesn't show up twice in a row.
       setThinkingLines(prev => (prev[prev.length - 1] === line ? prev : [...prev, line]));
     }, controller.signal);
-    // Engine is "ready" once it routes to a mentor or has mapped enough context.
-    const ready = res.outputMode === "MENTOR_ROUTING" || res.phase === "engine";
-    // Keep the page context (and badge) in sync with what the engine extracted.
-    const mapped = mapEngineContext(res.context);
-    if (mapped) setContext(prev => ({
-      college: mapped.college || prev.college,
-      branch: mapped.branch || prev.branch,
-      year: mapped.year || prev.year,
-      cgpa: mapped.cgpa || prev.cgpa,
-      goal: mapped.goal || prev.goal,
-    }));
-    if (res.problemStatement) setProblemStatement(res.problemStatement);
-    return {
-      text: res.reply || "Hmm, I didn't catch that � could you rephrase?",
-      showMatch: ready,
-      chips: Array.isArray(res.quickReplies) ? res.quickReplies : null,
-    };
+    return applyEngineResult(res, "Hmm, I didn't catch that — could you rephrase?");
   };
 
   const handleSend = async (textToSend) => {
@@ -444,6 +464,19 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     // in the same tick (e.g. a fast double Enter) would both read it as false —
     // sendingRef flips synchronously and closes that gap.
     if (sendingRef.current) return;
+
+    // A staged file takes priority — it sits in the composer until send is hit,
+    // same as ChatGPT. Whatever's typed alongside it goes up together with the
+    // file, same as a normal message would.
+    if (pendingFile) {
+      const file = pendingFile;
+      const text = query.trim();
+      setPendingFile(null);
+      setQuery("");
+      await uploadResumeFile(file, text);
+      return;
+    }
+
     const text = (textToSend || query).trim();
     if (text.length < 1) return;  // allow short but valid answers like "3"
 
@@ -498,10 +531,162 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     }
   };
 
+  const RESUME_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+  const RESUME_MAX_BYTES = 8 * 1024 * 1024;
+
+  // "+" → Upload document / Upload photo / Take photo. Just STAGES the file as
+  // a preview chip (ChatGPT-style) — nothing uploads until the student hits
+  // send, so they can back out or add a message alongside it first.
+  const stageResumeFile = (file) => {
+    setAttachMenuOpen(false);
+    if (!file) return;
+
+    if (!RESUME_MIME_TYPES.includes(file.type)) {
+      setMessages(prev => [...prev, { sender: "atyant", text: "I can only read PDF, JPG, PNG or WEBP files right now — try one of those?", showMatch: false }]);
+      return;
+    }
+    if (file.size > RESUME_MAX_BYTES) {
+      setMessages(prev => [...prev, { sender: "atyant", text: "That file's a bit large — try one under 8MB.", showMatch: false }]);
+      return;
+    }
+    setPendingFile(file);
+  };
+
+  // Actually uploads a staged file — called from handleSend once the student
+  // hits send. `text`, if the student typed anything alongside the file, goes
+  // up together with it — see AtyantEngineService.processResumeUpload: a bare
+  // upload only asks a follow-up, but upload+text is a real turn that can
+  // route straight to mentor matching, same as typing that text alone would.
+  const uploadResumeFile = async (file, text = "") => {
+    sendingRef.current = true;
+    setMessages(prev => [...prev, { sender: "user", text: text || undefined, attachment: { name: file.name, type: file.type } }]);
+    setIsTyping(true);
+    setThinkingLines([describeProgress({ stage: "reading_resume" })]);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const res = await aiAPI.atyantResumeStream(file, sessionIdRef.current, (event) => {
+        const line = describeProgress(event);
+        if (!line) return;
+        setThinkingLines(prev => (prev[prev.length - 1] === line ? prev : [...prev, line]));
+      }, controller.signal, text);
+
+      const reply = applyEngineResult(res, "Got your résumé — tell me a bit more so I can point you the right way.");
+      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips }]);
+    } catch (e) {
+      if (e.name === "AbortError") return;  // page unmounted — nothing to show
+      setMessages(prev => [...prev, {
+        sender: "atyant",
+        text: e?.status === 429
+          ? "I'm getting a lot of questions right now — give me a few seconds and try again."
+          : e?.status === 504
+          ? "That took longer than it should have. Try uploading again?"
+          : (e.message || "Couldn't read that file. Try again?"),
+        showMatch: false,
+      }]);
+    } finally {
+      sendingRef.current = false;
+      setIsTyping(false);
+    }
+  };
+
+  // Sits above the input row once a file is staged — a preview card (icon +
+  // name + type + remove button), same idea as ChatGPT's composer attachment.
+  const PendingFilePreview = () => {
+    if (!pendingFile) return null;
+    const isPdf = pendingFile.type === "application/pdf";
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", width: "100%", boxSizing: "border-box" }}>
+        <div style={{ width: 38, height: 38, borderRadius: 9, background: isPdf ? "#E5484D" : C.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          {isPdf ? <FileText size={17} color="#fff" /> : <Image size={17} color="#fff" />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: "0.85rem", fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pendingFile.name}</div>
+          <div style={{ fontSize: "0.72rem", color: C.textMuted }}>{isPdf ? "PDF" : "Image"}</div>
+        </div>
+        <button onClick={() => setPendingFile(null)} title="Remove"
+          style={{ background: C.active, border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.textSub, flexShrink: 0 }}
+          onMouseEnter={e => { e.currentTarget.style.color = C.text; }}
+          onMouseLeave={e => { e.currentTarget.style.color = C.textSub; }}>
+          <X size={13} />
+        </button>
+      </div>
+    );
+  };
+
+  const attachMenuItemStyle = {
+    display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "8px 10px",
+    background: "transparent", border: "none", borderRadius: 8, color: C.text,
+    fontSize: "0.85rem", fontFamily: "inherit", cursor: "pointer", textAlign: "left",
+  };
+
+  // "+" → a small popup with Upload document / Upload photo / Take photo. All
+  // three feed the same stageResumeFile — only the source file input differs.
+  const AttachButton = () => (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        onClick={() => setAttachMenuOpen(o => !o)}
+        title="Add attachment"
+        style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", padding: 0, width: 24, height: 54, display: "flex", alignItems: "center", justifyContent: "center", transition: "color 0.2s" }}
+        onMouseEnter={e => { e.currentTarget.style.color = C.text; }}
+        onMouseLeave={e => { e.currentTarget.style.color = C.textMuted; }}
+      >
+        <Paperclip size={18} style={{ transform: attachMenuOpen ? "rotate(45deg)" : "none", transition: "transform 0.15s ease" }} />
+      </button>
+      {attachMenuOpen && (
+        <>
+          <div onClick={() => setAttachMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+          <div style={{ position: "absolute", bottom: "calc(100% + 8px)", left: 0, zIndex: 61, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, boxShadow: "0 16px 36px -10px rgba(0,0,0,0.45)", padding: 6, minWidth: 200, display: "flex", flexDirection: "column", gap: 2 }}>
+            <button
+              onClick={() => docInputRef.current?.click()}
+              style={attachMenuItemStyle}
+              onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <FileText size={15} color={C.accent} /> Upload document
+            </button>
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              style={attachMenuItemStyle}
+              onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <Image size={15} color={C.accent} /> Upload photo
+            </button>
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              style={attachMenuItemStyle}
+              onMouseEnter={e => e.currentTarget.style.background = C.cardHover}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <Camera size={15} color={C.accent} /> Take photo
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // Hidden inputs the menu above triggers. Reset value after read so picking
+  // the same file twice in a row still fires onChange.
+  const HiddenFileInputs = () => (
+    <>
+      <input ref={docInputRef} type="file" accept="application/pdf" style={{ display: "none" }}
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; stageResumeFile(f); }} />
+      <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; stageResumeFile(f); }} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; stageResumeFile(f); }} />
+    </>
+  );
+
   const wordCount = query.trim().split(/\s+/).filter(Boolean).length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 57px)", minHeight: 0, background: "transparent", fontFamily: "'Inter', sans-serif" }}>
+      <HiddenFileInputs />
       {/* CSS Animations */}
       <style>{`
         @keyframes fadeIn {
@@ -528,12 +713,13 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           </h1>
 
           <div
-            style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", marginBottom: "0.6rem", display: "flex", alignItems: "flex-end", gap: 10, minHeight: 54, boxShadow: "0 18px 50px -24px var(--accent)", transition: "border-color 0.2s, box-shadow 0.2s" }}
+            style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, marginBottom: "0.6rem", display: "flex", flexDirection: "column", boxShadow: "0 18px 50px -24px var(--accent)", transition: "border-color 0.2s, box-shadow 0.2s" }}
             onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22, 0 18px 50px -24px var(--accent)`; }}
             onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "0 18px 50px -24px var(--accent)"; }}
           >
-            {/* + */}
-            <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.3rem", lineHeight: 1, padding: 0, flexShrink: 0, height: 54, display: "flex", alignItems: "center" }}>+</button>
+            {pendingFile && <PendingFilePreview />}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 10, padding: "0 0.75rem 0 1.25rem", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
+            <AttachButton />
 
             {/* Input — auto-growing textarea */}
             <textarea
@@ -579,9 +765,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                 </svg>
               </button>
               <button onClick={() => handleSend()}
-                style={{ background: query.trim().length > 0 ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
-                <Send size={15} color={query.trim().length > 0 ? "#fff" : C.textSub} />
+                style={{ background: (query.trim().length > 0 || pendingFile) ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
+                <Send size={15} color={(query.trim().length > 0 || pendingFile) ? "#fff" : C.textSub} />
               </button>
+            </div>
             </div>
           </div>
 
@@ -792,6 +979,15 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                         color: C.text,
                         whiteSpace: "pre-line",
                       }}>
+                        {m.attachment && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, marginBottom: m.text ? 6 : 0 }}>
+                            {m.attachment.type === "application/pdf"
+                              ? <FileText size={15} color={C.accentText} />
+                              : <Image size={15} color={C.accentText} />}
+                            {m.attachment.name}
+                          </span>
+                        )}
+                        {m.attachment && m.text && <br />}
                         {m.text}
                       </div>
                       {!isUser && (
@@ -877,16 +1073,12 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
 
           {/* Chat Input Footer */}
           <div style={{ padding: "0.75rem 1rem 1.5rem" }}>
-            <div style={{ maxWidth: 780, margin: "0 auto", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "flex-end", minHeight: 54, transition: "border-color 0.2s, box-shadow 0.2s" }}
+            <div style={{ maxWidth: 780, margin: "0 auto", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, display: "flex", flexDirection: "column", transition: "border-color 0.2s, box-shadow 0.2s" }}
               onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22`; }}
               onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}>
-              {/* Plus */}
-              <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "1.4rem", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 54, transition: "color 0.2s", flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = C.text}
-                onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
-                title="Add attachment">
-                +
-              </button>
+              {pendingFile && <PendingFilePreview />}
+              <div style={{ padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "flex-end", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
+              <AttachButton />
 
               {/* Input — auto-growing textarea */}
               <textarea
@@ -936,9 +1128,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                 <button onClick={() => handleSend()}
                   // Keep the keyboard open: don't let the button steal focus from the input on tap.
                   onMouseDown={e => e.preventDefault()}
-                  style={{ background: query.trim().length > 0 ? C.accent : "transparent", border: "none", color: query.trim().length > 0 ? "#fff" : C.textMuted, borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
+                  style={{ background: (query.trim().length > 0 || pendingFile) ? C.accent : "transparent", border: "none", color: (query.trim().length > 0 || pendingFile) ? "#fff" : C.textMuted, borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
                   <Send size={16} />
                 </button>
+              </div>
               </div>
             </div>
           </div>
