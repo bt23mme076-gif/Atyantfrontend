@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X } from "lucide-react";
+import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI } from "../../api";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -208,7 +208,7 @@ const ThinkingIndicator = ({ lines }) => {
   );
 };
 
-export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard }) {
+export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs }) {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
@@ -301,8 +301,14 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
 
   const quickActions = [
     { label: "Switch Field" },
-    { label: "Build Skills" },
     { label: "Get Roadmap" },
+
+    // Job search is open to everyone — signed-out visitors can browse the board,
+    // so this stays visible without an account. Highlighted because it's the
+    // strongest top-of-funnel hook on the page.
+    ...(user?.role !== "mentor"
+      ? [{ label: "Find Jobs", isNav: true, isHighlight: true }]
+      : []),
 
     ...(!user
       ? [{ label: "Become Mentor", isSpecial: true }]
@@ -901,7 +907,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                   <motion.button
                     key={a.label}
                     onClick={() => {
-                      if (a.isSpecial) {
+                      if (a.isNav) {
+                        onGoToJobs?.();
+                      } else if (a.isSpecial) {
                         onGoToMentorOnboard?.();
                       } else {
                         handleSend(a.label);
@@ -914,21 +922,30 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                     }}
                     transition={{ duration: 0.22, ease: "easeOut" }}
                     style={{
-                      background: a.isSpecial ? C.accent : "var(--c-active)",
-                      border: a.isSpecial ? `1px solid ${C.accent}` : `1px solid var(--c-cardBorder)`,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: a.isHighlight ? 7 : 0,
+                      background: a.isHighlight
+                        ? "linear-gradient(135deg, #F97316 0%, #EC4899 100%)"
+                        : a.isSpecial ? C.accent : "var(--c-active)",
+                      border: a.isHighlight
+                        ? "1px solid transparent"
+                        : a.isSpecial ? `1px solid ${C.accent}` : `1px solid var(--c-cardBorder)`,
                       borderRadius: 999,
-                      padding: "7px 18px",
-                      color: a.isSpecial ? "#fff" : C.textSub,
+                      padding: a.isHighlight ? "7px 20px" : "7px 18px",
+                      color: (a.isSpecial || a.isHighlight) ? "#fff" : C.textSub,
                       fontSize: "0.82rem",
-                      fontWeight: a.isSpecial ? 600 : 500,
+                      fontWeight: (a.isSpecial || a.isHighlight) ? 600 : 500,
                       cursor: "pointer",
                       fontFamily: "inherit",
-                      boxShadow: a.isSpecial ? "0 4px 12px rgba(117,103,201,0.25)" : "none",
+                      boxShadow: a.isHighlight
+                        ? "0 4px 14px rgba(249,115,22,0.35)"
+                        : a.isSpecial ? "0 4px 12px rgba(117,103,201,0.25)" : "none",
                       transition: "all 0.15s"
                     }}
                     onMouseEnter={e => {
-                      if (a.isSpecial) {
-                        e.currentTarget.style.filter = "brightness(1.1)";
+                      if (a.isSpecial || a.isHighlight) {
+                        e.currentTarget.style.filter = "brightness(1.08)";
                         e.currentTarget.style.transform = "translateY(-1px)";
                       } else {
                         e.currentTarget.style.background = C.cardHover;
@@ -937,7 +954,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                       }
                     }}
                     onMouseLeave={e => {
-                      if (a.isSpecial) {
+                      if (a.isSpecial || a.isHighlight) {
                         e.currentTarget.style.filter = "none";
                         e.currentTarget.style.transform = "none";
                       } else {
@@ -947,6 +964,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                       }
                     }}
                   >
+                    {a.isHighlight && <Briefcase size={14} />}
                     {a.label}
                   </motion.button>
                 ))}

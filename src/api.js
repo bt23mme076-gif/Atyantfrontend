@@ -200,6 +200,9 @@ export const profileAPI = {
   uploadResume: async (file) => uploadFile('/api/profile/upload-resume', 'resumePdf', file),
   // Remove stored resume
   deleteResume: () => api.delete('/api/profile/upload-resume'),
+  // Parse a résumé PDF → { success, data:{ skills, projects, education, workExperience, yearsOfExperience, preferredRoles } }
+  // Job-matching shaped, distinct from parseLinkedin's mentor-shaped output. Review-before-save — call update() after.
+  extractSkills: async (file) => uploadFile('/api/profile/extract-skills', 'resumePdf', file),
 };
 
 // Shared multipart uploader (FormData — no JSON Content-Type so the browser sets the boundary).
@@ -325,6 +328,49 @@ export const roadmapAPI = {
   get:      ()         => api.get('/api/roadmap/me'),
   generate: (payload)  => api.post('/api/roadmap/generate', payload),
   setStep:  (idx, status) => api.patch(`/api/roadmap/step/${idx}/status`, { status }),
+};
+
+// Jobs — Greenhouse/Lever aggregation, matching, auto-apply
+export const jobsAPI = {
+  // Plain filtered job list — no resume/skills required. { jobs, total, page, limit }.
+  list: ({ q, location, company, source, page, limit } = {}) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (location) params.set('location', location);
+    if (company) params.set('company', company);
+    if (source) params.set('source', source);
+    if (page !== undefined) params.set('page', page);
+    if (limit !== undefined) params.set('limit', limit);
+    const qs = params.toString();
+    return api.get(`/api/jobs${qs ? `?${qs}` : ''}`);
+  },
+  // Open jobs scored against the current user's profile — { matches, total, page, limit }.
+  matches: ({ minScore, page, limit } = {}) => {
+    const params = new URLSearchParams();
+    if (minScore !== undefined) params.set('minScore', minScore);
+    if (page !== undefined) params.set('page', page);
+    if (limit !== undefined) params.set('limit', limit);
+    const qs = params.toString();
+    return api.get(`/api/jobs/matches${qs ? `?${qs}` : ''}`);
+  },
+  // Generate a tailored cover letter for one job — { coverLetter }.
+  coverLetter: (jobId) => api.post(`/api/jobs/${jobId}/cover-letter`, {}),
+  // Self-report a manual (assisted) application after the student applies on the real site.
+  markApplied: (jobId) => api.post(`/api/jobs/${jobId}/mark-applied`, {}),
+  // Runs the real Playwright auto-apply engine on one job immediately (requires autoApply.enabled).
+  autoApplyNow: (jobId) => api.post(`/api/jobs/${jobId}/auto-apply-now`, {}),
+  // Saved answer bank for application questions that blocked auto-apply — { answers }.
+  getApplicationAnswers: () => api.get('/api/jobs/application-answers'),
+  // Save one or more { questionText, answerText } pairs. Same answer reused across every job asking a similar question.
+  saveApplicationAnswers: (answers) => api.post('/api/jobs/application-answers', { answers }),
+  // Opted-in student's own application audit trail (auto-apply + manual results).
+  applications: () => api.get('/api/jobs/applications'),
+  // Update auto-apply settings. Pass { enabled: true, confirm: true, ... } to
+  // turn it on (confirm is the explicit consent flag — required by the
+  // backend); omit `enabled` entirely to update minMatchScore/excludedCompanies/
+  // phone without re-triggering the consent check; { enabled: false } to
+  // disable instantly, no confirm needed.
+  updateAutoApplySettings: (payload) => api.put('/api/jobs/auto-apply/settings', payload),
 };
 
 // TPO (Training & Placement) — VNIT dashboard

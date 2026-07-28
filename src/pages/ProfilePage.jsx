@@ -14,6 +14,7 @@ import TimeClockPicker from "../components/ui/time-clock-picker";
 import Avatar from "../components/Avatar";
 import ShareProfile from "../components/ShareProfile";
 import AnswerCardManager from "../components/AnswerCardManager";
+import AutoApplySettings from "../components/AutoApplySettings";
 
 // Chip color palette — cycles so each tag has a distinct hue
 const CHIP_PALETTE = [
@@ -1384,6 +1385,9 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           PDF only · max 5 MB · shown in your Meet panel &amp; used by AI to personalize session insights
         </div>
       </div>
+
+      {/* ════════ AUTO-APPLY (students only) ════════ */}
+      {!isMentor && <AutoApplySettings />}
 
       {/* ════════ STATS ════════ */}
       <div className="pf-stats" style={{ marginBottom: 18 }}>
