@@ -28,7 +28,6 @@ const TPODashboard = lazy(() => import("./pages/TPODashboard"));
 const JobsPage = lazy(() => import("./pages/JobsPage"));
 import Avatar from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
-import HomeSEOContent from "./components/HomeSEOContent";
 import { useAuth } from "./context/AuthContext";
 
 import { ThemeToggle } from "./context/ThemeContext";
@@ -1667,12 +1666,14 @@ export default function App() {
                 </div>
                 {!collapsed && (
                   <>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "0.86rem", fontWeight: 500, color: C.text }}>{user.username || user.name || "You"}</div>
-                      <div style={{ fontSize: "0.7rem", color: C.textMuted, marginTop: 1 }}>{user.education?.[0]?.institutionName || user.education?.[0]?.institution || "Atyant"}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.86rem", fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.username || user.name || "You"}</div>
+                      <div style={{ fontSize: "0.7rem", color: C.textMuted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={user.education?.[0]?.institutionName || user.education?.[0]?.institution || "Atyant"}>
+                        {user.education?.[0]?.institutionName || user.education?.[0]?.institution || "Atyant"}
+                      </div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); logout(); }}
-                      style={{ background: "transparent", border: "none", padding: 6, borderRadius: 6, color: C.textSub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}
+                      style={{ background: "transparent", border: "none", padding: 6, borderRadius: 6, color: C.textSub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}
                       onMouseEnter={e => { e.currentTarget.style.background = C.active; e.currentTarget.style.color = "#f87171"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; }}
                       title="Sign out">
@@ -1694,11 +1695,17 @@ export default function App() {
         {/* ── Main ── */}
         <div style={{ position: "relative", flex: 1, overflow: activePage === "ask" ? "visible" : "hidden", height: activePage === "ask" ? "auto" : "100dvh", minHeight: activePage === "ask" ? "100dvh" : undefined, display: "flex", flexDirection: "column" }}>
           {/* Ambient AI backdrop — spans the toolbar + page so the gradient is one
-            continuous surface (no seam under the header). Home view only. */}
-          {activePage === "ask" && (<>
-            <div className="ai-grid" aria-hidden="true" />
-            <div className="ai-aurora" aria-hidden="true" />
-          </>)}
+            continuous surface (no seam under the header). Home view only.
+            Own clipping layer: .ai-aurora deliberately bleeds -10% past its
+            edges for the glow, and the parent needs overflow:visible for
+            other reasons — without this wrapper that bleed forces a
+            page-wide horizontal scrollbar. */}
+          {activePage === "ask" && (
+            <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+              <div className="ai-grid" aria-hidden="true" />
+              <div className="ai-aurora" aria-hidden="true" />
+            </div>
+          )}
           <div style={{ position: "relative", zIndex: 1, height: 57, display: "flex", justifyContent: "space-between", alignItems: "center", padding: isMobile ? "0 16px" : "0 24px", background: "transparent", flexShrink: 0 }}>
             {isMobile ? (
               <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
@@ -1751,14 +1758,7 @@ export default function App() {
         <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
       </div>
 
-      {/* Crawlable homepage SEO content — renders below the app shell (body-flow)
-        so the chat stays the hero. Homepage view only. */}
-      {activePage === "ask" && (
-        <>
-          <HomeSEOContent />
-          <Footer />
-        </>
-      )}
+      {activePage === "ask" && <Footer />}
     </>
   );
 }
