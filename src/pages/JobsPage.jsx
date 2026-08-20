@@ -60,8 +60,14 @@ function Tag({ children }) {
   );
 }
 
+function matchTier(score) {
+  if (score >= 70) return { label: "Strong match", color: C.green };
+  if (score >= 40) return { label: "Good match", color: C.orange };
+  return { label: "Stretch match", color: C.textMuted };
+}
+
 function ScoreRing({ score }) {
-  const color = score >= 70 ? C.green : score >= 40 ? C.orange : C.textMuted;
+  const { color } = matchTier(score);
   return (
     <div style={{
       width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
@@ -71,6 +77,18 @@ function ScoreRing({ score }) {
       {score}
     </div>
   );
+}
+
+// Relative time from an ISO date string — "3h ago", "5d ago", etc.
+function timeAgo(dateStr) {
+  if (!dateStr) return null;
+  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }
 
 // ─── Skill extraction — gate for "Matched to My Resume" mode ─────────────────
@@ -172,6 +190,7 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
   const [copied, setCopied] = useState(false);
   const [marking, setMarking] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
   const [error, setError] = useState("");
 
   const [autoApplying, setAutoApplying] = useState(false);
@@ -286,9 +305,10 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: matchedSkills?.length ? 8 : 0 }}>
+            {job.postedAt && <Tag>{timeAgo(job.postedAt)}</Tag>}
             {job.location && <Tag><MapPin size={10} style={{ verticalAlign: -1, marginRight: 3 }} />{job.location}</Tag>}
             {isRemote && <Tag>Remote</Tag>}
-            <Tag>{job.source === "greenhouse" ? "Greenhouse" : "Lever"}</Tag>
+            <Tag>{job.source === "greenhouse" ? "Greenhouse" : job.source === "lever" ? "Lever" : job.company}</Tag>
           </div>
 
           {matchedSkills?.length > 0 && (
@@ -298,8 +318,40 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
               ))}
             </div>
           )}
+
+          {score !== undefined && (
+            <button onClick={() => setShowReasoning(v => !v)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: ".74rem", fontWeight: 700, color: C.accentText, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 2 }}>
+              Why this match? <ChevronDown size={11} style={{ transform: showReasoning ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+            </button>
+          )}
         </div>
       </div>
+
+      {showReasoning && score !== undefined && (() => {
+        const tier = matchTier(score);
+        return (
+          <div style={{ marginTop: 10, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "12px 14px" }}>
+            <div style={{ fontSize: ".78rem", fontWeight: 700, color: tier.color, marginBottom: 8 }}>
+              {score}% · {tier.label}
+            </div>
+            {matchedSkills?.length > 0 ? (
+              <>
+                <div style={{ fontSize: ".72rem", fontWeight: 700, color: C.textSub, marginBottom: 6 }}>Matched from your resume</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {matchedSkills.map(s => (
+                    <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".72rem", color: C.green, background: `${C.green}14`, borderRadius: 999, padding: "3px 9px" }}>
+                      <Check size={10} /> {s}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: ".78rem", color: C.textMuted }}>No direct skill overlap found — this match is based on role and title similarity.</div>
+            )}
+          </div>
+        );
+      })()}
 
       {job.descriptionText && (
         <div style={{ marginTop: 12, fontSize: ".8rem", color: C.textSub, lineHeight: 1.6 }}>
@@ -410,12 +462,19 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   const [q, setQ] = useState("");
   const [location, setLocation] = useState("");
   const [source, setSource] = useState("");
+  const [company, setCompany] = useState("");
+  const [remote, setRemote] = useState(false);
+  const [companies, setCompanies] = useState([]);
 
   const [jobs, setJobs] = useState(null); // null = loading
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [needsExtraction, setNeedsExtraction] = useState(false);
   const [error, setError] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
+
+  const PAGE_SIZE = 50; // backend caps at 50/request (see GET /api/jobs)
 
   // Browsing works signed-out; only the personalised layers need an account.
   const loadApplied = async () => {
@@ -438,8 +497,9 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     requestModeRef.current = forMode;
     setError("");
     setJobs(null);
+    setPage(1);
     try {
-      const res = await jobsAPI.list({ q, location, source, limit: 30 });
+      const res = await jobsAPI.list({ q, location, source, company, remote, page: 1, limit: PAGE_SIZE });
       if (requestModeRef.current !== forMode) return;
       setJobs(res.jobs || []);
       setTotal(res.total || 0);
@@ -456,8 +516,9 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setError("");
     setNeedsExtraction(false);
     setJobs(null);
+    setPage(1);
     try {
-      const res = await jobsAPI.matches({ minScore: 0, limit: 30 });
+      const res = await jobsAPI.matches({ minScore: 0, page: 1, limit: PAGE_SIZE });
       if (requestModeRef.current !== forMode) return;
       setJobs(res.matches || []);
       setTotal(res.total || 0);
@@ -469,6 +530,34 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     }
   };
 
+  // Appends the next page to the existing list rather than replacing it —
+  // "Load More" keeps everything already rendered (and any in-progress
+  // auto-apply state on those cards) in place.
+  const loadMore = async () => {
+    const forMode = mode;
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      if (forMode === "all") {
+        const res = await jobsAPI.list({ q, location, source, company, remote, page: nextPage, limit: PAGE_SIZE });
+        if (requestModeRef.current !== forMode) return;
+        setJobs((prev) => [...(prev || []), ...(res.jobs || [])]);
+        setTotal(res.total || 0);
+      } else {
+        const res = await jobsAPI.matches({ minScore: 0, page: nextPage, limit: PAGE_SIZE });
+        if (requestModeRef.current !== forMode) return;
+        setJobs((prev) => [...(prev || []), ...(res.matches || [])]);
+        setTotal(res.total || 0);
+      }
+      setPage(nextPage);
+    } catch (err) {
+      if (requestModeRef.current !== forMode) return;
+      setError(err.message || "Failed to load more jobs");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     loadApplied();
     // Resume matching needs an account — don't fire a request that can only 401.
@@ -476,9 +565,39 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     if (mode === "all") loadAll(); else loadMatched();
   }, [mode, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    jobsAPI.companies().then((res) => setCompanies(res.companies || [])).catch(() => {});
+  }, []);
+
   const onSearch = (e) => {
     e.preventDefault();
     if (mode === "all") loadAll();
+  };
+
+  // Quick pills toggle a filter and re-run the search immediately — no need
+  // to also hit the Search button for the common cases (India roles, remote).
+  const toggleIndia = () => {
+    const next = location.trim().toLowerCase() === "india" ? "" : "India";
+    setLocation(next);
+    setRemote(false);
+    setJobs(null);
+    setError("");
+    setPage(1);
+    jobsAPI.list({ q, location: next, source, company, remote: false, page: 1, limit: PAGE_SIZE })
+      .then((res) => { setJobs(res.jobs || []); setTotal(res.total || 0); })
+      .catch((err) => { setError(err.message || "Failed to load jobs"); setJobs([]); });
+  };
+
+  const toggleRemote = () => {
+    const next = !remote;
+    setRemote(next);
+    if (next) setLocation("");
+    setJobs(null);
+    setError("");
+    setPage(1);
+    jobsAPI.list({ q, location: next ? "" : location, source, company, remote: next, page: 1, limit: PAGE_SIZE })
+      .then((res) => { setJobs(res.jobs || []); setTotal(res.total || 0); })
+      .catch((err) => { setError(err.message || "Failed to load jobs"); setJobs([]); });
   };
 
   const markLocalApplied = (jobId) => {
@@ -547,16 +666,41 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
             <input className="jp-input" style={{ width: "100%", boxSizing: "border-box", paddingLeft: 32 }}
               placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
           </div>
+          <select className="jp-input jp-select" value={company} onChange={e => setCompany(e.target.value)} style={{ flex: "1 1 150px" }}>
+            <option value="">All companies</option>
+            {companies.map(c => (
+              <option key={c.company} value={c.company}>{c.company} ({c.count})</option>
+            ))}
+          </select>
           <select className="jp-input jp-select" value={source} onChange={e => { setSource(e.target.value); }} style={{ flex: "0 0 140px" }}>
             <option value="">All sources</option>
             <option value="greenhouse">Greenhouse</option>
             <option value="lever">Lever</option>
+            <option value="firecrawl">Firecrawl</option>
           </select>
           <button type="submit" className="jp-pill-btn"
             style={{ fontSize: ".82rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 10, padding: "0 18px", cursor: "pointer" }}>
             Search
           </button>
         </form>
+      )}
+
+      {mode === "all" && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 18, marginTop: -10 }}>
+          <button type="button" onClick={toggleIndia} className="jp-pill-btn"
+            style={{ fontSize: ".76rem", fontWeight: 700, borderRadius: 999, padding: "6px 14px", cursor: "pointer",
+              background: location.trim().toLowerCase() === "india" ? C.accentSoft : C.active,
+              color: location.trim().toLowerCase() === "india" ? C.accentText : C.textSub,
+              border: `1px solid ${location.trim().toLowerCase() === "india" ? C.accent : C.cardBorder}` }}>
+            🇮🇳 India
+          </button>
+          <button type="button" onClick={toggleRemote} className="jp-pill-btn"
+            style={{ fontSize: ".76rem", fontWeight: 700, borderRadius: 999, padding: "6px 14px", cursor: "pointer",
+              background: remote ? C.accentSoft : C.active, color: remote ? C.accentText : C.textSub,
+              border: `1px solid ${remote ? C.accent : C.cardBorder}` }}>
+            Remote only
+          </button>
+        </div>
       )}
 
       {mode === "matched" && !user && (
@@ -613,6 +757,15 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
           onAuthRequired={onAuthRequired}
         />
       ))}
+
+      {jobs?.length > 0 && jobs.length < total && (
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+          <button onClick={loadMore} disabled={loadingMore} className="jp-pill-btn"
+            style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".82rem", fontWeight: 700, color: C.textSub, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 20px", cursor: loadingMore ? "default" : "pointer" }}>
+            {loadingMore ? <Spin size={14} /> : null} {loadingMore ? "Loading…" : `Load more (${jobs.length} of ${total})`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

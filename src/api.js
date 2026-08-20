@@ -333,17 +333,20 @@ export const roadmapAPI = {
 // Jobs — Greenhouse/Lever aggregation, matching, auto-apply
 export const jobsAPI = {
   // Plain filtered job list — no resume/skills required. { jobs, total, page, limit }.
-  list: ({ q, location, company, source, page, limit } = {}) => {
+  list: ({ q, location, company, source, remote, page, limit } = {}) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (location) params.set('location', location);
     if (company) params.set('company', company);
     if (source) params.set('source', source);
+    if (remote) params.set('remote', 'true');
     if (page !== undefined) params.set('page', page);
     if (limit !== undefined) params.set('limit', limit);
     const qs = params.toString();
     return api.get(`/api/jobs${qs ? `?${qs}` : ''}`);
   },
+  // Distinct companies with open postings, for the filter dropdown — { companies: [{company, count}] }.
+  companies: () => api.get('/api/jobs/companies'),
   // Open jobs scored against the current user's profile — { matches, total, page, limit }.
   matches: ({ minScore, page, limit } = {}) => {
     const params = new URLSearchParams();
