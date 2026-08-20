@@ -282,7 +282,7 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 
 function SessionCard({ s, accent, dateLabel, onViewSummary }) {
   return (
-    <div style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderLeft:`3px solid ${accent}`, borderRadius:14, padding:"1.1rem 1.25rem" }}>
+    <div style={{ background:C.card, border:`1px solid ${accent}33`, borderRadius:14, padding:"1.1rem 1.25rem" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"0.75rem", marginBottom:"0.9rem", flexWrap:"wrap" }}>
         <div style={{ minWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
@@ -1001,7 +1001,7 @@ export default function TPODashboard() {
           <span style={{ fontSize:"0.76rem", color:C.textMuted }}>{completed.length} of {students.length} complete</span>
         </div>
         <div style={{ height:8, background:C.active, borderRadius:999, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${completionPct}%`, background:"linear-gradient(90deg,#7567C9,#3DBE82)", borderRadius:999, transition:"width 0.5s ease" }} />
+          <div style={{ height:"100%", width:"100%", transform:`scaleX(${completionPct / 100})`, transformOrigin:"left", background:"linear-gradient(90deg,#7567C9,#3DBE82)", borderRadius:999, transition:"transform 0.5s ease" }} />
         </div>
         <div style={{ display:"flex", gap:"1.5rem", marginTop:10 }}>
           {[
@@ -1227,7 +1227,7 @@ export default function TPODashboard() {
                         <span style={{ fontSize:"0.76rem", color:C.textMuted, whiteSpace:"nowrap" }}>{x.value} · {pct}%</span>
                       </div>
                       <div style={{ height:7, background:C.active, borderRadius:999, overflow:"hidden" }}>
-                        <div style={{ height:"100%", width:`${pct}%`, background:x.color, borderRadius:999, transition:"width .5s ease" }} />
+                        <div style={{ height:"100%", width:"100%", transform:`scaleX(${pct / 100})`, transformOrigin:"left", background:x.color, borderRadius:999, transition:"transform .5s ease" }} />
                       </div>
                     </div>
                   );

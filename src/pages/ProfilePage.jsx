@@ -1419,7 +1419,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
 
           {/* Progress bar */}
           <div style={{ height: 8, borderRadius: 999, background: C.active, overflow: "hidden", marginBottom: 14 }} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-            <div style={{ height: "100%", width: `${pct}%`, borderRadius: 999, background: "linear-gradient(90deg, #7567C9, #8E80DB)", transition: "width .8s ease" }} />
+            <div style={{ height: "100%", width: "100%", transform: `scaleX(${pct / 100})`, transformOrigin: "left", borderRadius: 999, background: "linear-gradient(90deg, #7567C9, #8E80DB)", transition: "transform .8s ease" }} />
           </div>
 
           {/* Checklist chips */}
@@ -1718,7 +1718,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                       <span style={{ fontSize: ".68rem", fontWeight: 700, color: pct >= 60 ? C.accentText : C.textMuted }}>{pct}% / 80% needed</span>
                     </div>
                     <div style={{ height: 6, borderRadius: 999, background: C.active, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${Math.min(pct / 80 * 100, 100)}%`, borderRadius: 999, background: pct >= 60 ? "linear-gradient(90deg,#7567C9,#8E80DB)" : C.cardBorder, transition: "width .6s ease" }} />
+                      <div style={{ height: "100%", width: "100%", transform: `scaleX(${Math.min(pct / 80, 1)})`, transformOrigin: "left", borderRadius: 999, background: pct >= 60 ? "linear-gradient(90deg,#7567C9,#8E80DB)" : C.cardBorder, transition: "transform .6s ease" }} />
                     </div>
                     <div style={{ fontSize: ".66rem", color: C.textMuted, marginTop: 5 }}>
                       {pct < 80 ? `${80 - pct}% more to unlock your verified badge` : "Unlocking…"}

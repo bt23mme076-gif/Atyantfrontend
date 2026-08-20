@@ -57,32 +57,32 @@
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
   /* App shell palette — light */
-  --c-bg:            #F6F6FB;
-  --c-sidebar:       #FFFFFF;
+  --c-bg: #F6F6FB;
+  --c-sidebar: #FFFFFF;
   --c-sidebarBorder: #E7E5EE;
-  --c-card:          #FFFFFF;
-  --c-cardHover:     #F2F1F8;
-  --c-cardBorder:    #E3E0EC;
-  --c-active:        #EFECF9;
-  --c-activeBorder:  #CFC6EE;
-  --c-accentSoft:    #7567C914;
-  --c-accentText:    #5A4CB0;
-  --c-text:          #1B1830;
-  --c-textSub:       #5A5470;
-  --c-textMuted:     #8A8399;
+  --c-card: #FFFFFF;
+  --c-cardHover: #F2F1F8;
+  --c-cardBorder: #E3E0EC;
+  --c-active: #EFECF9;
+  --c-activeBorder: #CFC6EE;
+  --c-accentSoft: #7567C914;
+  --c-accentText: #5A4CB0;
+  --c-text: #1B1830;
+  --c-textSub: #5A5470;
+  --c-textMuted: #8A8399;
 
   /* Legacy vars referenced by App.css */
-  --accent:        #7567C9;
-  --accent-bg:     #7567C914;
+  --accent: #7567C9;
+  --accent-bg: #7567C914;
   --accent-border: #7567C955;
-  --border:        #E3E0EC;
-  --text-h:        #1B1830;
-  --social-bg:     #FFFFFF;
-  --shadow:        0 8px 24px rgba(20, 18, 40, 0.08);
+  --border: #E3E0EC;
+  --text-h: #1B1830;
+  --social-bg: #FFFFFF;
+  --shadow: 0 8px 24px rgba(20, 18, 40, 0.08);
 
   /* Translucent "glass" panel + subtle row hover (theme-aware overlays) */
-  --c-glass:       rgba(255, 255, 255, 0.72);
-  --c-rowHover:    rgba(117, 103, 201, 0.06);
+  --c-glass: rgba(255, 255, 255, 0.72);
+  --c-rowHover: rgba(117, 103, 201, 0.06);
 
   color-scheme: light;
 }
@@ -91,32 +91,32 @@
   /* App shell palette — dark. Surfaces and borders lifted a step so cards,
      service rows and booking slots read lighter/clearer; page bg stays dark
      for contrast. */
-  --c-bg:            #15141D;
-  --c-sidebar:       #0D0C12;
+  --c-bg: #15141D;
+  --c-sidebar: #0D0C12;
   --c-sidebarBorder: #262333;
-  --c-card:          #221F2E;
-  --c-cardHover:     #2A2638;
-  --c-cardBorder:    #3D3852;
-  --c-active:        #2A2640;
-  --c-activeBorder:  #4E4378;
-  --c-accentSoft:    #7567C933;
-  --c-accentText:    #A99CEC;
-  --c-text:          #F1EFF7;
-  --c-textSub:       #A79FBA;
-  --c-textMuted:     #6E667E;
+  --c-card: #221F2E;
+  --c-cardHover: #2A2638;
+  --c-cardBorder: #3D3852;
+  --c-active: #2A2640;
+  --c-activeBorder: #4E4378;
+  --c-accentSoft: #7567C933;
+  --c-accentText: #A99CEC;
+  --c-text: #F1EFF7;
+  --c-textSub: #A79FBA;
+  --c-textMuted: #6E667E;
 
   /* Legacy vars referenced by App.css */
-  --accent:        #7567C9;
-  --accent-bg:     #7567C933;
+  --accent: #7567C9;
+  --accent-bg: #7567C933;
   --accent-border: #7567C966;
-  --border:        #3D3852;
-  --text-h:        #F1EFF7;
-  --social-bg:     #221F2E;
-  --shadow:        0 8px 24px rgba(0, 0, 0, 0.45);
+  --border: #3D3852;
+  --text-h: #F1EFF7;
+  --social-bg: #221F2E;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 
   /* Translucent "glass" panel + subtle row hover (theme-aware overlays) */
-  --c-glass:       rgba(26, 24, 35, 0.65);
-  --c-rowHover:    rgba(255, 255, 255, 0.025);
+  --c-glass: rgba(26, 24, 35, 0.65);
+  --c-rowHover: rgba(255, 255, 255, 0.025);
 
   color-scheme: dark;
 }
@@ -194,6 +194,7 @@ body {
   mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 88%, transparent 100%);
   animation: aiAuroraDrift 16s ease-in-out infinite alternate;
 }
+
 .dark .ai-aurora {
   background:
     radial-gradient(40% 50% at 22% 18%, rgba(117, 103, 201, 0.34), transparent 70%),
@@ -216,22 +217,50 @@ body {
 }
 
 @keyframes aiGradientShift {
-  0%   { background-position: 0% center; }
-  50%  { background-position: 100% center; }
-  100% { background-position: 0% center; }
+  0% {
+    background-position: 0% center;
+  }
+
+  50% {
+    background-position: 100% center;
+  }
+
+  100% {
+    background-position: 0% center;
+  }
 }
+
 @keyframes aiOrbPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(117, 103, 201, 0.55); }
-  70%  { box-shadow: 0 0 0 7px rgba(117, 103, 201, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(117, 103, 201, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(117, 103, 201, 0.55);
+  }
+
+  70% {
+    box-shadow: 0 0 0 7px rgba(117, 103, 201, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(117, 103, 201, 0);
+  }
 }
+
 @keyframes aiAuroraDrift {
-  0%   { transform: translate3d(-2%, -1%, 0) scale(1.02); }
-  100% { transform: translate3d(2%, 2%, 0) scale(1.08); }
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1.02);
+  }
+
+  100% {
+    transform: translate3d(2%, 2%, 0) scale(1.08);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-gradient-text, .ai-orb, .ai-aurora { animation: none; }
+
+  .ai-gradient-text,
+  .ai-orb,
+  .ai-aurora {
+    animation: none;
+  }
 }
 
 /* DATE & TIME ICONS DARK MODE */
@@ -243,11 +272,15 @@ body {
 
 /* Hide scrollbar but keep scroll functionality */
 .hide-scrollbar {
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* IE / Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE / Edge */
 }
+
 .hide-scrollbar::-webkit-scrollbar {
-  display: none;                /* Chrome / Safari */
+  display: none;
+  /* Chrome / Safari */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -270,6 +303,7 @@ body {
     radial-gradient(48% 40% at 88% 108%, rgba(117, 103, 201, 0.12), transparent 70%),
     #0c0c11;
 }
+
 .meet-card {
   width: 100%;
   max-width: 380px;
@@ -287,18 +321,21 @@ body {
   -webkit-backdrop-filter: blur(14px);
   animation: meetCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
 .meet-card-title {
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: #fff;
 }
+
 .meet-card-sub {
   font-size: 14px;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.6);
   max-width: 300px;
 }
+
 .meet-spinner {
   width: 46px;
   height: 46px;
@@ -308,6 +345,7 @@ body {
   animation: meetSpin 0.8s linear infinite;
   margin-bottom: 4px;
 }
+
 .meet-badge {
   width: 60px;
   height: 60px;
@@ -317,16 +355,19 @@ body {
   justify-content: center;
   margin-bottom: 2px;
 }
+
 .meet-badge-warn {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.12);
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.25);
 }
+
 .meet-badge-neutral {
   color: #a99ee0;
   background: rgba(117, 103, 201, 0.14);
   box-shadow: inset 0 0 0 1px rgba(117, 103, 201, 0.3);
 }
+
 .meet-btn {
   margin-top: 6px;
   appearance: none;
@@ -341,11 +382,13 @@ body {
   box-shadow: 0 8px 22px rgba(117, 103, 201, 0.4);
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
+
 .meet-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 28px rgba(117, 103, 201, 0.5);
   filter: brightness(1.06);
 }
+
 .meet-btn:active {
   transform: translateY(0);
   box-shadow: 0 6px 16px rgba(117, 103, 201, 0.4);
@@ -355,25 +398,53 @@ body {
 .meet-timer {
   animation: meetTimerIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
 .meet-live-dot {
   animation: meetLivePulse 1.8s ease-out infinite;
 }
 
 @keyframes meetCardIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
+
 @keyframes meetSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 @keyframes meetTimerIn {
-  from { opacity: 0; transform: translate(-50%, -12px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
+
 @keyframes meetLivePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
-  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  }
+
+  70% {
+    box-shadow: 0 0 0 7px rgba(34, 197, 94, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }
 
 /* Ambient room background — replaces LiveKit's flat #111 with a subtle brand
@@ -392,15 +463,18 @@ body {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
   transition: box-shadow 0.2s ease;
 }
+
 .atyant-meet .lk-participant-tile[data-lk-speaking="true"] {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(117, 103, 201, 0.5);
 }
+
 .atyant-meet .lk-participant-metadata-item {
   background: rgba(12, 12, 16, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
+
 .atyant-meet .lk-participant-name {
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -416,20 +490,25 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+
 .atyant-meet .lk-button {
   border-radius: 0.65rem;
   font-weight: 600;
   transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
+
 .atyant-meet .lk-button:hover:not(:disabled) {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
+
 .atyant-meet .lk-button:active {
   transform: translateY(1px);
 }
+
 .atyant-meet .lk-button[aria-pressed="true"] {
   box-shadow: 0 0 0 1px rgba(117, 103, 201, 0.45);
 }
+
 .atyant-meet .lk-disconnect-button {
   border-radius: 999px;
   font-weight: 700;
@@ -437,6 +516,16 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .meet-card, .meet-timer, .meet-live-dot, .meet-btn { animation: none; transition: none; }
-  .meet-spinner { animation-duration: 1.6s; }
+
+  .meet-card,
+  .meet-timer,
+  .meet-live-dot,
+  .meet-btn {
+    animation: none;
+    transition: none;
+  }
+
+  .meet-spinner {
+    animation-duration: 1.6s;
+  }
 }

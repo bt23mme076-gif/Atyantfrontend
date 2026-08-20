@@ -501,8 +501,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         text: e?.status === 429
           ? "I'm getting a lot of questions right now � give me a few seconds and try again."
           : e?.status === 504
-          ? "That took longer than it should have. Try sending it again?"
-          : "Something glitched on my end. Try sending that again?",
+            ? "That took longer than it should have. Try sending it again?"
+            : "Something glitched on my end. Try sending that again?",
         showMatch: false,
       }]);
     } finally {
@@ -588,8 +588,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         text: e?.status === 429
           ? "I'm getting a lot of questions right now — give me a few seconds and try again."
           : e?.status === 504
-          ? "That took longer than it should have. Try uploading again?"
-          : (e.message || "Couldn't read that file. Try again?"),
+            ? "That took longer than it should have. Try uploading again?"
+            : (e.message || "Couldn't read that file. Try again?"),
         showMatch: false,
       }]);
     } finally {
@@ -691,7 +691,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const wordCount = query.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 57px)", minHeight: 0, background: "transparent", fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: messages.length === 0 ? "auto" : "calc(100dvh - 57px)", minHeight: messages.length === 0 ? "calc(100dvh - 57px)" : 0, background: "transparent", fontFamily: "' Inter', sans-serif" }}>
       <HiddenFileInputs />
       {/* CSS Animations */}
       <style>{`
@@ -713,7 +713,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
 
       {messages.length === 0 ? (
         /* Landing View */
-        <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem", overflow: "hidden" }}>
+        <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
           <h1 style={{ position: "relative", zIndex: 1, textAlign: "center", fontSize: "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: "2rem", color: C.text, fontFamily: "Georgia,'Times New Roman',serif" }}>
             Find someone exactly like you<span></span>...
           </h1>
@@ -725,56 +725,56 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           >
             {pendingFile && <PendingFilePreview />}
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10, padding: "0 0.75rem 0 1.25rem", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
-            <AttachButton />
+              <AttachButton />
 
-            {/* Input — auto-growing textarea */}
-            <textarea
-              ref={heroInputRef}
-              autoFocus
-              rows={1}
-              value={query}
-              onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="Ask Atyant.."
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
-            />
+              {/* Input — auto-growing textarea */}
+              <textarea
+                ref={heroInputRef}
+                autoFocus
+                rows={1}
+                value={query}
+                onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Ask Atyant.."
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
+              />
 
-            {/* Right: badge + mic + send */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, height: 54 }}>
-              {!isMobile && (
-                <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 11px", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
-                  {badgeText}
-                </span>
-              )}
-              <button
-                onClick={() => setShowVoiceOverlay(true)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: C.textMuted,
-                  cursor: "pointer",
-                  padding: "6px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  transition: "all 0.2s"
-                }}
-                title="Voice input"
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                  <line x1="12" y1="19" x2="12" y2="23"/>
-                  <line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-              </button>
-              <button onClick={() => handleSend()}
-                style={{ background: (query.trim().length > 0 || pendingFile) ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
-                <Send size={15} color={(query.trim().length > 0 || pendingFile) ? "#fff" : C.textSub} />
-              </button>
-            </div>
+              {/* Right: badge + mic + send */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, height: 54 }}>
+                {!isMobile && (
+                  <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 11px", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
+                    {badgeText}
+                  </span>
+                )}
+                <button
+                  onClick={() => setShowVoiceOverlay(true)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: C.textMuted,
+                    cursor: "pointer",
+                    padding: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "50%",
+                    transition: "all 0.2s"
+                  }}
+                  title="Voice input"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                </button>
+                <button onClick={() => handleSend()}
+                  style={{ background: (query.trim().length > 0 || pendingFile) ? C.accent : C.active, border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s", flexShrink: 0 }}>
+                  <Send size={15} color={(query.trim().length > 0 || pendingFile) ? "#fff" : C.textSub} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1096,60 +1096,60 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
               onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "none"; }}>
               {pendingFile && <PendingFilePreview />}
               <div style={{ padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "flex-end", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
-              <AttachButton />
+                <AttachButton />
 
-              {/* Input — auto-growing textarea */}
-              <textarea
-                ref={chatInputRef}
-                rows={1}
-                value={query}
-                onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Ask Atyant.."
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
-              />
+                {/* Input — auto-growing textarea */}
+                <textarea
+                  ref={chatInputRef}
+                  rows={1}
+                  value={query}
+                  onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                  placeholder="Ask Atyant.."
+                  style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
+                />
 
-              {/* Right controls */}
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0, height: 54 }}>
-                {!isMobile && (
-                  <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "0.78rem", padding: "4px 8px", display: "flex", alignItems: "center", gap: 4, transition: "color 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.color = C.text}
-                    onMouseLeave={e => e.currentTarget.style.color = C.textMuted}>
-                    <span style={{ fontWeight: 500 }}>Atyant</span>
+                {/* Right controls */}
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0, height: 54 }}>
+                  {!isMobile && (
+                    <button style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer", fontSize: "0.78rem", padding: "4px 8px", display: "flex", alignItems: "center", gap: 4, transition: "color 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.color = C.text}
+                      onMouseLeave={e => e.currentTarget.style.color = C.textMuted}>
+                      <span style={{ fontWeight: 500 }}>Atyant</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowVoiceOverlay(true)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: C.textMuted,
+                      cursor: "pointer",
+                      padding: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      transition: "all 0.2s"
+                    }}
+                    title="Voice input"
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
                   </button>
-                )}
-                <button
-                  onClick={() => setShowVoiceOverlay(true)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: C.textMuted,
-                    cursor: "pointer",
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    transition: "all 0.2s"
-                  }}
-                  title="Voice input"
-                >
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                    <line x1="8" y1="23" x2="16" y2="23" />
-                  </svg>
-                </button>
-                <button onClick={() => handleSend()}
-                  // Keep the keyboard open: don't let the button steal focus from the input on tap.
-                  onMouseDown={e => e.preventDefault()}
-                  style={{ background: (query.trim().length > 0 || pendingFile) ? C.accent : "transparent", border: "none", color: (query.trim().length > 0 || pendingFile) ? "#fff" : C.textMuted, borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
-                  <Send size={16} />
-                </button>
-              </div>
+                  <button onClick={() => handleSend()}
+                    // Keep the keyboard open: don't let the button steal focus from the input on tap.
+                    onMouseDown={e => e.preventDefault()}
+                    style={{ background: (query.trim().length > 0 || pendingFile) ? C.accent : "transparent", border: "none", color: (query.trim().length > 0 || pendingFile) ? "#fff" : C.textMuted, borderRadius: "50%", width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s", flexShrink: 0 }}>
+                    <Send size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

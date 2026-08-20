@@ -139,7 +139,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
           <p className="text-sm font-semibold leading-snug" style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
             {activeQuery}
           </p>
-          <p className="text-xs mt-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
             Context: {contextLine}
           </p>
         </div>
@@ -167,7 +167,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   // ── MOBILE: single column, one view at a time ──
   if (isMobile) {
     return (
-      <div className="flex flex-col w-full" style={{ background: "var(--c-bg)", fontFamily: "Inter, sans-serif", height: "100%", minHeight: 0 }}>
+      <div className="flex flex-col w-full" style={{ background: "var(--c-bg)", fontFamily: " Inter, sans-serif", height: "100%", minHeight: 0 }}>
         {header}
         <div className="flex-1" style={{ minHeight: 0 }}>
           {fetchLoading ? (
@@ -240,7 +240,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                                   <span style={{ fontSize: 10, fontWeight: 700, color: isTop ? "#fff" : "var(--c-accentText)", background: isTop ? "#7567C9" : "var(--c-accentSoft)", borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{rankLabel}</span>
                                 )}
                               </div>
-                              <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
+                              <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: " Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
                                 {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
                               </div>
                               {(mentor.primaryDomain || mentor.companyDomain) && (
@@ -293,7 +293,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   return (
     <div
       className="flex h-full w-full overflow-hidden"
-      style={{ background: "var(--c-bg)", fontFamily: "Inter, sans-serif", minHeight: 0, flexDirection: "row" }}
+      style={{ background: "var(--c-bg)", fontFamily: " Inter, sans-serif", minHeight: 0, flexDirection: "row" }}
     >
       {/* ── Left: Main content ── */}
       <div
@@ -315,7 +315,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 exit={{ opacity: 0 }}
               >
                 <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
-                <p className="text-xs" style={{ fontFamily: "Inter, sans-serif" }}>
+                <p className="text-xs" style={{ fontFamily: " Inter, sans-serif" }}>
                   Finding seniors from your exact background…
                 </p>
               </motion.div>
@@ -326,7 +326,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <p className="text-xs" style={{ color: "#f87171", fontFamily: "Inter, sans-serif" }}>
+                <p className="text-xs" style={{ color: "#f87171", fontFamily: " Inter, sans-serif" }}>
                   {fetchError}
                 </p>
               </motion.div>
@@ -345,7 +345,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   className="flex items-center gap-2 px-6 py-2.5 flex-shrink-0 text-left"
                   style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}
                 >
-                  <span className="text-xs font-bold tracking-wide" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+                  <span className="text-xs font-bold tracking-wide" style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
                     ← Back to answers · Connect with {selectedMentor.name}
                   </span>
                 </button>
@@ -380,7 +380,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <p className="text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
+                <p className="text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
                   No matching seniors found. Try a different question below.
                 </p>
               </motion.div>
@@ -406,7 +406,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             style={{ color: "var(--c-textMuted)" }}
           >
             <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
-            <p className="text-xs" style={{ fontFamily: "Inter, sans-serif" }}>
+            <p className="text-xs" style={{ fontFamily: " Inter, sans-serif" }}>
               Finding your seniors…
             </p>
           </div>
@@ -421,7 +421,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center"
             style={{ color: "var(--c-textMuted)" }}
           >
-            <p className="text-xs" style={{ fontFamily: "Inter, sans-serif" }}>
+            <p className="text-xs" style={{ fontFamily: " Inter, sans-serif" }}>
               {activeQuery
                 ? "No matching seniors found. Try a different question."
                 : "Ask a question to find matched seniors."}
@@ -441,10 +441,10 @@ function AnswerSection({ label, children }) {
   return (
     <div className="mb-5">
       <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-        style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+        style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
         {label}
       </p>
-      <div className="text-sm leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: "Inter, sans-serif" }}>
+      <div className="text-sm leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: " Inter, sans-serif" }}>
         {children}
       </div>
     </div>
@@ -563,7 +563,7 @@ function MentorJourneyFlow({ card }) {
     <div className="px-4 sm:px-6 pt-5 pb-2 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
             The journey
           </p>
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: journeyPct === 100 ? "#3DBE82" : "var(--c-accentText)", background: journeyPct === 100 ? "rgba(61,190,130,0.12)" : "rgba(117,103,201,0.12)" }}>
@@ -571,7 +571,7 @@ function MentorJourneyFlow({ card }) {
           </span>
         </div>
         {canScrollRight && (
-          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
+          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
             Swipe <ChevronRight size={11} />
           </span>
         )}
@@ -639,7 +639,7 @@ function MentorJourneyFlow({ card }) {
                 </div>
                 <p
                   className="text-[11px] font-bold text-center mt-2 px-1"
-                  style={{ color: isActive || isCompleted ? "var(--c-text)" : "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}
+                  style={{ color: isActive || isCompleted ? "var(--c-text)" : "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}
                 >
                   {n.label}
                 </p>
@@ -647,7 +647,7 @@ function MentorJourneyFlow({ card }) {
                   className="text-[11px] text-center mt-1 px-1.5 leading-snug"
                   style={{
                     color: "var(--c-textMuted)",
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: " Inter, sans-serif",
                     display: "-webkit-box",
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: "vertical",
@@ -699,7 +699,7 @@ function InstantAnswerCard({ card, onBook, onProfile }) {
         <div className="flex items-center gap-2 min-w-0">
           <Sparkles size={13} style={{ color: "var(--c-accentText)", flexShrink: 0 }} />
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest truncate"
-            style={{ color: "var(--c-accentText)", fontFamily: "Inter, sans-serif" }}>
+            style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
             Instant Clarity · from {mentorName}'s journey
           </span>
         </div>
@@ -713,7 +713,7 @@ function InstantAnswerCard({ card, onBook, onProfile }) {
       {/* Answer body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
         {/* Mentor identity line */}
-        <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "Inter, sans-serif" }}>
+        <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
           <CheckCircle size={12} style={{ color: "#3DBE82" }} />
           <span>
             {mentorName}
@@ -772,7 +772,7 @@ function InstantAnswerCard({ card, onBook, onProfile }) {
           <button
             onClick={onBook}
             className="mt-2 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-base font-semibold"
-            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#fff", fontFamily: "Inter, sans-serif", boxShadow: "0 4px 20px rgba(117,103,201,0.4)" }}
+            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#fff", fontFamily: " Inter, sans-serif", boxShadow: "0 4px 20px rgba(117,103,201,0.4)" }}
           >
             <Video size={16} /> Book 1:1 session — starting ₹{STARTING_PRICE}
           </button>
@@ -782,7 +782,7 @@ function InstantAnswerCard({ card, onBook, onProfile }) {
           <button
             onClick={onProfile}
             className="mt-2 ml-0 sm:ml-3 text-sm font-semibold"
-            style={{ background: "transparent", border: "none", color: "var(--c-accentText)", fontFamily: "Inter, sans-serif", cursor: "pointer", padding: "6px 0" }}
+            style={{ background: "transparent", border: "none", color: "var(--c-accentText)", fontFamily: " Inter, sans-serif", cursor: "pointer", padding: "6px 0" }}
           >
             View {mentorName}'s profile
           </button>

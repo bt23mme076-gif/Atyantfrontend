@@ -2,29 +2,29 @@ import { BadgeCheck } from "lucide-react";
 import Avatar from "../Avatar";
 
 const T = {
-  bg:         "var(--c-bg)",
-  card:       "var(--c-card)",
+  bg: "var(--c-bg)",
+  card: "var(--c-card)",
   cardBorder: "var(--c-cardBorder)",
-  active:     "var(--c-active)",
-  accent:     "#7567C9",
+  active: "var(--c-active)",
+  accent: "#7567C9",
   accentSoft: "var(--c-accentSoft)",
   accentText: "var(--c-accentText)",
-  text:       "var(--c-text)",
-  textSub:    "var(--c-textSub)",
-  textMuted:  "var(--c-textMuted)",
-  green:      "#22C67A",
+  text: "var(--c-text)",
+  textSub: "var(--c-textSub)",
+  textMuted: "var(--c-textMuted)",
+  green: "#22C67A",
 };
 
 const DOMAIN_SHORT = {
   internship: "Internship",
-  placement:  "Placement",
-  both:       "Intern + Placement",
+  placement: "Placement",
+  both: "Intern + Placement",
 };
 
 export default function SeniorCard({ mentor, isSelected, onClick }) {
   const domainLabel = DOMAIN_SHORT[mentor.primaryDomain] || null;
-  const fieldLabel  = mentor.companyDomain || null;
-  const isVerified  = mentor.isVerified || (mentor.completionPct ?? 0) >= 80;
+  const fieldLabel = mentor.companyDomain || null;
+  const isVerified = mentor.isVerified || (mentor.completionPct ?? 0) >= 80;
 
   return (
     <div
@@ -99,7 +99,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
           </div>
           <p style={{
             fontSize: 11.5, color: T.textSub, margin: "2px 0 0",
-            fontFamily: "Inter, sans-serif", fontWeight: 400,
+            fontFamily: " Inter, sans-serif", fontWeight: 400,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {mentor.role || [mentor.college, mentor.branch].filter(Boolean).join(" · ")}
@@ -119,7 +119,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
             }}>
               {mentor.matchPct}%
             </span>
-            <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: "Inter, sans-serif" }}>match</span>
+            <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: " Inter, sans-serif" }}>match</span>
           </div>
         )}
       </div>
@@ -131,7 +131,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
             <span style={{
               padding: "3px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
               background: `${T.accent}14`, color: T.accentText,
-              border: `1px solid ${T.accent}28`, fontFamily: "Inter, sans-serif",
+              border: `1px solid ${T.accent}28`, fontFamily: " Inter, sans-serif",
             }}>
               {domainLabel}
             </span>
@@ -140,7 +140,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
             <span style={{
               padding: "3px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
               background: `${T.green}12`, color: T.green,
-              border: `1px solid ${T.green}28`, fontFamily: "Inter, sans-serif",
+              border: `1px solid ${T.green}28`, fontFamily: " Inter, sans-serif",
             }}>
               {fieldLabel}
             </span>
@@ -152,7 +152,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
       {mentor.matchReason && (
         <p style={{
           fontSize: 12, lineHeight: 1.65, color: T.textSub,
-          fontFamily: "Inter, sans-serif", margin: 0,
+          fontFamily: " Inter, sans-serif", margin: 0,
         }}>
           <span style={{ fontWeight: 600, color: T.textMuted }}>Why matched: </span>
           {mentor.matchReason}

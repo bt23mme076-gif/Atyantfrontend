@@ -607,7 +607,7 @@ function Header({ step }) {
 
       {/* Thin progress bar */}
       <div style={{ height: 4, borderRadius: 99, background: C.cardBorder, marginBottom: 16, overflow: "hidden" }}>
-        <div style={{ height: "100%", borderRadius: 99, background: C.accent, width: `${pct}%`, transition: "width 0.4s ease" }} />
+        <div style={{ height: "100%", borderRadius: 99, background: C.accent, width: "100%", transform: `scaleX(${pct / 100})`, transformOrigin: "left", transition: "transform 0.4s ease" }} />
       </div>
 
       {/* Step circles */}

@@ -255,11 +255,12 @@ export default function AdvancedMicrophoneCheck() {
           <span>✅ Microphone working</span>
           <div className="audio-level-container">
             <div className="audio-level-bar">
-              <div 
-                className="audio-level-fill" 
-                style={{ 
-                  width: `${audioLevel}%`,
-                  transition: 'width 0.1s ease-out'
+              <div
+                className="audio-level-fill"
+                style={{
+                  transform: `scaleX(${audioLevel / 100})`,
+                  transformOrigin: 'left',
+                  transition: 'transform 0.1s ease-out'
                 }}
               />
             </div>

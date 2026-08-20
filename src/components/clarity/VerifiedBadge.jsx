@@ -25,7 +25,7 @@ export default function VerifiedBadge({ verifiedVia = "Offer Letter + LinkedIn" 
         onMouseLeave={() => setShow(false)}
       >
         <ShieldCheck size={12} style={{ color: T.green }} />
-        <span className="text-xs font-medium" style={{ color: T.green, fontFamily: "Inter, sans-serif" }}>
+        <span className="text-xs font-medium" style={{ color: T.green, fontFamily: " Inter, sans-serif" }}>
           Verified outcome
         </span>
       </div>
@@ -37,7 +37,7 @@ export default function VerifiedBadge({ verifiedVia = "Offer Letter + LinkedIn" 
             background: T.card,
             border: `1px solid ${T.cardBorder}`,
             color: T.textSub,
-            fontFamily: "Inter, sans-serif",
+            fontFamily: " Inter, sans-serif",
           }}
         >
           <span style={{ color: T.green, fontWeight: 600 }}>✓ Verified via </span>
