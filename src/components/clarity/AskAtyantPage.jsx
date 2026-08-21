@@ -297,6 +297,90 @@ const ThoughtStub = ({ trace, ms }) => {
   );
 };
 
+const MENTOR_HUES = ["#7567C9", "#3DBE82", "#FB923C", "#3B82F6", "#EC4899", "#14B8A6"];
+function mentorHue(name = "") {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return MENTOR_HUES[Math.abs(hash) % MENTOR_HUES.length];
+}
+
+// The real mentors the engine matched, shown inline instead of being computed
+// and thrown away. Reasons come straight from `matchedOn` — the fields that
+// actually matched — so a card can only claim overlap it genuinely has. A
+// fallback pick (isRelevanceMatch false) matched on nothing and says nothing;
+// it's labelled for what it is rather than dressed up with invented reasons.
+const MentorMatches = ({ mentors }) => {
+  if (!mentors?.length) return null;
+
+  return (
+    <div style={{ marginTop: 14, maxWidth: 520, width: "100%" }}>
+      <div style={{ fontSize: "0.75rem", fontWeight: 600, color: C.textMuted, marginBottom: 9 }}>
+        Seniors who've walked this path
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {mentors.map((m, i) => {
+          const reasons = m.matchedOn
+            ? [
+                ...(m.matchedOn.expertise || []),
+                ...(m.matchedOn.domainExperience || []),
+                ...(m.matchedOn.interests || []),
+                ...(m.matchedOn.topCompanies || []),
+              ].slice(0, 3)
+            : [];
+          const subtitle = [m.college, m.topCompanies?.[0] || m.companyDomain]
+            .filter(Boolean)
+            .join(" · ");
+
+          return (
+            <motion.div
+              key={m.id || i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.06 }}
+              style={{ display: "flex", gap: 11, padding: "11px 13px", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 11 }}
+            >
+              {m.profilePicture ? (
+                <img
+                  src={m.profilePicture}
+                  alt=""
+                  style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                />
+              ) : (
+                <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${mentorHue(m.name)}22`, color: mentorHue(m.name), fontWeight: 700, fontSize: "0.9rem", textTransform: "uppercase" }}>
+                  {m.name?.[0] || "?"}
+                </div>
+              )}
+
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: "0.85rem", fontWeight: 600, color: C.text }}>{m.name}</div>
+                {subtitle && (
+                  <div style={{ fontSize: "0.74rem", color: C.textMuted, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {subtitle}
+                  </div>
+                )}
+
+                {reasons.length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 7 }}>
+                    {reasons.map(r => (
+                      <span key={r} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "0.7rem", color: C.green, background: `${C.green}14`, borderRadius: 999, padding: "2px 8px" }}>
+                        <FiCheck size={9} /> {r}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: "0.7rem", color: C.textMuted, marginTop: 6, fontStyle: "italic" }}>
+                    Suggested — no direct overlap with your goal yet
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs }) {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
@@ -536,6 +620,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       text: res.reply || fallbackText,
       showMatch: ready,
       chips: Array.isArray(res.quickReplies) ? res.quickReplies : null,
+      mentors: Array.isArray(res.matchedMentors) ? res.matchedMentors : null,
     };
   };
 
@@ -598,6 +683,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         text: reply.text,
         showMatch: reply.showMatch,
         chips: reply.chips,
+        mentors: reply.mentors,
         // Freeze the trace onto the message so it survives the live indicator
         // unmounting — that's what the collapsed "Thought for Xs" stub reopens.
         trace: traceRef.current,
@@ -689,7 +775,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       }, controller.signal, text);
 
       const reply = applyEngineResult(res, "Got your résumé — tell me a bit more so I can point you the right way.");
-      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips }]);
+      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors }]);
     } catch (e) {
       if (e.name === "AbortError") return;  // page unmounted — nothing to show
       setMessages(prev => [...prev, {
@@ -1181,6 +1267,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           ))}
                         </div>
                       )}
+                      {!isUser && m.mentors?.length > 0 && <MentorMatches mentors={m.mentors} />}
                       {m.showMatch && (
                         <button
                           onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", context)}
