@@ -14,7 +14,6 @@ import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import useIsMobile from "./hooks/useIsMobile";
 import ClarityView from "./components/clarity/ClarityView";
-import Footer from "./components/Footer";
 import MentorTrackPage from "./pages/MentorTrackPage";
 
 import AskAtyantPage, { startNewChatSession } from "./components/clarity/AskAtyantPage";
@@ -1757,8 +1756,6 @@ export default function App() {
 
         <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
       </div>
-
-      {activePage === "ask" && <Footer />}
     </>
   );
 }
