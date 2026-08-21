@@ -84,7 +84,7 @@ async function streamRequest(path, fetchInit, onProgress, signal, timeoutMs) {
         if (!line) continue;
 
         const event = JSON.parse(line.slice(6));
-        if (event.type === 'progress') { onProgress?.(event); continue; }
+        if (event.type === 'progress' || event.type === 'token') { onProgress?.(event); continue; }
         if (event.type === 'error') {
           const err = new Error(event.error || 'Request failed');
           err.status = event.status;

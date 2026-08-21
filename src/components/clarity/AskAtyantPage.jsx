@@ -140,7 +140,7 @@ const MessageActions = ({ message, onRegenerate }) => {
 // Turns a real `progress` SSE event (see AtyantEngineService.processAtyantMessage
 // and aiRoutes.js POST /atyant-chat) into one human-readable line. These are the
 // ACTUAL stages completing on the server, not a guessed/paced sequence.
-function describeProgress(event) {
+function describeProgress(event, previous = {}) {
   switch (event.stage) {
     case "reading":
       return "Reading your message…";
@@ -148,13 +148,20 @@ function describeProgress(event) {
       return "Reading your résumé…";
     case "context": {
       const id = event.context?.identity || {};
-      const parts = [];
-      if (id.college) parts.push(id.college);
-      if (id.branch) parts.push(id.branch);
-      if (event.context?.target) parts.push(`aiming for ${event.context.target}`);
-      return parts.length
-        ? `Got it — ${parts.join(", ")}`
-        : "Still building your profile from what you've shared…";
+      const layers = event.contextLayers;
+      const layerNote = typeof layers === "number" ? ` · ${layers}/5 captured` : "";
+
+      // Only call out what's genuinely NEW this turn — restating the same
+      // already-known profile every single turn is exactly what made this line
+      // feel canned before. `previous` is what was known BEFORE this turn.
+      const fresh = [];
+      if (id.college && id.college !== previous.college) fresh.push(id.college);
+      if (id.branch && id.branch !== previous.branch) fresh.push(id.branch);
+      if (event.context?.target && event.context.target !== previous.target) fresh.push(`aiming for ${event.context.target}`);
+
+      if (fresh.length) return `Got it — ${fresh.join(", ")}${layerNote}`;
+      if (id.college || id.branch || event.context?.target) return `Noted${layerNote}`;
+      return `Still building your profile from what you've shared…${layerNote}`;
     }
     case "drafting":
       return "Putting together a reply…";
@@ -409,6 +416,16 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   // variable there would close over its value from the start of the turn.
   const traceRef = useRef([]);
   const turnStartedAt = useRef(0);
+  // Same state/ref split as thinkingLines/traceRef, for the same reason: the
+  // `onProgress` callback closes over whatever was current when the stream
+  // started, so the running total has to live in a ref the callback can read
+  // fresh each time, mirrored into state so React actually re-renders it.
+  const streamTextRef = useRef("");
+  const [streamingText, setStreamingText] = useState("");
+  // What describeProgress's "context" case diffs against to say only what's
+  // NEW this turn. Updated once a turn's context event lands, so next turn's
+  // diff is against genuinely prior state, not this turn's own result.
+  const knownContextRef = useRef({ college: null, branch: null, target: null });
 
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
   const [selectedLang, setSelectedLang] = useState("en-IN");
@@ -634,10 +651,21 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     const seed = describeProgress({ stage: "reading" });
     setThinkingLines([seed]);
     traceRef.current = [seed];
+    streamTextRef.current = "";
+    setStreamingText("");
     const controller = new AbortController();
     abortRef.current = controller;
     const res = await aiAPI.atyantChatStream(text, sessionIdRef.current, (event) => {
-      const line = describeProgress(event);
+      if (event.type === "token") {
+        streamTextRef.current += event.text;
+        setStreamingText(streamTextRef.current);
+        return;
+      }
+      const line = describeProgress(event, knownContextRef.current);
+      if (event.stage === "context") {
+        const id = event.context?.identity || {};
+        knownContextRef.current = { college: id.college || null, branch: id.branch || null, target: event.context?.target || null };
+      }
       if (!line) return;
       // The server also emits its own "reading" event right after — dedupe so
       // the seed line above doesn't show up twice in a row.
@@ -689,7 +717,11 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         trace: traceRef.current,
         thoughtMs: Date.now() - turnStartedAt.current,
       }]);
+      streamTextRef.current = "";
+      setStreamingText("");
     } catch (e) {
+      streamTextRef.current = "";
+      setStreamingText("");
       if (e.name === "AbortError") return;  // page unmounted — nothing to show
       setMessages(prev => [...prev, {
         sender: "atyant",
@@ -763,20 +795,35 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     setMessages(prev => [...prev, { sender: "user", text: text || undefined, attachment: { name: file.name, type: file.type } }]);
     setIsTyping(true);
     setThinkingLines([describeProgress({ stage: "reading_resume" })]);
+    streamTextRef.current = "";
+    setStreamingText("");
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
       const res = await aiAPI.atyantResumeStream(file, sessionIdRef.current, (event) => {
-        const line = describeProgress(event);
+        if (event.type === "token") {
+          streamTextRef.current += event.text;
+          setStreamingText(streamTextRef.current);
+          return;
+        }
+        const line = describeProgress(event, knownContextRef.current);
+        if (event.stage === "context") {
+          const id = event.context?.identity || {};
+          knownContextRef.current = { college: id.college || null, branch: id.branch || null, target: event.context?.target || null };
+        }
         if (!line) return;
         setThinkingLines(prev => (prev[prev.length - 1] === line ? prev : [...prev, line]));
       }, controller.signal, text);
 
       const reply = applyEngineResult(res, "Got your résumé — tell me a bit more so I can point you the right way.");
       setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors }]);
+      streamTextRef.current = "";
+      setStreamingText("");
     } catch (e) {
+      streamTextRef.current = "";
+      setStreamingText("");
       if (e.name === "AbortError") return;  // page unmounted — nothing to show
       setMessages(prev => [...prev, {
         sender: "atyant",
@@ -1296,6 +1343,16 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
               })}
 
               {isTyping && <ThinkingIndicator lines={thinkingLines} />}
+              {isTyping && streamingText && (
+                <div className="msg-row" style={{ display: "flex", justifyContent: "flex-start", marginBottom: "1.25rem" }}>
+                  <div style={{ maxWidth: "70%" }}>
+                    <div style={{ fontSize: "0.92rem", lineHeight: 1.6, color: C.text, whiteSpace: "pre-line" }}>
+                      {streamingText}
+                      <span style={{ display: "inline-block", width: 7, height: 15, marginLeft: 2, verticalAlign: "text-bottom", background: C.accent, animation: "pulse 0.9s ease-in-out infinite" }} />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={chatEndRef} />
             </div>
           </div>
