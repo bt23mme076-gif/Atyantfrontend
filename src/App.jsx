@@ -6,7 +6,7 @@ import {
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check, Star,
   Activity, IndianRupee, CalendarClock, UserRound,
-  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, Home,
+  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, ArrowLeft,
   Eye, EyeOff, PanelLeftClose, PanelLeftOpen,
   Headphones, FileText, CheckCircle2, AlertTriangle, Mic, ClipboardList, ChevronDown,
 } from "lucide-react";
@@ -1525,30 +1525,38 @@ export default function App() {
                   height: 46,
                   padding: collapsed ? 0 : "0 14px",
                   borderRadius: 13,
-                  border: "none",
+                  // A visible ring is what reads as "raised, clickable" on a dark
+                  // sidebar — the gradient alone sat flush against the background
+                  // with nothing marking its edge, so it looked pasted-on flat.
+                  border: "1px solid rgba(255,255,255,0.16)",
                   background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
                   color: "#fff",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   fontSize: "0.92rem",
                   fontWeight: 600,
-                  boxShadow: "0 8px 20px -8px #7567C9",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
+                  // A true black shadow underneath (not just the accent's own
+                  // color) is what actually separates the button from a dark
+                  // background — the old accent-colored glow alone barely showed.
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -6px rgba(0,0,0,0.45)",
+                  transition: "transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease",
                   marginBottom: "1.5rem",
                   boxSizing: "border-box",
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.filter = "brightness(1.08)";
-                  e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
+                  e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.25) inset, 0 12px 26px -6px rgba(0,0,0,0.55)";
                   e.currentTarget.style.transform = "translateY(-1px)";
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.filter = "none";
-                  e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
+                  e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -6px rgba(0,0,0,0.45)";
                   e.currentTarget.style.transform = "none";
                 }}
+                onMouseDown={e => { e.currentTarget.style.transform = "translateY(0) scale(0.97)"; }}
+                onMouseUp={e => { e.currentTarget.style.transform = "translateY(-1px) scale(1)"; }}
               >
-                <Home size={17} strokeWidth={2.5} />
+                <ArrowLeft size={17} strokeWidth={2.5} />
                 {!collapsed && <span>Back Home</span>}
               </button>
             ) : (
