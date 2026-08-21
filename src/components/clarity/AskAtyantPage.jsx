@@ -253,6 +253,50 @@ const ThinkingIndicator = ({ lines }) => {
   );
 };
 
+// The settled counterpart to ThinkingIndicator: once a turn lands, its trace is
+// frozen onto the message and shown here as a collapsed one-liner the user can
+// reopen. Label reflects what the turn actually did — on a routing turn "Found
+// 3 verified seniors" is far more useful than a bare "Thought for 4s".
+const ThoughtStub = ({ trace, ms }) => {
+  const [open, setOpen] = useState(false);
+  if (!trace?.length) return null;
+
+  const secs = Math.max(1, Math.round((ms || 0) / 1000));
+  const found = trace
+    .map(l => /Found (\d+) verified senior/.exec(l))
+    .filter(Boolean)
+    .pop();
+  const label = found
+    ? `Found ${found[1]} verified senior${found[1] === "1" ? "" : "s"} · ${secs}s`
+    : `Thought for ${secs}s`;
+
+  return (
+    <div style={{ marginBottom: 8, maxWidth: 520 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        style={{ display: "flex", alignItems: "center", gap: 6, padding: 0, background: "none", border: "none", font: "inherit", cursor: "pointer", color: C.textMuted, fontSize: "0.75rem" }}
+      >
+        <Lightbulb size={12} />
+        <span>{label}</span>
+        <ChevronDown size={12} style={{ transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }} />
+      </button>
+      {open && (
+        <div style={{ marginTop: 7, display: "flex", flexDirection: "column", gap: 6 }}>
+          {trace.map((line, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <span style={{ flexShrink: 0, width: 12, paddingTop: 4, display: "flex", justifyContent: "center" }}>
+                <FiCheck size={11} color={C.textMuted} />
+              </span>
+              <span style={{ fontSize: "0.78rem", lineHeight: 1.5, color: C.textMuted }}>{line}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs }) {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
@@ -276,6 +320,11 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const sessionIdRef = useRef(getStoredSessionId());
   const abortRef = useRef(null);  // cancels the in-flight chat stream on unmount
   const sendingRef = useRef(false);  // synchronous re-entrancy guard — see handleSend
+  // The live trace lives in state (for rendering) AND a ref, because the reply
+  // handler needs the FINAL list to freeze onto the message — reading the state
+  // variable there would close over its value from the start of the turn.
+  const traceRef = useRef([]);
+  const turnStartedAt = useRef(0);
 
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
   const [selectedLang, setSelectedLang] = useState("en-IN");
@@ -497,7 +546,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     // Seed with the "reading" line immediately — it's always the first real
     // stage, so there's no reason to wait on the network round trip to show it
     // instead of a generic "Thinking…" placeholder.
-    setThinkingLines([describeProgress({ stage: "reading" })]);
+    const seed = describeProgress({ stage: "reading" });
+    setThinkingLines([seed]);
+    traceRef.current = [seed];
     const controller = new AbortController();
     abortRef.current = controller;
     const res = await aiAPI.atyantChatStream(text, sessionIdRef.current, (event) => {
@@ -505,7 +556,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       if (!line) return;
       // The server also emits its own "reading" event right after — dedupe so
       // the seed line above doesn't show up twice in a row.
-      setThinkingLines(prev => (prev[prev.length - 1] === line ? prev : [...prev, line]));
+      const prevTrace = traceRef.current;
+      if (prevTrace[prevTrace.length - 1] === line) return;
+      traceRef.current = [...prevTrace, line];
+      setThinkingLines(traceRef.current);
     }, controller.signal);
     return applyEngineResult(res, "Hmm, I didn't catch that — could you rephrase?");
   };
@@ -535,10 +589,20 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     setMessages(prev => [...prev, { sender: "user", text }]);
     setQuery("");
     setIsTyping(true);
+    turnStartedAt.current = Date.now();
 
     try {
       const reply = await sendToEngine(text);
-      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips }]);
+      setMessages(prev => [...prev, {
+        sender: "atyant",
+        text: reply.text,
+        showMatch: reply.showMatch,
+        chips: reply.chips,
+        // Freeze the trace onto the message so it survives the live indicator
+        // unmounting — that's what the collapsed "Thought for Xs" stub reopens.
+        trace: traceRef.current,
+        thoughtMs: Date.now() - turnStartedAt.current,
+      }]);
     } catch (e) {
       if (e.name === "AbortError") return;  // page unmounted — nothing to show
       setMessages(prev => [...prev, {
@@ -1061,6 +1125,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                     marginBottom: "1.25rem",
                   }}>
                     <div style={{ maxWidth: "70%", display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start" }}>
+                      {!isUser && m.trace?.length > 0 && (
+                        <ThoughtStub trace={m.trace} ms={m.thoughtMs} />
+                      )}
                       <div style={{
                         padding: isUser ? "0.75rem 1rem" : "0",
                         background: isUser ? "rgba(117, 103, 201, 0.12)" : "transparent",
