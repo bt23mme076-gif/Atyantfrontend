@@ -1729,7 +1729,7 @@ export default function App() {
               {(() => {
                 const onUpgrade = activePage === "upgrade"; return (<>
                   <button onClick={goToFree}
-                    style={{ background: onUpgrade ? "transparent" : C.active, border: `1px solid ${onUpgrade ? C.accent + "55" : C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: onUpgrade ? C.accentText : C.textMuted, fontSize: "0.75rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Free Plan</button>
+                    style={{ background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: C.accentText, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Free Plan</button>
                   <button onClick={goToUpgrade}
                     style={{ background: C.accent, border: `1px solid ${C.accent}`, borderRadius: 7, padding: "5px 12px", color: "#fff", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Upgrade</button>
                 </>);
