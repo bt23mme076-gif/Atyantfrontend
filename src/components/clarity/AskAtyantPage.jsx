@@ -171,9 +171,29 @@ function describeProgress(event) {
 
 // Kimi/Claude-style "Thinking" block — lightbulb + label + chevron, expands to
 // show real backend checkpoints (`lines`) as they actually complete.
+//
+// The elapsed timer and the shimmer on the active line are what make this read
+// as genuinely live rather than a canned spinner: every line is a real server
+// stage landing over SSE (see describeProgress), settled stages get a check and
+// dim out, and only the one still running shimmers. Collapsed, the header
+// carries the current stage so the status is never hidden behind a chevron.
 const ThinkingIndicator = ({ lines }) => {
   const [expanded, setExpanded] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
+  const startedAt = useRef(Date.now());
+
+  // 200ms tick, whole seconds shown — fast enough that the number never looks
+  // stuck, slow enough that it doesn't read as a frantic stopwatch.
+  useEffect(() => {
+    const id = setInterval(
+      () => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)),
+      200,
+    );
+    return () => clearInterval(id);
+  }, []);
+
   const shown = lines.length ? lines : ["Thinking…"];
+  const active = shown[shown.length - 1];
 
   return (
     <div style={{ marginBottom: "1.25rem", maxWidth: 520, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, overflow: "hidden" }}>
@@ -183,24 +203,49 @@ const ThinkingIndicator = ({ lines }) => {
         aria-label="Atyant is thinking — toggle details"
         style={{ display: "flex", width: "100%", alignItems: "center", gap: 8, padding: "9px 14px", cursor: "pointer", userSelect: "none", background: "transparent", border: "none", font: "inherit", textAlign: "left" }}
       >
-        <Lightbulb size={14} color={C.accent} style={{ animation: "thinkPulse 1.8s ease-in-out infinite" }} />
-        <span style={{ fontSize: "0.84rem", color: C.text, fontWeight: 500 }}>Thinking</span>
-        <ChevronDown size={14} color={C.textMuted} style={{ marginLeft: "auto", transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }} />
+        <Lightbulb size={14} color={C.accent} style={{ flexShrink: 0, animation: "thinkPulse 1.8s ease-in-out infinite" }} />
+        <span
+          className="think-shimmer"
+          style={{ flex: 1, minWidth: 0, fontSize: "0.84rem", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+        >
+          {expanded ? "Thinking" : active}
+        </span>
+        {elapsed > 0 && (
+          <span style={{ flexShrink: 0, fontSize: "0.72rem", color: C.textMuted, fontVariantNumeric: "tabular-nums" }}>
+            {elapsed}s
+          </span>
+        )}
+        <ChevronDown size={14} color={C.textMuted} style={{ flexShrink: 0, transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }} />
       </button>
       {expanded && (
-        <div role="status" aria-live="polite" style={{ padding: "0 14px 12px 36px", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div role="status" aria-live="polite" style={{ padding: "0 14px 12px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
           <AnimatePresence initial={false}>
-            {shown.map((line, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: i === shown.length - 1 ? 1 : 0.5, y: 0 }}
-                transition={{ duration: 0.25 }}
-                style={{ fontSize: "0.8rem", color: C.textSub, lineHeight: 1.5 }}
-              >
-                {line}
-              </motion.span>
-            ))}
+            {shown.map((line, i) => {
+              const isActive = i === shown.length - 1;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: 8 }}
+                >
+                  <span style={{ flexShrink: 0, width: 12, paddingTop: 5, display: "flex", justifyContent: "center" }}>
+                    {isActive ? (
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: C.accent, animation: "thinkDot 1.2s ease-in-out infinite" }} />
+                    ) : (
+                      <FiCheck size={11} color={C.textMuted} style={{ marginTop: -2 }} />
+                    )}
+                  </span>
+                  <span
+                    className={isActive ? "think-shimmer" : undefined}
+                    style={{ fontSize: "0.8rem", lineHeight: 1.5, color: isActive ? undefined : C.textMuted }}
+                  >
+                    {line}
+                  </span>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       )}
@@ -706,6 +751,34 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         @keyframes thinkPulse {
           0%, 100% { opacity: 0.5; transform: scale(0.92); }
           50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes thinkDot {
+          0%, 100% { opacity: 0.35; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes thinkShimmer {
+          from { background-position: 200% 0; }
+          to   { background-position: -200% 0; }
+        }
+        /* Light sweep across the text of whichever stage is still running.
+           Falls back to a plain readable color where background-clip:text
+           isn't supported, so the label can never render invisible. */
+        .think-shimmer {
+          color: var(--c-text);
+          background: linear-gradient(90deg, var(--c-textSub) 25%, var(--c-text) 45%, var(--c-text) 55%, var(--c-textSub) 75%);
+          background-size: 200% auto;
+          animation: thinkShimmer 2.2s linear infinite;
+        }
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .think-shimmer {
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+          }
+        }
+        /* Respect reduced-motion: keep the trace legible, drop the movement. */
+        @media (prefers-reduced-motion: reduce) {
+          .think-shimmer { animation: none; background: none; color: var(--c-text); }
         }
         .msg-row { animation: fadeIn 0.2s ease-out; }
         .msg-row:hover { background: var(--c-rowHover); }
