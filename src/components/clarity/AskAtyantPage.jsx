@@ -978,7 +978,6 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           .think-shimmer { animation: none; background: none; color: var(--c-text); }
         }
         .msg-row { animation: fadeIn 0.2s ease-out; }
-        .msg-row:hover { background: var(--c-rowHover); }
       `}</style>
 
       {messages.length === 0 ? (
