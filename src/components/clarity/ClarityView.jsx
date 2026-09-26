@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2, Sparkles, Video, ChevronLeft, ChevronRight, MapPin, AlertTriangle, ListChecks, Users, Trophy, BookOpen, Target, Wrench } from "lucide-react";
+import { Send, CheckCircle, Loader2, Sparkles, Video, ChevronLeft, ChevronRight, MapPin, AlertTriangle, ListChecks, Users, Trophy, BookOpen, Target, Wrench, ShieldCheck } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -156,6 +156,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
           <MentorJourneyFlow card={card} />
           <InstantAnswerCard
             card={card}
+            profile={resolveMentor(card.mentor)}
             onProfile={() => { const m = resolveMentor(card.mentor); trackView(m); setSelectedMentor(m); }}
             onBook={() => onTalkToMentor?.(resolveMentor(card.mentor))}
           />
@@ -381,7 +382,9 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 animate={{ opacity: 1 }}
               >
                 <p className="text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
-                  No matching seniors found. Try a different question below.
+                  {mentors.length > 0
+                    ? "No written answers for this question yet. Pick a matched senior on the right to see their journey or talk to them."
+                    : "No matching seniors found. Try a different question below."}
                 </p>
               </motion.div>
             )}
@@ -682,8 +685,85 @@ function MentorJourneyFlow({ card }) {
   );
 }
 
+// Desktop header for an answer card: who this senior is, then the story's headline.
+const DOMAIN_LABEL = { internship: "Internship", placement: "Placement", both: "Intern + Placement" };
+
+function MentorHeader({ profile, fallbackName, onProfile, headline }) {
+  const name = profile.name || fallbackName;
+  const subtitle = [profile.college, profile.branch].filter(Boolean).join(" · ");
+  // "Active mentor on Atyant" is a placeholder for mentors without an outcome, so it isn't shown.
+  const outcome = /@/.test(profile.outcome || "") ? profile.outcome : "";
+  const chip = (text, color, key) => (
+    <span key={key} style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, color, background: `${color}1f`, border: `1px solid ${color}40`, whiteSpace: "nowrap" }}>
+      {text}
+    </span>
+  );
+
+  return (
+    <div className="mb-6">
+      <div
+        className="flex items-center gap-4 flex-wrap"
+        style={{ padding: "16px 18px", borderRadius: 16, background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", boxShadow: "0 1px 6px rgba(117,103,201,0.08)" }}
+      >
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          {profile.profilePicture ? (
+            <img src={profile.profilePicture} alt="" style={{ width: 68, height: 68, borderRadius: "50%", objectFit: "cover", border: "2px solid #7567C9", padding: 2, background: "var(--c-card)" }} />
+          ) : (
+            <div style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "2px solid #7567C9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "var(--c-accentText)" }}>
+              {profile.initials}
+            </div>
+          )}
+          <span style={{ position: "absolute", right: -2, bottom: 0, width: 22, height: 22, borderRadius: "50%", background: "#3DBE82", border: "2px solid var(--c-card)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <CheckCircle size={12} style={{ color: "#fff" }} />
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0" style={{ fontFamily: " Inter, sans-serif" }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", fontFamily: "Fraunces, serif", lineHeight: 1.2 }}>{name}</span>
+            <span className="flex items-center gap-1" style={{ fontSize: 11, fontWeight: 700, color: "#3DBE82", background: "rgba(61,190,130,0.12)", border: "1px solid rgba(61,190,130,0.3)", borderRadius: 999, padding: "2px 9px" }}>
+              <ShieldCheck size={11} /> Verified senior
+            </span>
+          </div>
+          {subtitle && <div style={{ fontSize: 13, color: "var(--c-textSub)", marginTop: 4, fontWeight: 500 }}>{subtitle}</div>}
+          {outcome && <div style={{ fontSize: 13, color: "var(--c-text)", marginTop: 3, fontWeight: 600 }}>{outcome}</div>}
+          {(profile.primaryDomain || profile.companyDomain) && (
+            <div className="flex gap-1.5 flex-wrap" style={{ marginTop: 8 }}>
+              {profile.primaryDomain && DOMAIN_LABEL[profile.primaryDomain] && chip(DOMAIN_LABEL[profile.primaryDomain], "#7567C9", "domain")}
+              {profile.companyDomain && chip(profile.companyDomain, "#3DBE82", "company")}
+            </div>
+          )}
+        </div>
+
+        {onProfile && (
+          <button
+            onClick={onProfile}
+            className="flex-shrink-0"
+            style={{ fontSize: 13, fontWeight: 600, color: "var(--c-accentText)", background: "rgba(117,103,201,0.08)", border: "1px solid rgba(117,103,201,0.3)", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: " Inter, sans-serif" }}
+          >
+            View profile →
+          </button>
+        )}
+      </div>
+
+      {headline && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-accentText)", fontFamily: " Inter, sans-serif", marginBottom: 6 }}>
+            Their story
+          </div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, color: "var(--c-text)", fontFamily: "Fraunces, serif", margin: 0 }}>
+            {headline}
+          </h2>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Instant verified answer, built from a real mentor's experience ──
-function InstantAnswerCard({ card, onBook, onProfile }) {
+// `profile` is only passed by the desktop feed; the mobile layout shows the mentor's photo in its
+// own header row above this card, so it isn't repeated here.
+function InstantAnswerCard({ card, onBook, onProfile, profile }) {
   const c = card?.content || {};
   const mentor = card?.mentor || {};
   const mentorName = mentor.username || mentor.name || "Atyant Mentor";
@@ -712,21 +792,27 @@ function InstantAnswerCard({ card, onBook, onProfile }) {
 
       {/* Answer body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
-        {/* Mentor identity line */}
-        <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
-          <CheckCircle size={12} style={{ color: "#3DBE82" }} />
-          <span>
-            {mentorName}
-            {edu.institutionName ? ` · ${edu.institutionName}` : ""}
-            {edu.field ? ` · ${edu.field}` : ""}
-          </span>
-        </div>
+        {profile ? (
+          <MentorHeader profile={profile} fallbackName={mentorName} onProfile={onProfile} headline={c.mainAnswer} />
+        ) : (
+          <>
+            {/* Mentor identity line (mobile: the photo is in the header row above this card) */}
+            <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
+              <CheckCircle size={12} style={{ color: "#3DBE82", flexShrink: 0 }} />
+              <span>
+                {mentorName}
+                {edu.institutionName ? ` · ${edu.institutionName}` : ""}
+                {edu.field ? ` · ${edu.field}` : ""}
+              </span>
+            </div>
 
-        {c.mainAnswer && (
-          <p className="text-base font-semibold leading-snug mb-5"
-            style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
-            {c.mainAnswer}
-          </p>
+            {c.mainAnswer && (
+              <p className="text-base font-semibold leading-snug mb-5"
+                style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
+                {c.mainAnswer}
+              </p>
+            )}
+          </>
         )}
 
         <AnswerSection label="The situation">{c.situation}</AnswerSection>

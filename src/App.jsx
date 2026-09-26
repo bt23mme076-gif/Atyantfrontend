@@ -25,6 +25,7 @@ const MentorOnboard = lazy(() => import("./pages/MentorOnboard"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const TPODashboard = lazy(() => import("./pages/TPODashboard"));
 const JobsPage = lazy(() => import("./pages/JobsPage"));
+const MockInterviewPage = lazy(() => import("./pages/MockInterviewPage"));
 import Avatar from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
 import { useAuth } from "./context/AuthContext";
@@ -1400,6 +1401,7 @@ export default function App() {
     { id: "roadmap", Icon: TrendingUp, label: "My Roadmap" },
     { id: "saved", Icon: Bookmark, label: "Saved Answers" },
     ...(!isMentor ? [{ id: "jobs", Icon: Briefcase, label: "Find Jobs" }] : []),
+    ...(!isMentor ? [{ id: "mock-interview", Icon: Mic, label: "Mock Interview" }] : []),
 
     ...(isMentor
       ? [{ id: "track", Icon: BarChart3, label: "Mentor Dashboard" }]
@@ -1412,6 +1414,7 @@ export default function App() {
   const pages = {
     ask: <AskAtyantPage key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} />,
     jobs: <JobsPage onNavigate={setActivePage} onAuthRequired={() => setShowAuth(true)} />,
+    "mock-interview": <MockInterviewPage onAuthRequired={() => setShowAuth(true)} />,
     clarity: <ClarityView key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} onOpenChat={handleOpenChat} />,
     chat: <ChatPage key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,

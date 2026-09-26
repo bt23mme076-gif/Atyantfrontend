@@ -376,6 +376,61 @@ export const jobsAPI = {
   updateAutoApplySettings: (payload) => api.put('/api/jobs/auto-apply/settings', payload),
 };
 
+// Mock interview — JD + resume → prep (parse + plan) → interview → evaluation → report.
+// Backend: Atyantbackend routes/mockInterviewRoutes.js
+//   POST /api/mock-interviews            multipart { company, role, jdText | jdFile, resume (PDF) | resumeText }
+//                                         → { id, status }  (prep runs in the background; poll get)
+//   GET  /api/mock-interviews            → { interviews: [{ id, company, role, status, attempt, overall, reportUnlocked, price, createdAt }] }
+//   GET  /api/mock-interviews/:id        → { interview: { id, status, blueprint, questionCount, phases, error, canRetryPrep, canRetake, reportUnlocked, price, ... } }
+//   POST /api/mock-interviews/:id/prepare → retry a failed prep
+//   POST /api/mock-interviews/:id/checkout { bundle? } → Razorpay order to START the interview (₹99, or ₹149 with the report on a first interview), or { paid: true }
+//   POST /api/mock-interviews/:id/checkout/verify { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+//   POST /api/mock-interviews/:id/join   → { token, roomName, livekitUrl }  (dispatches the AI interviewer; also rejoins)
+//   GET  /api/mock-interviews/:id/report → 202 while evaluating; { locked, price, report }
+//   POST /api/mock-interviews/:id/unlock → Razorpay order, or { unlocked: true } when nothing is owed
+//   POST /api/mock-interviews/:id/unlock/verify { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+//   POST /api/mock-interviews/:id/retake → { id, attempt }
+export const mockInterviewAPI = {
+  list:   ()   => api.get('/api/mock-interviews'),
+  get:    (id) => api.get(`/api/mock-interviews/${id}`),
+  create: async ({ company, role, jdText, resumeFile, resumeText, useProfileResume }) => {
+    const form = new FormData();
+    form.append('company', company || '');
+    form.append('role', role || '');
+    form.append('jdText', jdText || '');
+    if (resumeFile) form.append('resume', resumeFile);
+    else if (useProfileResume) form.append('useProfileResume', 'true');
+    else form.append('resumeText', resumeText || '');
+    const token = getToken();
+    const res = await fetch(`${BASE}/api/mock-interviews`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || data.error || 'Could not create interview');
+    return data;
+  },
+  prepare: (id) => api.post(`/api/mock-interviews/${id}/prepare`, {}),
+  checkout:       (id, bundle = false) => api.post(`/api/mock-interviews/${id}/checkout`, { bundle }),
+  verifyCheckout: (id, payment) => api.post(`/api/mock-interviews/${id}/checkout/verify`, payment),
+  join:    (id) => api.post(`/api/mock-interviews/${id}/join`, {}),
+  report:  async (id) => {
+    const token = getToken();
+    const res = await fetch(`${BASE}/api/mock-interviews/${id}/report`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || data.error || 'Could not load the report');
+    return { ...data, evaluating: res.status === 202 };
+  },
+  unlock:       (id) => api.post(`/api/mock-interviews/${id}/unlock`, {}),
+  verifyUnlock: (id, payment) => api.post(`/api/mock-interviews/${id}/unlock/verify`, payment),
+  retake:       (id) => api.post(`/api/mock-interviews/${id}/retake`, {}),
+};
+
 // TPO (Training & Placement) — VNIT dashboard
 // Backend contract:
 //   GET  /api/tpo/students  → { students: [{ _id, name, email, branch, year, cgpa, targetCompany }] }
