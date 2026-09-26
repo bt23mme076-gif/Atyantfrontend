@@ -97,9 +97,8 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
           <div style={{ position: "relative", flexShrink: 0 }}>
             <div style={{
               width: 66, height: 66, borderRadius: 18,
-              background: `linear-gradient(135deg, ${T.accent}60, ${T.green}40)`,
+              background: "var(--c-cardBorder)",
               padding: 2,
-              boxShadow: `0 4px 16px ${T.accent}25`,
             }}>
               <Avatar
                 src={mentor.profilePicture}
@@ -125,18 +124,18 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <h2 style={{
-                  fontFamily: "Fraunces, Georgia, serif",
+                  fontFamily: "var(--font-display)",
                   fontSize: 18, fontWeight: 700,
                   color: T.text, lineHeight: 1.15, margin: 0,
                 }}>
                   {mentor.name}
                 </h2>
                 {mentor.role && (
-                  <p style={{ fontSize: 12.5, color: T.textSub, marginTop: 3, fontFamily: " Inter, sans-serif", fontWeight: 500 }}>
+                  <p style={{ fontSize: 12.5, color: T.textSub, marginTop: 3, fontFamily: "var(--font-body)", fontWeight: 500 }}>
                     {mentor.role}
                   </p>
                 )}
-                <p style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2, fontFamily: " Inter, sans-serif" }}>
+                <p style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2, fontFamily: "var(--font-body)" }}>
                   {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
                 </p>
               </div>
@@ -144,17 +143,17 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
               {/* Match % badge */}
               {mentor.matchPct > 0 && (
                 <div style={{
-                  background: `linear-gradient(135deg, ${T.accent}18, ${T.accent}08)`,
+                  background: `${T.accent}12`,
                   border: `1.5px solid ${T.accent}35`,
                   borderRadius: 12, padding: "6px 12px", textAlign: "center", flexShrink: 0,
                 }}>
                   <span style={{
-                    fontFamily: "Fraunces, serif", fontSize: 22, fontWeight: 800,
+                    fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800,
                     color: T.accent, lineHeight: 1, display: "block",
                   }}>
                     {mentor.matchPct}%
                   </span>
-                  <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: " Inter, sans-serif", fontWeight: 600, letterSpacing: "0.04em" }}>
+                  <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: "var(--font-body)", fontWeight: 600, letterSpacing: "0.04em" }}>
                     MATCH
                   </span>
                 </div>
@@ -173,7 +172,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                     fontSize: 10.5, fontWeight: 600, padding: "3px 10px", borderRadius: 999,
                     background: "rgba(10,102,194,0.10)", color: "#0A66C2",
                     border: "1px solid rgba(10,102,194,0.25)", textDecoration: "none",
-                    fontFamily: " Inter, sans-serif",
+                    fontFamily: "var(--font-body)",
                   }}
                 >
                   <LinkedinIcon size={9} /> LinkedIn
@@ -184,7 +183,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                   display: "inline-flex", alignItems: "center", gap: 4,
                   fontSize: 10.5, fontWeight: 600, padding: "3px 10px", borderRadius: 999,
                   background: `${T.accent}12`, color: T.accent,
-                  border: `1px solid ${T.accent}30`, fontFamily: " Inter, sans-serif",
+                  border: `1px solid ${T.accent}30`, fontFamily: "var(--font-body)",
                 }}>
                   <DomainIcon size={9} strokeWidth={2.5} /> {domainLabel}
                 </span>
@@ -194,7 +193,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                   display: "inline-flex", alignItems: "center", gap: 4,
                   fontSize: 10.5, fontWeight: 600, padding: "3px 10px", borderRadius: 999,
                   background: `${T.green}12`, color: T.green,
-                  border: `1px solid ${T.green}30`, fontFamily: " Inter, sans-serif",
+                  border: `1px solid ${T.green}30`, fontFamily: "var(--font-body)",
                 }}>
                   <FieldIcon size={9} strokeWidth={2.5} /> {fieldLabel}
                 </span>
@@ -218,12 +217,12 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
               {ratingDisplay ? (
                 <>
                   <Stars value={rawRating} />
-                  <p style={{ fontSize: 14, fontWeight: 800, color: T.text, fontFamily: "Fraunces, serif", marginTop: 4, lineHeight: 1 }}>{ratingDisplay}</p>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: T.text, fontFamily: "var(--font-display)", marginTop: 4, lineHeight: 1 }}>{ratingDisplay}</p>
                 </>
               ) : (
-                <p style={{ fontSize: 13, fontWeight: 700, color: T.textMuted, fontFamily: "Fraunces, serif" }}>New</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: T.textMuted, fontFamily: "var(--font-display)" }}>New</p>
               )}
-              <p style={{ fontSize: 10, color: T.textMuted, fontFamily: " Inter, sans-serif", marginTop: 4 }}>Rating</p>
+              <p style={{ fontSize: 10, color: T.textMuted, fontFamily: "var(--font-body)", marginTop: 4 }}>Rating</p>
             </div>
 
             {/* Sessions */}
@@ -231,8 +230,8 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
               borderRadius: 12, padding: "12px 8px", textAlign: "center",
               background: T.card, border: `1px solid ${T.cardBorder}`,
             }}>
-              <p style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: "Fraunces, serif", lineHeight: 1 }}>{sessionsLabel}</p>
-              <p style={{ fontSize: 10, color: T.textMuted, fontFamily: " Inter, sans-serif", marginTop: 4 }}>
+              <p style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: "var(--font-display)", lineHeight: 1 }}>{sessionsLabel}</p>
+              <p style={{ fontSize: 10, color: T.textMuted, fontFamily: "var(--font-body)", marginTop: 4 }}>
                 {sessionsRaw > 0 ? "Sessions done" : "First sessions"}
               </p>
             </div>
@@ -242,8 +241,8 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
               borderRadius: 12, padding: "12px 8px", textAlign: "center",
               background: T.card, border: `1px solid ${T.cardBorder}`,
             }}>
-              <p style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: "Fraunces, serif", lineHeight: 1 }}>{expLabel}</p>
-              <p style={{ fontSize: 10, color: T.textMuted, fontFamily: " Inter, sans-serif", marginTop: 4 }}>Experience</p>
+              <p style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: "var(--font-display)", lineHeight: 1 }}>{expLabel}</p>
+              <p style={{ fontSize: 10, color: T.textMuted, fontFamily: "var(--font-body)", marginTop: 4 }}>Experience</p>
             </div>
           </div>
 
@@ -251,7 +250,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
           {mentor.outcome && (
             <div style={{
               borderRadius: 14, padding: "14px 16px",
-              background: `linear-gradient(135deg, ${T.green}0E, ${T.green}06)`,
+              background: `${T.green}0C`,
               border: `1px solid ${T.green}28`,
               display: "flex", alignItems: "flex-start", gap: 12,
             }}>
@@ -263,10 +262,10 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                 <TrendingUp size={14} color={T.green} strokeWidth={2.5} />
               </div>
               <div>
-                <p style={{ fontSize: 10.5, fontWeight: 700, color: T.green, marginBottom: 4, fontFamily: " Inter, sans-serif", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                <p style={{ fontSize: 10.5, fontWeight: 700, color: T.green, marginBottom: 4, fontFamily: "var(--font-body)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                   Where they landed
                 </p>
-                <p style={{ fontSize: 14, fontWeight: 600, color: T.text, fontFamily: "Fraunces, serif", lineHeight: 1.4 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: T.text, fontFamily: "var(--font-display)", lineHeight: 1.4 }}>
                   {mentor.outcome}
                 </p>
               </div>
@@ -278,7 +277,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
             <div>
               <p style={{
                 fontSize: 11, fontWeight: 700, color: T.textMuted,
-                fontFamily: " Inter, sans-serif", letterSpacing: "0.06em",
+                fontFamily: "var(--font-body)", letterSpacing: "0.06em",
                 textTransform: "uppercase", marginBottom: 10,
               }}>
                 Their story
@@ -286,7 +285,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
               <p
                 style={{
                   fontSize: 13.5, lineHeight: 1.9, color: T.textSub,
-                  fontFamily: " Inter, sans-serif", fontWeight: 400,
+                  fontFamily: "var(--font-body)", fontWeight: 400,
                 }}
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(mentor.story) }}
               />
@@ -298,7 +297,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
             <div>
               <p style={{
                 fontSize: 11, fontWeight: 700, color: T.textMuted,
-                fontFamily: " Inter, sans-serif", letterSpacing: "0.06em",
+                fontFamily: "var(--font-body)", letterSpacing: "0.06em",
                 textTransform: "uppercase", marginBottom: 10,
               }}>
                 Why you match
@@ -311,7 +310,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                     background: `${T.accent}10`,
                     border: `1px solid ${T.accent}30`,
                     color: T.accent,
-                    fontFamily: " Inter, sans-serif",
+                    fontFamily: "var(--font-body)",
                   }}>
                     {tag}
                   </span>
@@ -335,12 +334,12 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
             onClick={() => { onSelect?.(); onTalkToMentor?.(mentor); }}
             style={{
               flex: 1, padding: "13px 0", borderRadius: 12,
-              background: "linear-gradient(135deg, #7567C9 0%, #5a52a8 100%)",
+              background: "#7567C9",
               color: "#fff", fontWeight: 700, fontSize: 14.5,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               border: "none", cursor: "pointer",
-              boxShadow: `0 4px 18px ${T.accent}35`,
-              fontFamily: " Inter, sans-serif", letterSpacing: "0.01em",
+
+              fontFamily: "var(--font-body)", letterSpacing: "0.01em",
               transition: "opacity 0.15s",
             }}
             onMouseEnter={e => e.currentTarget.style.opacity = "0.92"}
@@ -358,7 +357,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
                 background: `${T.accent}10`,
                 color: T.accent,
                 border: `1px solid ${T.accent}35`,
-                fontFamily: " Inter, sans-serif", fontWeight: 600, fontSize: 13.5,
+                fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13.5,
                 display: "flex", alignItems: "center", gap: 7,
                 cursor: "pointer", transition: "opacity 0.15s",
               }}

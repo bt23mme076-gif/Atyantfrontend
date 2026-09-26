@@ -749,7 +749,7 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
             <button
               onClick={submit}
               disabled={!canSubmit}
-              style={{ marginTop:"0.25rem", width:"100%", padding:"11px", borderRadius:10, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", cursor:canSubmit ? "pointer" : "not-allowed", opacity:canSubmit ? 1 : 0.55, fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+              style={{ marginTop:"0.25rem", width:"100%", padding:"11px", borderRadius:10, background:"#7567C9", color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", cursor:canSubmit ? "pointer" : "not-allowed", opacity:canSubmit ? 1 : 0.55, fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
               {saving ? <><Spin size={15} /> Scheduling…</> : "Confirm Schedule →"}
             </button>
           </div>
@@ -964,7 +964,7 @@ export default function TPODashboard() {
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"1.75rem", flexWrap:"wrap", gap:"1rem" }}>
         <div>
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#7567C9,#9F7AEA)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:"#7567C9", display:"flex", alignItems:"center", justifyContent:"center" }}>
               <Building2 size={18} color="#fff" />
             </div>
             <h1 style={{ fontSize:"1.4rem", fontWeight:700, color:C.text, margin:0 }}>VNIT T&P Dashboard</h1>
@@ -979,7 +979,7 @@ export default function TPODashboard() {
             <Download size={14} /> Export CSV
           </button>
           <button onClick={() => { setScheduleFor(null); setShowModal(true); }}
-            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px", borderRadius:9, border:"none", background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontSize:"0.82rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", boxShadow:"0 4px 14px -4px #7567C9" }}>
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 16px", borderRadius:9, border:"none", background:"#7567C9", color:"#fff", fontSize:"0.82rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", boxShadow:"0 4px 14px -4px #7567C9" }}>
             <Plus size={14} /> Schedule Session
           </button>
         </div>
@@ -1001,7 +1001,7 @@ export default function TPODashboard() {
           <span style={{ fontSize:"0.76rem", color:C.textMuted }}>{completed.length} of {students.length} complete</span>
         </div>
         <div style={{ height:8, background:C.active, borderRadius:999, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:"100%", transform:`scaleX(${completionPct / 100})`, transformOrigin:"left", background:"linear-gradient(90deg,#7567C9,#3DBE82)", borderRadius:999, transition:"transform 0.5s ease" }} />
+          <div style={{ height:"100%", width:"100%", transform:`scaleX(${completionPct / 100})`, transformOrigin:"left", background:"#7567C9", borderRadius:999, transition:"transform 0.5s ease" }} />
         </div>
         <div style={{ display:"flex", gap:"1.5rem", marginTop:10 }}>
           {[
@@ -1113,7 +1113,7 @@ export default function TPODashboard() {
                     </div>
                     {s.status === "pending" && (
                       <button onClick={e => { e.stopPropagation(); setScheduleFor(s.id); setShowModal(true); }}
-                        style={{ padding:"6px 14px", borderRadius:8, background:"linear-gradient(135deg,#7567C9,#5a52a8)", color:"#fff", fontSize:"0.78rem", fontWeight:600, border:"none", cursor:"pointer", fontFamily:"inherit" }}>
+                        style={{ padding:"6px 14px", borderRadius:8, background:"#7567C9", color:"#fff", fontSize:"0.78rem", fontWeight:600, border:"none", cursor:"pointer", fontFamily:"inherit" }}>
                         + Schedule Session
                       </button>
                     )}
@@ -1246,7 +1246,7 @@ export default function TPODashboard() {
                     <span style={{ fontSize:"0.76rem", color:C.textMuted }}>{b.completed}/{b.total} · {b.pct}%</span>
                   </div>
                   <div style={{ height:7, background:C.active, borderRadius:999, overflow:"hidden" }}>
-                    <div style={{ height:"100%", width:`${b.pct}%`, background:"linear-gradient(90deg,#7567C9,#3DBE82)", borderRadius:999 }} />
+                    <div style={{ height:"100%", width:`${b.pct}%`, background:"#7567C9", borderRadius:999 }} />
                   </div>
                 </div>
               ))}

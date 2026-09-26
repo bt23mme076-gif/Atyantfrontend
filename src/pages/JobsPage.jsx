@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Briefcase, Upload, Loader2, Check, ExternalLink, FileText,
-  Sparkles, Settings, MapPin, Building2, Search, X, ChevronDown, Bot, AlertTriangle, LogIn, Filter, Layers, Clock,
+  Upload, Loader2, Check, ExternalLink, FileText, Zap, Copy, Mic, Crown, SlidersHorizontal, ChevronRight,
+  GraduationCap, Settings, MapPin, Building2, Search, X, AlertTriangle, LogIn, Clock, Globe, Briefcase,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { jobsAPI, profileAPI } from "../api";
+import { canAutoApply as planAllowsAutoApply } from "../lib/plan";
 
 // Theme palette — maps to CSS vars defined in index.css (light + dark).
 const C = {
@@ -21,8 +22,14 @@ const C = {
   textSub:      "var(--c-textSub)",
   textMuted:    "var(--c-textMuted)",
   green:        "#3DBE82",
+  greenText:    "#1F9D63",
   red:          "#F87171",
   orange:       "#FB923C",
+  // Premium (Auto-apply) — warm amber, the one colour on this page that isn't the brand purple.
+  gold:         "#B45309",
+  goldText:     "#C2620A",
+  goldSoft:     "rgba(217,119,6,0.10)",
+  goldBorder:   "rgba(217,119,6,0.35)",
 };
 
 // Deterministic avatar color per company name — no logo assets needed.
@@ -33,22 +40,65 @@ function avatarColor(name = "") {
   return AVATAR_HUES[Math.abs(hash) % AVATAR_HUES.length];
 }
 
+const SOURCE_LABEL = { greenhouse: "Greenhouse", lever: "Lever", firecrawl: "Company site" };
+const CITIES = ["Bangalore", "Mumbai", "Pune", "Hyderabad", "Gurugram", "Delhi", "Chennai", "Noida", "India"];
+const SUGGESTED = [
+  { label: "Remote internships", q: "intern", location: "", remote: true },
+  { label: "Software engineer in Bangalore", q: "software engineer", location: "Bangalore", remote: false },
+  { label: "Data analyst roles", q: "data analyst", location: "", remote: false },
+  { label: "Product roles in India", q: "product", location: "India", remote: false },
+];
+const DATE_OPTIONS = [
+  { id: "", label: "Any time" },
+  { id: "24h", label: "Past 24 hours" },
+  { id: "3d", label: "Past 3 days" },
+  { id: "7d", label: "Past week" },
+];
+const MI_PREFILL_KEY = "atyant_mi_prefill";   // read by MockInterviewPage's new-interview form
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatches(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [query]);
+  return matches;
+}
+
 function Spin({ size = 16 }) {
   return <Loader2 size={size} style={{ animation: "spin 1s linear infinite" }} />;
 }
 
 const PageStyles = () => (
   <style>{`
-    @keyframes jpFadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-    .jp-card { animation: jpFadeUp .3s ease-out both; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
-    .jp-card:hover { border-color:#7567C955; box-shadow:0 6px 20px rgba(0,0,0,0.08); transform:translateY(-2px); }
-    .jp-input { background:var(--c-active); border:1px solid var(--c-cardBorder); border-radius:10px; padding:9px 12px; color:var(--c-text); font-size:.82rem; outline:none; font-family:inherit; transition:border-color .15s, box-shadow .15s; }
-    .jp-input:focus { border-color:#7567C9; box-shadow:0 0 0 3px #7567C926; }
-    .jp-input::placeholder { color:var(--c-textMuted); }
-    .jp-select { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e"); background-repeat:no-repeat; background-position:right 10px center; padding-right:28px; }
-    .jp-tab { transition: all .15s ease; }
-    .jp-pill-btn { transition: all .15s ease; }
-    .jp-pill-btn:hover { filter:brightness(0.96); transform:translateY(-1px); }
+    .jb-card { transition: border-color .15s ease, box-shadow .15s ease; }
+    .jb-card:hover { border-color: var(--c-activeBorder); box-shadow: 0 6px 20px -12px rgba(20,16,40,.25); }
+    .jb-btn { transition: filter .15s ease, background-color .15s ease, border-color .15s ease; }
+    .jb-btn:hover:not(:disabled) { filter: brightness(0.95); }
+    .jb-btn:disabled { opacity: .6; cursor: default; }
+    .jb-btn:focus-visible, .jb-chip:focus-visible, .jb-link:focus-visible { outline: 2px solid #7567C9; outline-offset: 2px; }
+    .jb-link { background: none; border: none; padding: 0; cursor: pointer; font-family: inherit; text-align: left; color: inherit; }
+    .jb-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .jb-field { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--c-text); font-size: .95rem; font-family: inherit; padding: 14px 0; }
+    .jb-field::placeholder { color: var(--c-textMuted); }
+    .jb-input { width: 100%; box-sizing: border-box; background: var(--c-card); border: 1px solid var(--c-cardBorder); border-radius: 8px; padding: 9px 12px; color: var(--c-text); font-size: .84rem; outline: none; font-family: inherit; }
+    .jb-input:focus { border-color: #7567C9; box-shadow: 0 0 0 3px #7567C926; }
+    .jb-chip { font-family: inherit; font-size: .8rem; font-weight: 500; border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; border: 1px solid var(--c-cardBorder); background: var(--c-active); color: var(--c-textSub); transition: background-color .12s ease, border-color .12s ease, color .12s ease; }
+    .jb-chip:hover { border-color: var(--c-activeBorder); color: var(--c-text); }
+    .jb-chip.on { background: var(--c-accentSoft); border-color: #7567C9; color: var(--c-accentText); font-weight: 600; }
+    .jb-suggest { font-family: inherit; font-size: .84rem; border-radius: 999px; padding: 8px 16px; cursor: pointer; border: 1px solid #7567C9; background: transparent; color: var(--c-accentText); transition: background-color .12s ease; }
+    .jb-suggest:hover { background: var(--c-accentSoft); }
+    .jb-select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 30px !important; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 11px center; }
+    .jb-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .jb-check { display: flex; align-items: center; gap: 9px; font-size: .84rem; color: var(--c-textSub); cursor: pointer; padding: 3px 0; }
+    .jb-check input { accent-color: #7567C9; width: 15px; height: 15px; margin: 0; }
+    @keyframes jbPulse { 0%,100% { opacity: .55 } 50% { opacity: 1 } }
+    .jb-skel { background: var(--c-active); border-radius: 6px; animation: jbPulse 1.4s ease-in-out infinite; }
+    @keyframes jbSlide { from { transform: translateX(24px); opacity: 0 } to { transform: none; opacity: 1 } }
+    .jb-drawer { animation: jbSlide .2s ease-out; }
+    @media (prefers-reduced-motion: reduce) { .jb-skel, .jb-drawer { animation: none; } }
   `}</style>
 );
 
@@ -66,32 +116,10 @@ const FRESHER_DEFAULTS = [
   { pattern: /end date/i, value: "N/A" },
 ];
 
-function Tag({ children }) {
-  return (
-    <span style={{ fontSize: ".68rem", fontWeight: 600, color: C.textSub, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>
-      {children}
-    </span>
-  );
-}
-
 function matchTier(score) {
   if (score >= 70) return { label: "Strong match", color: C.green };
   if (score >= 40) return { label: "Good match", color: C.orange };
   return { label: "Stretch match", color: C.textMuted };
-}
-
-function MatchPill({ score }) {
-  const tier = matchTier(score);
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0,
-      fontSize: ".72rem", fontWeight: 800, color: tier.color,
-      background: `${tier.color}18`, border: `1px solid ${tier.color}44`,
-      borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap",
-    }}>
-      {score}% match
-    </span>
-  );
 }
 
 // Relative time from an ISO date string — "3h ago", "5d ago", etc.
@@ -106,7 +134,56 @@ function timeAgo(dateStr) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-// ─── Skill extraction — gate for "Matched to My Resume" mode ─────────────────
+// Scraped descriptions arrive with HTML entities still encoded ("&nbsp;", "&amp;").
+// A detached <textarea> decodes them as plain text — nothing is parsed or run as HTML.
+function decodeEntities(text = "") {
+  if (!/&[#a-z0-9]+;/i.test(text)) return text;
+  const el = document.createElement("textarea");
+  el.innerHTML = text;
+  return el.value.replace(/\u00a0/g, " ");
+}
+
+function CompanyMark({ name, size = 44 }) {
+  const color = avatarColor(name);
+  return (
+    <div aria-hidden="true" style={{
+      width: size, height: size, borderRadius: size > 44 ? 10 : 9, flexShrink: 0, display: "flex", alignItems: "center",
+      justifyContent: "center", background: `${color}1f`, color, fontWeight: 700, fontSize: size * 0.42, textTransform: "uppercase",
+    }}>
+      {name?.[0] || "?"}
+    </div>
+  );
+}
+
+function Tag({ children, color, bg, border }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".74rem", fontWeight: 500, color: color || C.textSub, background: bg || "transparent", border: `1px solid ${border || C.cardBorder}`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>
+      {children}
+    </span>
+  );
+}
+
+function PremiumTag() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".64rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "#fff", background: C.gold, borderRadius: 4, padding: "2px 6px" }}>
+      <Crown size={10} /> Premium
+    </span>
+  );
+}
+
+// Store the job for the mock interview form, then go there.
+function practiceJob(job, onNavigate) {
+  try {
+    sessionStorage.setItem(MI_PREFILL_KEY, JSON.stringify({
+      company: (job.company || "").replace(/\b\w/g, ch => ch.toUpperCase()),   // scraped names come lowercase ("gitlab")
+      role: job.title || "",
+      jdText: decodeEntities(job.descriptionText || "").slice(0, 8000),
+    }));
+  } catch { /* storage blocked — the form just opens empty */ }
+  onNavigate?.("mock-interview");
+}
+
+// ─── Skill extraction — gate for the "Recommended" tab ───────────────────────
 function SkillExtractGate({ onSaved }) {
   const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted] = useState(null);
@@ -150,41 +227,41 @@ function SkillExtractGate({ onSaved }) {
   };
 
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "28px 22px", textAlign: "center" }}>
-      <Sparkles size={24} color={C.accentText} style={{ marginBottom: 10 }} />
+    <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "28px 22px", textAlign: "center" }}>
+      <FileText size={24} color={C.accentText} style={{ display: "block", margin: "0 auto 10px" }} />
       <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.text, marginBottom: 6 }}>
-        Extract your skills to see resume-matched jobs
+        Add your resume to get recommendations
       </div>
-      <div style={{ fontSize: ".84rem", color: C.textMuted, marginBottom: 20, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
-        Upload your resume once — we pull out your skills, projects and education to score jobs against your actual profile.
+      <div style={{ fontSize: ".84rem", color: C.textSub, marginBottom: 20, maxWidth: 440, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>
+        Upload it once. We read your skills, projects and education and rank every job by how well it fits you.
       </div>
 
       {!extracted ? (
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `2px dashed ${C.cardBorder}`, borderRadius: 10, padding: "14px 24px", cursor: extracting ? "default" : "pointer", background: C.active }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, border: `1.5px dashed ${C.cardBorder}`, borderRadius: 10, padding: "14px 24px", cursor: extracting ? "default" : "pointer", background: C.active }}>
           <input type="file" accept="application/pdf" hidden disabled={extracting} onChange={onPickFile} />
           {extracting
             ? <><Spin size={18} /><span style={{ fontSize: ".85rem", color: C.accentText, fontWeight: 600 }}>Reading resume…</span></>
-            : <><Upload size={18} color={C.textMuted} /><span style={{ fontSize: ".85rem", color: C.textSub, fontWeight: 600 }}>Upload Resume PDF</span></>
+            : <><Upload size={18} color={C.textMuted} /><span style={{ fontSize: ".85rem", color: C.textSub, fontWeight: 600 }}>Upload resume PDF</span></>
           }
         </label>
       ) : (
-        <div style={{ textAlign: "left", background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "14px 16px", maxWidth: 480, margin: "0 auto" }}>
-          <div style={{ fontSize: ".72rem", fontWeight: 700, color: C.textSub, marginBottom: 8 }}>Found:</div>
+        <div style={{ textAlign: "left", background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "14px 16px", maxWidth: 480, margin: "0 auto" }}>
+          <div style={{ fontSize: ".72rem", fontWeight: 700, color: C.textSub, marginBottom: 8 }}>We found</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
             {(extracted.skills || []).map(s => (
-              <span key={s} style={{ fontSize: ".72rem", color: C.accentText, background: C.accentSoft, borderRadius: 999, padding: "3px 10px" }}>{s}</span>
+              <span key={s} style={{ fontSize: ".72rem", color: C.accentText, background: C.accentSoft, borderRadius: 4, padding: "3px 8px" }}>{s}</span>
             ))}
           </div>
           <div style={{ fontSize: ".76rem", color: C.textSub, marginBottom: 12 }}>
             {(extracted.projects || []).length} project(s) · {(extracted.preferredRoles || []).join(", ") || "no preferred roles inferred"}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={saveExtracted} disabled={saving}
-              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".8rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 9, padding: "8px 16px", cursor: saving ? "default" : "pointer" }}>
-              {saving ? <Spin size={13} /> : <Check size={13} />} Save &amp; see matches
+            <button onClick={saveExtracted} disabled={saving} className="jb-btn"
+              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".8rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit" }}>
+              {saving ? <Spin size={13} /> : <Check size={13} />} Save and show matches
             </button>
-            <button onClick={() => setExtracted(null)}
-              style={{ fontSize: ".8rem", fontWeight: 600, color: C.textSub, background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "8px 16px", cursor: "pointer" }}>
+            <button onClick={() => setExtracted(null)} className="jb-btn"
+              style={{ fontSize: ".8rem", fontWeight: 600, color: C.textSub, background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit" }}>
               Redo
             </button>
           </div>
@@ -196,16 +273,106 @@ function SkillExtractGate({ onSaved }) {
   );
 }
 
-// ─── One job card — works for both plain listings and scored matches ────────
-function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNavigate, onAuthRequired }) {
+// ─── One job in the results list ─────────────────────────────────────────────
+function JobCard({ job, score, matchedSkills, applied, paid, onOpen, onAutoApply, onPractice }) {
+  const isRemote = /remote/i.test(job.location || "");
+  const tier = score !== undefined ? matchTier(score) : null;
+  const snippet = useMemo(() => decodeEntities(job.descriptionText || "").replace(/\s+/g, " ").trim(), [job.descriptionText]);
+  const canAutoApply = !applied && job.autoApplySupported;
+
+  const btn = { display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".84rem", fontWeight: 600, borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "inherit", border: "none" };
+
+  return (
+    <article className="jb-card" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "20px 22px" }}>
+      {/* Title row */}
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <CompanyMark name={job.company} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{ margin: 0, fontSize: "1.12rem", fontWeight: 700, lineHeight: 1.3, color: C.text }}>
+            <button className="jb-link" onClick={onOpen}>{job.title}</button>
+          </h3>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: ".88rem", color: C.textSub, textTransform: "capitalize" }}>
+            <Building2 size={14} color={C.textMuted} /> {job.company}
+          </div>
+        </div>
+        {tier && (
+          <span style={{ flexShrink: 0, fontSize: ".78rem", fontWeight: 700, color: tier.color, background: `${tier.color}18`, borderRadius: 999, padding: "4px 10px", fontVariantNumeric: "tabular-nums" }}>
+            {score}% match
+          </span>
+        )}
+      </div>
+
+      {/* Tags */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+        {applied && <Tag color={C.greenText} bg={`${C.green}14`} border={`${C.green}55`}><Check size={12} /> Applied</Tag>}
+        {canAutoApply && <Tag color={C.goldText} bg={C.goldSoft} border={C.goldBorder}><Zap size={12} /> Auto-apply available</Tag>}
+        {isRemote && <Tag>Remote</Tag>}
+        {job.department && <Tag>{job.department}</Tag>}
+      </div>
+
+      {/* Info strip */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 18px", marginTop: 12, padding: "10px 14px", background: C.active, borderRadius: 8, fontSize: ".84rem", color: C.text }}>
+        {job.location && <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}><MapPin size={15} color={C.textMuted} style={{ flexShrink: 0 }} /> <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 360 }}>{job.location}</span></span>}
+        {job.postedAt && <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Clock size={15} color={C.textMuted} /> {timeAgo(job.postedAt)}</span>}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Globe size={15} color={C.textMuted} /> {SOURCE_LABEL[job.source] || "Company site"}</span>
+      </div>
+
+      {snippet && (
+        <p className="jb-clamp2" style={{ margin: "12px 0 0", fontSize: ".86rem", lineHeight: 1.6, color: C.textSub }}>{snippet}</p>
+      )}
+
+      {/* Footer */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.cardBorder}` }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, minWidth: 0 }}>
+          {(matchedSkills || []).slice(0, 4).map(s => (
+            <span key={s} style={{ fontSize: ".74rem", color: C.accentText, background: C.accentSoft, borderRadius: 4, padding: "3px 8px" }}>{s}</span>
+          ))}
+          {matchedSkills?.length > 4 && <span style={{ fontSize: ".74rem", color: C.textMuted, padding: "3px 2px" }}>+{matchedSkills.length - 4}</span>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginLeft: "auto" }}>
+          <button onClick={onPractice} className="jb-btn" title="Practice a mock interview for this job" style={{ ...btn, color: C.accentText, background: C.accentSoft }}>
+            <Mic size={15} /> Practice
+          </button>
+          {canAutoApply && (
+            <button onClick={onAutoApply} className="jb-btn"
+              title={paid ? "We fill in and submit this application for you" : "Auto-apply comes with the Clarity and Pro plans"}
+              style={{ ...btn, color: "#fff", background: C.gold }}>
+              {paid ? <Zap size={15} /> : <Crown size={15} />} Auto-apply
+            </button>
+          )}
+          <button onClick={onOpen} className="jb-btn" style={{ ...btn, color: C.accentText, background: "none", padding: "8px 4px" }}>
+            View details <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CardSkeleton() {
+  return Array.from({ length: 3 }).map((_, i) => (
+    <div key={i} style={{ padding: "20px 22px", border: `1px solid ${C.cardBorder}`, borderRadius: 14, background: C.card }}>
+      <div style={{ display: "flex", gap: 14 }}>
+        <div className="jb-skel" style={{ width: 44, height: 44, borderRadius: 9 }} />
+        <div style={{ flex: 1 }}>
+          <div className="jb-skel" style={{ width: "55%", height: 16, marginBottom: 8 }} />
+          <div className="jb-skel" style={{ width: "30%", height: 12 }} />
+        </div>
+      </div>
+      <div className="jb-skel" style={{ width: "100%", height: 38, marginTop: 16, borderRadius: 8 }} />
+      <div className="jb-skel" style={{ width: "90%", height: 12, marginTop: 14 }} />
+    </div>
+  ));
+}
+
+// ─── Details panel: everything about one job, and every action on it ────────
+function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onApplied, onNavigate, onAuthRequired }) {
   const { user } = useAuth();
   const [showLetter, setShowLetter] = useState(false);
   const [letter, setLetter] = useState("");
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [marking, setMarking] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [showReasoning, setShowReasoning] = useState(false);
   const [error, setError] = useState("");
 
   const [autoApplying, setAutoApplying] = useState(false);
@@ -214,7 +381,9 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
   const [savingAnswers, setSavingAnswers] = useState(false);
 
   const isRemote = /remote/i.test(job.location || "");
-  const snippet = (job.descriptionText || "").slice(0, 220);
+  const tier = score !== undefined ? matchTier(score) : null;
+  const description = useMemo(() => decodeEntities(job.descriptionText || ""), [job.descriptionText]);
+  const canAutoApply = !appliedStatus && job.autoApplySupported;
 
   const generateLetter = async () => {
     if (!user) { onAuthRequired?.(); return; }
@@ -256,6 +425,7 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
 
   const autoApplyNow = async () => {
     if (!user) { onAuthRequired?.(); return; }
+    if (!planAllowsAutoApply(user)) { onNavigate?.("upgrade"); return; }
     if (!user.autoApply?.enabled) {
       onNavigate?.("profile");
       return;
@@ -271,11 +441,22 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
       });
       if (res.application?.status === "submitted") onApplied(job._id);
     } catch (err) {
+      // Plan lapsed since the page loaded — the server said no; send them to pricing.
+      if (err.data?.code === "PLAN_REQUIRED") { onNavigate?.("upgrade"); return; }
       setAutoApplyResult({ status: "failed", reason: err.message || "Auto-apply failed", unansweredQuestions: [] });
     } finally {
       setAutoApplying(false);
     }
   };
+
+  // "Auto-apply" on a card opens this panel and starts right away.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStart && canAutoApply && !autoStarted.current) {
+      autoStarted.current = true;
+      autoApplyNow();
+    }
+  }, [autoStart, canAutoApply]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-fills only the questions that match a known work-history shape and
   // aren't already typed — leaves everything else (location, expected pay) for
@@ -311,179 +492,180 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
     }
   };
 
+  const btnBase = { display: "inline-flex", alignItems: "center", gap: 7, fontSize: ".86rem", fontWeight: 700, borderRadius: 8, padding: "10px 16px", cursor: "pointer", fontFamily: "inherit", textDecoration: "none" };
+  const statusColor = autoApplyResult?.status === "submitted" ? C.green : autoApplyResult?.status === "needs_manual_action" ? C.orange : C.red;
+  const paid = planAllowsAutoApply(user);
+  const autoApplyLabel = !user ? "Sign in to auto-apply"
+    : !paid ? "Upgrade to auto-apply"
+    : user.autoApply?.enabled ? "Auto-apply to this job" : "Turn on auto-apply";
+
   return (
-    <div className="jp-card" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "18px 20px", marginBottom: 14 }}>
+    <div style={{ padding: "22px 24px 32px" }}>
+      {/* Header */}
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 12, flexShrink: 0, display: "flex", alignItems: "center",
-          justifyContent: "center", background: `${avatarColor(job.company)}22`, color: avatarColor(job.company),
-          fontWeight: 800, fontSize: "1.05rem", textTransform: "uppercase",
-        }}>
-          {job.company?.[0] || "?"}
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ fontSize: ".95rem", fontWeight: 700, color: C.text }}>{job.title}</div>
-            {score !== undefined && <MatchPill score={score} />}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", color: C.textMuted, marginTop: 4, marginBottom: 9 }}>
-            <Building2 size={12} /> <span style={{ fontWeight: 600, color: C.textSub, textTransform: "capitalize" }}>{job.company}</span>
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: matchedSkills?.length ? 8 : 0 }}>
-            {job.postedAt && <Tag>{timeAgo(job.postedAt)}</Tag>}
-            {job.location && <Tag><MapPin size={10} style={{ verticalAlign: -1, marginRight: 3 }} />{job.location}</Tag>}
-            {isRemote && <Tag>Remote</Tag>}
-            {job.department && <Tag>{job.department}</Tag>}
-            <Tag>{job.source === "greenhouse" ? "Greenhouse" : job.source === "lever" ? "Lever" : job.company}</Tag>
-          </div>
-
-          {matchedSkills?.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 4 }}>
-              {matchedSkills.slice(0, 8).map(s => (
-                <span key={s} style={{ fontSize: ".68rem", color: C.accentText, background: C.accentSoft, borderRadius: 999, padding: "2px 8px" }}>{s}</span>
-              ))}
-            </div>
-          )}
-
-          {score !== undefined && (
-            <button onClick={() => setShowReasoning(v => !v)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: ".74rem", fontWeight: 700, color: C.accentText, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 2 }}>
-              Why this match? <ChevronDown size={11} style={{ transform: showReasoning ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-            </button>
-          )}
+        <CompanyMark name={job.company} size={52} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: ".88rem", fontWeight: 600, color: C.textSub, textTransform: "capitalize" }}>{job.company}</div>
+          <h2 style={{ margin: "3px 0 0", fontSize: "1.35rem", fontWeight: 700, lineHeight: 1.25, color: C.text, textWrap: "balance" }}>{job.title}</h2>
         </div>
       </div>
 
-      {showReasoning && score !== undefined && (() => {
-        const tier = matchTier(score);
-        return (
-          <div style={{ marginTop: 10, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "12px 14px" }}>
-            <div style={{ fontSize: ".78rem", fontWeight: 700, color: tier.color, marginBottom: 8 }}>
-              {score}% · {tier.label}
-            </div>
-            {matchedSkills?.length > 0 ? (
-              <>
-                <div style={{ fontSize: ".72rem", fontWeight: 700, color: C.textSub, marginBottom: 6 }}>Matched from your resume</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {matchedSkills.map(s => (
-                    <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".72rem", color: C.green, background: `${C.green}14`, borderRadius: 999, padding: "3px 9px" }}>
-                      <Check size={10} /> {s}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize: ".78rem", color: C.textMuted }}>No direct skill overlap found — this match is based on role and title similarity.</div>
-            )}
-          </div>
-        );
-      })()}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 14, fontSize: ".82rem", color: C.textSub }}>
+        {job.location && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><MapPin size={14} color={C.textMuted} /> {job.location}</span>}
+        {job.postedAt && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Clock size={14} color={C.textMuted} /> Posted {timeAgo(job.postedAt)}</span>}
+        {job.department && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Briefcase size={14} color={C.textMuted} /> {job.department}</span>}
+        {isRemote && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Globe size={14} color={C.textMuted} /> Remote</span>}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Building2 size={14} color={C.textMuted} /> via {SOURCE_LABEL[job.source] || "company site"}</span>
+      </div>
 
-      {job.descriptionText && (
-        <div style={{ marginTop: 12, fontSize: ".8rem", color: C.textSub, lineHeight: 1.6 }}>
-          {expanded ? job.descriptionText : snippet}
-          {job.descriptionText.length > 220 && (
-            <button onClick={() => setExpanded(v => !v)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: ".76rem", fontWeight: 700, color: C.accentText, background: "none", border: "none", cursor: "pointer", marginLeft: 4, padding: 0 }}>
-              {expanded ? "less" : "…more"} <ChevronDown size={12} style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-            </button>
-          )}
+      {/* Premium: auto-apply — shown first because it's the fastest way to apply */}
+      {canAutoApply && (
+        <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 12, background: C.goldSoft, border: `1px solid ${C.goldBorder}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <PremiumTag />
+            <span style={{ fontSize: ".78rem", fontWeight: 700, color: C.goldText }}>Best way to apply</span>
+          </div>
+          <div style={{ fontSize: ".86rem", color: C.text, margin: "8px 0 12px", lineHeight: 1.5 }}>
+            We fill in the form with your resume and saved answers and submit it for you. No copy-pasting.
+            {user && !paid && " Included with the Clarity and Pro plans."}
+          </div>
+          <button onClick={autoApplyNow} disabled={autoApplying} className="jb-btn" style={{ ...btnBase, color: "#fff", background: C.gold, border: "none" }}>
+            {autoApplying ? <Spin size={14} /> : paid ? <Zap size={15} /> : <Crown size={15} />} {autoApplying ? "Applying…" : autoApplyLabel}
+          </button>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+      {/* Other actions */}
+      <div style={{ display: "flex", gap: 8, marginTop: canAutoApply ? 12 : 18, flexWrap: "wrap" }}>
         {appliedStatus ? (
-          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 700, color: C.green, background: `${C.green}18`, border: `1px solid ${C.green}44`, borderRadius: 9, padding: "8px 14px" }}>
-            <Check size={13} /> Applied
+          <span style={{ ...btnBase, cursor: "default", color: C.greenText, background: `${C.green}1c` }}>
+            <Check size={15} /> Applied
           </span>
         ) : (
-          <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" onClick={markApplied} className="jp-pill-btn"
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 700, color: "#fff", background: C.accent, borderRadius: 9, padding: "8px 15px", textDecoration: "none" }}>
-            {marking ? <Spin size={13} /> : <ExternalLink size={13} />} Apply
+          <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" onClick={markApplied} className="jb-btn"
+            style={canAutoApply
+              ? { ...btnBase, color: C.text, background: C.card, border: `1px solid ${C.cardBorder}` }
+              : { ...btnBase, color: "#fff", background: C.accent }}>
+            {marking ? <Spin size={14} /> : <ExternalLink size={15} />} Apply on company site
           </a>
         )}
-        <button onClick={generateLetter} className="jp-pill-btn"
-          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 600, color: C.accentText, background: C.accentSoft, border: "none", borderRadius: 9, padding: "8px 15px", cursor: "pointer" }}>
-          <FileText size={13} /> Cover Letter
+        <button onClick={() => practiceJob(job, onNavigate)} className="jb-btn"
+          style={{ ...btnBase, color: C.accentText, background: C.accentSoft, border: "none" }}>
+          <Mic size={15} /> Practice interview
         </button>
-        {!appliedStatus && job.autoApplySupported && (
-          <button onClick={autoApplyNow} disabled={autoApplying} className="jp-pill-btn"
-            title={!user ? "Sign in to use Auto-Apply" : user.autoApply?.enabled ? "Submit this application automatically, right now" : "Enable Auto-Apply in settings first"}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 700, color: C.text, background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "8px 15px", cursor: autoApplying ? "default" : "pointer" }}>
-            {autoApplying ? <Spin size={13} /> : <Bot size={13} />} Auto-Apply
-          </button>
-        )}
+        <button onClick={generateLetter} className="jb-btn"
+          style={{ ...btnBase, color: C.text, background: C.card, border: `1px solid ${C.cardBorder}` }}>
+          <FileText size={15} /> Cover letter
+        </button>
       </div>
+      {error && !showLetter && <div style={{ fontSize: ".8rem", color: C.red, marginTop: 10 }}>{error}</div>}
 
+      {/* Auto-apply follow-ups */}
       {autoApplyResult && autoApplyResult.unansweredQuestions?.length > 0 && (
-        <div style={{ marginTop: 10, background: `${C.orange}0d`, border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "12px 14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".78rem", fontWeight: 700, color: C.orange, marginBottom: 10 }}>
-            <AlertTriangle size={14} /> This form asks new questions — answer once, reused for every future application
+        <div style={{ marginTop: 14, background: `${C.orange}0d`, border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: ".8rem", fontWeight: 700, color: C.orange, marginBottom: 10 }}>
+            <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} /> This form has a few new questions. Answer them once and we'll reuse your answers on every future application.
           </div>
           {autoApplyResult.unansweredQuestions.some((q) => FRESHER_DEFAULTS.some((d) => d.pattern.test(q.label))) && (
-            <button type="button" onClick={applyFresherDefaults}
-              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".74rem", fontWeight: 700, color: C.accentText, background: C.accentSoft, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", marginBottom: 10 }}>
-              <Sparkles size={12} /> I'm a fresher — skip work history questions
+            <button type="button" onClick={applyFresherDefaults} className="jb-btn"
+              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".76rem", fontWeight: 700, color: C.accentText, background: C.accentSoft, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", marginBottom: 10, fontFamily: "inherit" }}>
+              <GraduationCap size={13} /> I'm a fresher, fill the work-history questions
             </button>
           )}
           {autoApplyResult.unansweredQuestions.map((q) => (
             <div key={q.id || q.label} style={{ marginBottom: 8 }}>
-              <label style={{ display: "block", fontSize: ".76rem", color: C.textSub, marginBottom: 4 }}>{q.label}</label>
+              <label style={{ display: "block", fontSize: ".78rem", color: C.textSub, marginBottom: 4 }}>{q.label}</label>
               <input
-                className="jp-input"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                className="jb-input"
                 value={answerDrafts[q.label] || ""}
                 onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.label]: e.target.value }))}
                 placeholder="Your answer"
               />
             </div>
           ))}
-          <button onClick={saveAnswersAndRetry} disabled={savingAnswers || autoApplying} className="jp-pill-btn"
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".76rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 9, padding: "8px 14px", cursor: savingAnswers ? "default" : "pointer", marginTop: 4 }}>
-            {(savingAnswers || autoApplying) ? <Spin size={13} /> : <Check size={13} />} Save &amp; Retry
+          <button onClick={saveAnswersAndRetry} disabled={savingAnswers || autoApplying} className="jb-btn"
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".8rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", marginTop: 4, fontFamily: "inherit" }}>
+            {(savingAnswers || autoApplying) ? <Spin size={13} /> : <Check size={13} />} Save and try again
           </button>
         </div>
       )}
 
       {autoApplyResult && !(autoApplyResult.unansweredQuestions?.length > 0) && (
-        <div style={{
-          marginTop: 10, display: "flex", alignItems: "center", gap: 8, fontSize: ".78rem", borderRadius: 9, padding: "9px 12px",
-          color: autoApplyResult.status === "submitted" ? C.green : autoApplyResult.status === "needs_manual_action" ? C.orange : C.red,
-          background: `${autoApplyResult.status === "submitted" ? C.green : autoApplyResult.status === "needs_manual_action" ? C.orange : C.red}14`,
-          border: `1px solid ${autoApplyResult.status === "submitted" ? C.green : autoApplyResult.status === "needs_manual_action" ? C.orange : C.red}44`,
-        }}>
-          {autoApplyResult.status === "submitted" ? <Check size={14} /> : <AlertTriangle size={14} />}
-          {autoApplyResult.status === "submitted" ? "Submitted successfully"
-            : autoApplyResult.status === "needs_manual_action" ? `Needs your action — ${autoApplyResult.reason}`
-            : `Failed — ${autoApplyResult.reason}`}
+        <div style={{ marginTop: 14, display: "flex", alignItems: "flex-start", gap: 8, fontSize: ".82rem", borderRadius: 8, padding: "10px 12px", color: statusColor, background: `${statusColor}14`, border: `1px solid ${statusColor}44` }}>
+          {autoApplyResult.status === "submitted" ? <Check size={15} style={{ flexShrink: 0 }} /> : <AlertTriangle size={15} style={{ flexShrink: 0 }} />}
+          {autoApplyResult.status === "submitted" ? "Application submitted."
+            : autoApplyResult.status === "needs_manual_action" ? `Needs your action: ${autoApplyResult.reason}`
+            : `Couldn't submit: ${autoApplyResult.reason}`}
         </div>
       )}
 
+      {/* Cover letter */}
       {showLetter && (
-        <div style={{ marginTop: 12, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "12px 14px" }}>
+        <div style={{ marginTop: 14, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: ".84rem", fontWeight: 700, color: C.text }}>Cover letter for this role</div>
+            <button onClick={() => setShowLetter(false)} aria-label="Close cover letter"
+              style={{ display: "flex", background: "none", border: "none", color: C.textMuted, cursor: "pointer", padding: 2 }}>
+              <X size={16} />
+            </button>
+          </div>
           {generating ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: ".8rem", color: C.textMuted }}><Spin size={14} /> Writing a tailored cover letter…</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: ".82rem", color: C.textMuted }}><Spin size={14} /> Writing it from your profile and this job…</div>
           ) : error ? (
-            <div style={{ fontSize: ".8rem", color: C.red }}>{error}</div>
+            <div style={{ fontSize: ".82rem", color: C.red }}>{error}</div>
           ) : (
             <>
-              <div style={{ fontSize: ".8rem", color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginBottom: 10 }}>{letter}</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={copyLetter}
-                  style={{ fontSize: ".72rem", fontWeight: 700, color: copied ? C.green : C.accentText, background: "none", border: `1px solid ${copied ? C.green : C.cardBorder}`, borderRadius: 8, padding: "5px 11px", cursor: "pointer" }}>
-                  {copied ? "Copied ✓" : "Copy"}
-                </button>
-                <button onClick={() => setShowLetter(false)}
-                  style={{ fontSize: ".72rem", fontWeight: 600, color: C.textMuted, background: "none", border: "none", cursor: "pointer" }}>
-                  Close
-                </button>
-              </div>
+              <div style={{ fontSize: ".84rem", color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.65, marginBottom: 12 }}>{letter}</div>
+              <button onClick={copyLetter} className="jb-btn"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 700, color: copied ? C.greenText : C.text, background: C.card, border: `1px solid ${copied ? C.green : C.cardBorder}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy"}
+              </button>
             </>
           )}
         </div>
       )}
+
+      {/* Match */}
+      {tier && (
+        <div style={{ marginTop: 22, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: "1.2rem", fontWeight: 700, color: tier.color, fontVariantNumeric: "tabular-nums" }}>{score}%</span>
+            <span style={{ fontSize: ".84rem", fontWeight: 600, color: C.text }}>{tier.label} for your resume</span>
+          </div>
+          {matchedSkills?.length > 0 ? (
+            <>
+              <div style={{ fontSize: ".76rem", color: C.textSub, margin: "10px 0 6px" }}>Skills from your resume this job asks for</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {matchedSkills.map(s => (
+                  <Tag key={s} color={C.greenText} bg={`${C.green}14`} border={`${C.green}44`}><Check size={11} /> {s}</Tag>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: ".8rem", color: C.textSub, marginTop: 8 }}>No direct skill overlap. This match is based on how close the role and title are to what you're aiming for.</div>
+          )}
+        </div>
+      )}
+
+      {/* Description */}
+      {description && (
+        <div style={{ marginTop: 24 }}>
+          <h3 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 700, color: C.text }}>About the job</h3>
+          <div style={{ fontSize: ".88rem", color: C.textSub, lineHeight: 1.7, whiteSpace: "pre-line", maxWidth: "70ch", overflowWrap: "anywhere" }}>
+            {description}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Filters (sidebar on desktop, sheet on phones) ───────────────────────────
+function FilterSection({ title, children }) {
+  return (
+    <div style={{ padding: "16px 0", borderTop: `1px solid ${C.cardBorder}` }}>
+      <div style={{ fontSize: ".86rem", fontWeight: 700, color: C.text, marginBottom: 10 }}>{title}</div>
+      {children}
     </div>
   );
 }
@@ -491,16 +673,22 @@ function JobCard({ job, score, matchedSkills, appliedStatus, onApplied, onNaviga
 // ─── Jobs page ────────────────────────────────────────────────────────────────
 export default function JobsPage({ onNavigate, onAuthRequired }) {
   const { user } = useAuth();
+  const wide = useMediaQuery("(min-width: 1100px)");
+  const narrow = useMediaQuery("(max-width: 640px)");
   const [mode, setMode] = useState("all"); // "all" | "matched"
 
   const [q, setQ] = useState("");
   const [location, setLocation] = useState("");
+  const [cityDraft, setCityDraft] = useState("");
   const [source, setSource] = useState("");
   const [company, setCompany] = useState("");
   const [remote, setRemote] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [department, setDepartment] = useState("");
   const [postedWithin, setPostedWithin] = useState(""); // "" | "24h" | "3d" | "7d"
+  const [sortBy, setSortBy] = useState("relevance");   // "relevance" | "newest"
+  const [showAllDepts, setShowAllDepts] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false); // phone/tablet sheet
 
   const [jobs, setJobs] = useState(null); // null = loading
   const [total, setTotal] = useState(0);
@@ -509,6 +697,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   const [needsExtraction, setNeedsExtraction] = useState(false);
   const [error, setError] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
+  const [open, setOpen] = useState(null); // { id, autoStart } — the job in the details panel
 
   const PAGE_SIZE = 50; // backend caps at 50/request (see GET /api/jobs)
 
@@ -567,8 +756,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   };
 
   // Appends the next page to the existing list rather than replacing it —
-  // "Load More" keeps everything already rendered (and any in-progress
-  // auto-apply state on those cards) in place.
+  // "Show more" keeps everything already rendered (and the open job) in place.
   const loadMore = async () => {
     const forMode = mode;
     const nextPage = page + 1;
@@ -605,39 +793,44 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     jobsAPI.companies().then((res) => setCompanies(res.companies || [])).catch(() => {});
   }, []);
 
-  const onSearch = (e) => {
-    e.preventDefault();
-    if (mode === "all") loadAll();
+  const switchMode = (next) => {
+    if (next === mode) return;
+    setJobs(null);
+    setOpen(null);
+    setMode(next);
   };
 
-  // Shared by every filter that should apply immediately (pills, Company/Source
-  // dropdowns) rather than waiting on the Search button — takes whichever
-  // fields changed as overrides, syncs their state, and refetches page 1.
+  const onSearch = (e) => {
+    e.preventDefault();
+    if (mode === "all") loadAll(); else switchMode("all");   // searching always means all jobs
+  };
+
+  // Shared by every filter that should apply immediately (chips, checkboxes,
+  // dropdowns, suggested searches) rather than waiting on the Search button —
+  // takes whichever fields changed as overrides, syncs their state, and refetches page 1.
   const applyServerFilters = (overrides = {}) => {
     const setters = { q: setQ, location: setLocation, company: setCompany, source: setSource, remote: setRemote };
     Object.entries(overrides).forEach(([key, val]) => setters[key]?.(val));
+    // From "Recommended", switch tabs; the mode effect then loads with the new values.
+    if (mode !== "all") { switchMode("all"); return; }
     setJobs(null);
     setError("");
     setPage(1);
     jobsAPI.list({ q, location, company, source, remote, ...overrides, page: 1, limit: PAGE_SIZE })
-      .then((res) => { setJobs(res.jobs || []); setTotal(res.total || 0); })
+      .then((res) => { if (requestModeRef.current !== "all") return; setJobs(res.jobs || []); setTotal(res.total || 0); })
       .catch((err) => { setError(err.message || "Failed to load jobs"); setJobs([]); });
   };
 
-  const toggleIndia = () => {
-    const next = location.trim().toLowerCase() === "india" ? "" : "India";
+  const setCity = (city) => {
+    const next = location.trim().toLowerCase() === city.toLowerCase() ? "" : city;
     applyServerFilters({ location: next, remote: false });
   };
 
-  const toggleRemote = () => {
-    const next = !remote;
-    applyServerFilters({ remote: next, location: next ? "" : location });
-  };
-
-  const hasActiveFilters = !!(q || location || company || source || remote || department || postedWithin);
+  const activeFilterCount = [location, remote, postedWithin, department, company, source].filter(Boolean).length;
+  const hasActiveFilters = !!(q || activeFilterCount);
 
   const clearFilters = () => {
-    setDepartment(""); setPostedWithin("");
+    setDepartment(""); setPostedWithin(""); setCityDraft("");
     applyServerFilters({ q: "", location: "", company: "", source: "", remote: false });
   };
 
@@ -660,219 +853,362 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   }, [jobs, mode]);
 
   // Department + posted-within apply client-side on top of whatever's loaded —
-  // neither has server-side support yet (see `departments` above).
+  // neither has server-side support yet (see `departments` above). Sorting is
+  // client-side too, over the loaded set.
   const filteredItems = useMemo(() => {
-    if (mode !== "all" || (!department && !postedWithin)) return items;
-    const cutoff = postedWithin
-      ? Date.now() - { "24h": 1, "3d": 3, "7d": 7 }[postedWithin] * 86400000
-      : null;
-    return items.filter(({ job }) => {
-      if (department && job.department !== department) return false;
-      if (cutoff && (!job.postedAt || new Date(job.postedAt).getTime() < cutoff)) return false;
-      return true;
-    });
-  }, [items, department, postedWithin, mode]);
+    let out = items;
+    if (mode === "all" && (department || postedWithin)) {
+      const cutoff = postedWithin
+        ? Date.now() - { "24h": 1, "3d": 3, "7d": 7 }[postedWithin] * 86400000
+        : null;
+      out = out.filter(({ job }) => {
+        if (department && job.department !== department) return false;
+        if (cutoff && (!job.postedAt || new Date(job.postedAt).getTime() < cutoff)) return false;
+        return true;
+      });
+    }
+    if (sortBy === "newest") {
+      out = [...out].sort((a, b) => new Date(b.job.postedAt || 0) - new Date(a.job.postedAt || 0));
+    }
+    return out;
+  }, [items, department, postedWithin, mode, sortBy]);
 
   const clientFiltered = mode === "all" && (department || postedWithin);
+  const resultCount = clientFiltered ? filteredItems.length : total;
+
+  const openItem = open && items.find(it => it.job._id === open.id);
+
+  // Escape closes the details panel or the filter sheet.
+  useEffect(() => {
+    if (!open && !filtersOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") { setOpen(null); setFiltersOpen(false); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, filtersOpen]);
+
+  const showResults = !(mode === "matched" && !user) && !needsExtraction;
+  const paidPlan = planAllowsAutoApply(user);
+  const autoApplyOn = paidPlan && !!user?.autoApply?.enabled;
+
+  // Card "Auto-apply": sign in → upgrade → otherwise open the job and start applying.
+  const startAutoApply = (jobId) => {
+    if (!user) { onAuthRequired?.(); return; }
+    if (!paidPlan) { onNavigate?.("upgrade"); return; }
+    setOpen({ id: jobId, autoStart: true });
+  };
+
+  // ── Filter panel (same content in the sidebar and the phone sheet) ──
+  const visibleDepts = showAllDepts ? departments : departments.slice(0, 8);
+  const filterPanel = (
+    <>
+      <FilterSection title="Location">
+        <form onSubmit={(e) => { e.preventDefault(); if (cityDraft.trim()) applyServerFilters({ location: cityDraft.trim(), remote: false }); }}>
+          <input className="jb-input" value={cityDraft} onChange={e => setCityDraft(e.target.value)} placeholder="Search for a city" aria-label="Search for a city" />
+        </form>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          {CITIES.map(city => {
+            const on = location.trim().toLowerCase() === city.toLowerCase();
+            return <button key={city} type="button" onClick={() => setCity(city)} className={`jb-chip${on ? " on" : ""}`} aria-pressed={on}>{city}</button>;
+          })}
+        </div>
+        {location && !CITIES.some(c => c.toLowerCase() === location.trim().toLowerCase()) && (
+          <div style={{ marginTop: 8 }}>
+            <button type="button" onClick={() => applyServerFilters({ location: "" })} className="jb-chip on" aria-pressed="true" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              {location} <X size={12} />
+            </button>
+          </div>
+        )}
+      </FilterSection>
+
+      <FilterSection title="Work mode">
+        <label className="jb-check">
+          <input type="checkbox" checked={remote} onChange={() => applyServerFilters({ remote: !remote, location: !remote ? "" : location })} />
+          Remote only
+        </label>
+      </FilterSection>
+
+      <FilterSection title="Date posted">
+        {DATE_OPTIONS.map(o => (
+          <label key={o.id || "any"} className="jb-check">
+            <input type="radio" name="jb-posted" checked={postedWithin === o.id} onChange={() => setPostedWithin(o.id)} />
+            {o.label}
+          </label>
+        ))}
+      </FilterSection>
+
+      {departments.length > 0 && (
+        <FilterSection title="Function">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {visibleDepts.map(d => {
+              const on = department === d;
+              return <button key={d} type="button" onClick={() => setDepartment(on ? "" : d)} className={`jb-chip${on ? " on" : ""}`} aria-pressed={on}>{d}</button>;
+            })}
+          </div>
+          {departments.length > 8 && (
+            <button type="button" onClick={() => setShowAllDepts(v => !v)} className="jb-link" style={{ marginTop: 8, fontSize: ".8rem", fontWeight: 600, color: C.accentText }}>
+              {showAllDepts ? "Show fewer" : `Show all ${departments.length}`}
+            </button>
+          )}
+        </FilterSection>
+      )}
+
+      <FilterSection title="Company">
+        <select value={company} onChange={e => applyServerFilters({ company: e.target.value })} className="jb-input jb-select" aria-label="Company">
+          <option value="">All companies</option>
+          {companies.map(c => <option key={c.company} value={c.company}>{c.company} ({c.count})</option>)}
+        </select>
+      </FilterSection>
+
+      <FilterSection title="Job board">
+        <select value={source} onChange={e => applyServerFilters({ source: e.target.value })} className="jb-input jb-select" aria-label="Job board">
+          <option value="">All job boards</option>
+          <option value="greenhouse">Greenhouse</option>
+          <option value="lever">Lever</option>
+          <option value="firecrawl">Company site</option>
+        </select>
+      </FilterSection>
+    </>
+  );
+
+  const filterHeader = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "1.02rem", fontWeight: 700, color: C.text }}>
+        <SlidersHorizontal size={17} /> Filters
+      </div>
+      {hasActiveFilters && (
+        <button type="button" onClick={clearFilters} className="jb-link" style={{ fontSize: ".84rem", fontWeight: 600, color: C.accentText }}>Clear all</button>
+      )}
+    </div>
+  );
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 60px" }}>
+    <div style={{ padding: "8px 16px 60px" }}>
       <PageStyles />
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Briefcase size={20} color={C.accentText} />
-          <span style={{ fontSize: "1.15rem", fontWeight: 800, color: C.text }}>Jobs</span>
+      {/* ── Hero search ── */}
+      <section style={{ maxWidth: 860, margin: "0 auto", padding: narrow ? "12px 0 20px" : "28px 0 28px", textAlign: "center" }}>
+        <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400, fontSize: narrow ? "1.8rem" : "clamp(2rem, 3.6vw, 2.6rem)", lineHeight: 1.15, color: C.text, textWrap: "balance" }}>
+          Find your next role
+        </h1>
+        <p style={{ margin: "10px auto 0", maxWidth: 560, fontSize: ".95rem", lineHeight: 1.5, color: C.textSub }}>
+          Live openings from company career pages, refreshed every few hours. Practice the interview before you apply.
+        </p>
+
+        <form onSubmit={onSearch} style={{
+          display: "flex", flexDirection: narrow ? "column" : "row", alignItems: narrow ? "stretch" : "center", gap: narrow ? 0 : 0,
+          margin: "22px auto 0", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: narrow ? 14 : 999,
+          padding: narrow ? 6 : "4px 5px 4px 18px", boxShadow: "0 8px 24px -16px rgba(20,16,40,.35)", textAlign: "left",
+        }}>
+          <label style={{ flex: 2, display: "flex", alignItems: "center", gap: 10, minWidth: 0, padding: narrow ? "0 10px" : 0 }}>
+            <Search size={18} color={C.textMuted} style={{ flexShrink: 0 }} />
+            <input className="jb-field" value={q} onChange={e => setQ(e.target.value)} placeholder="Job title, skill or company" aria-label="Job title, skill or company" />
+          </label>
+          <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, minWidth: 0, padding: narrow ? "0 10px" : "0 14px", borderLeft: narrow ? "none" : `1px solid ${C.cardBorder}`, borderTop: narrow ? `1px solid ${C.cardBorder}` : "none" }}>
+            <MapPin size={18} color={C.textMuted} style={{ flexShrink: 0 }} />
+            <input className="jb-field" value={location} onChange={e => setLocation(e.target.value)} placeholder="City or country" aria-label="Location" />
+          </label>
+          <button type="submit" className="jb-btn"
+            style={{ fontSize: ".95rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 999, padding: "0 28px", minHeight: 46, cursor: "pointer", fontFamily: "inherit" }}>
+            Search
+          </button>
+        </form>
+
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 14 }}>
+          {SUGGESTED.map(s => (
+            <button key={s.label} type="button" className="jb-suggest"
+              onClick={() => { setDepartment(""); setPostedWithin(""); applyServerFilters({ q: s.q, location: s.location, remote: s.remote, company: "", source: "" }); }}>
+              {s.label}
+            </button>
+          ))}
         </div>
-        {user ? (
-          <button onClick={() => onNavigate?.("profile")}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 600, color: C.textSub, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 9, padding: "7px 13px", cursor: "pointer" }}>
-            <Settings size={13} /> Auto-Apply settings
-          </button>
-        ) : (
-          <button onClick={() => onAuthRequired?.()} className="jp-pill-btn"
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 9, padding: "7px 14px", cursor: "pointer" }}>
-            <LogIn size={13} /> Sign in
-          </button>
+      </section>
+
+      {/* ── Filters + results ── */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: wide && mode === "all" ? "270px minmax(0, 1fr)" : "minmax(0, 1fr)", gap: 22, alignItems: "start" }}>
+        {wide && mode === "all" && (
+          <aside style={{ position: "sticky", top: 12, maxHeight: "calc(100dvh - 81px)", overflowY: "auto", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "18px 18px 6px" }}>
+            {filterHeader}
+            {filterPanel}
+          </aside>
         )}
-      </div>
 
-      <div style={{ fontSize: ".82rem", color: C.textMuted, marginBottom: 18 }}>
-        Live postings from Greenhouse &amp; Lever. Generate a tailored cover letter, then apply on the real site.
-      </div>
+        <main style={{ minWidth: 0 }}>
+          {/* Tabs */}
+          <div role="tablist" style={{ display: "flex", gap: 22, borderBottom: `1px solid ${C.cardBorder}`, marginBottom: 14 }}>
+            {[
+              { id: "all", label: "All jobs" },
+              { id: "matched", label: "Recommended for you" },
+            ].map(t => (
+              <button key={t.id} role="tab" aria-selected={mode === t.id} onClick={() => switchMode(t.id)}
+                style={{ background: "none", border: "none", padding: "10px 0", marginBottom: -1, cursor: "pointer", fontFamily: "inherit", fontSize: ".92rem", fontWeight: mode === t.id ? 700 : 500, color: mode === t.id ? C.text : C.textSub, borderBottom: `2px solid ${mode === t.id ? C.accent : "transparent"}` }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-      {/* ── Mode tabs ── */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <button className="jp-tab" onClick={() => { setJobs(null); setMode("all"); }}
-          style={{ fontSize: ".82rem", fontWeight: 700, borderRadius: 999, padding: "8px 16px", cursor: "pointer",
-            background: mode === "all" ? C.accent : C.active, color: mode === "all" ? "#fff" : C.textSub,
-            border: `1px solid ${mode === "all" ? C.accent : C.cardBorder}` }}>
-          All Jobs
-        </button>
-        <button className="jp-tab" onClick={() => { setJobs(null); setMode("matched"); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, fontSize: ".82rem", fontWeight: 700, borderRadius: 999, padding: "8px 16px", cursor: "pointer",
-            background: mode === "matched" ? C.accent : C.active, color: mode === "matched" ? "#fff" : C.textSub,
-            border: `1px solid ${mode === "matched" ? C.accent : C.cardBorder}` }}>
-          <Sparkles size={13} /> Matched to My Resume
-        </button>
-      </div>
-
-      {/* ── Filter panel (All Jobs mode only) ── */}
-      {mode === "all" && (
-        <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "16px 18px", marginBottom: 18 }}>
-          <form onSubmit={onSearch}>
-            <div style={{ position: "relative", marginBottom: 10 }}>
-              <Search size={15} color={C.textMuted} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)" }} />
-              <input className="jp-input" style={{ width: "100%", boxSizing: "border-box", paddingLeft: 38, fontSize: ".86rem", padding: "11px 14px 11px 38px" }}
-                placeholder="Role, skill or company — e.g. Backend Engineer, React, Razorpay" value={q} onChange={e => setQ(e.target.value)} />
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
-              <div style={{ position: "relative" }}>
-                <MapPin size={13} color={C.textMuted} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)" }} />
-                <input className="jp-input" style={{ width: "100%", boxSizing: "border-box", paddingLeft: 30 }}
-                  placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
+          {/* Premium banner — until auto-apply is switched on */}
+          {showResults && !autoApplyOn && (
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "14px 16px", marginBottom: 14, borderRadius: 12, background: C.goldSoft, border: `1px solid ${C.goldBorder}` }}>
+              <div style={{ width: 38, height: 38, borderRadius: 9, background: C.gold, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Zap size={19} />
               </div>
-
-              <div style={{ position: "relative" }}>
-                <Building2 size={13} color={C.textMuted} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <select className="jp-input jp-select" value={company} onChange={e => applyServerFilters({ company: e.target.value })} style={{ width: "100%", boxSizing: "border-box", paddingLeft: 30 }}>
-                  <option value="">All companies</option>
-                  {companies.map(c => (
-                    <option key={c.company} value={c.company}>{c.company} ({c.count})</option>
-                  ))}
-                </select>
+              <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: ".95rem", fontWeight: 700, color: C.text }}>Let Atyant apply for you</span>
+                  <PremiumTag />
+                </div>
+                <div style={{ fontSize: ".84rem", color: C.textSub, marginTop: 3, lineHeight: 1.45 }}>
+                  {paidPlan
+                    ? "Turn on Auto-apply once. We fill in and submit applications for jobs that match your resume."
+                    : "We fill in and submit applications for jobs that match your resume. Included with the Clarity and Pro plans."}
+                </div>
               </div>
-
-              <div style={{ position: "relative" }}>
-                <Filter size={13} color={C.textMuted} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <select className="jp-input jp-select" value={source} onChange={e => applyServerFilters({ source: e.target.value })} style={{ width: "100%", boxSizing: "border-box", paddingLeft: 30 }}>
-                  <option value="">All sources</option>
-                  <option value="greenhouse">Greenhouse</option>
-                  <option value="lever">Lever</option>
-                  <option value="firecrawl">Firecrawl</option>
-                </select>
-              </div>
-
-              <div style={{ position: "relative" }}>
-                <Layers size={13} color={C.textMuted} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <select className="jp-input jp-select" value={department} onChange={e => setDepartment(e.target.value)} style={{ width: "100%", boxSizing: "border-box", paddingLeft: 30 }}>
-                  <option value="">All departments</option>
-                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-
-              <div style={{ position: "relative" }}>
-                <Clock size={13} color={C.textMuted} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-                <select className="jp-input jp-select" value={postedWithin} onChange={e => setPostedWithin(e.target.value)} style={{ width: "100%", boxSizing: "border-box", paddingLeft: 30 }}>
-                  <option value="">Any time</option>
-                  <option value="24h">Last 24 hours</option>
-                  <option value="3d">Last 3 days</option>
-                  <option value="7d">Last 7 days</option>
-                </select>
-              </div>
-
-              <button type="submit" className="jp-pill-btn"
-                style={{ fontSize: ".84rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 10, padding: "0 18px", cursor: "pointer", minHeight: 38 }}>
-                Search
+              <button onClick={() => (!user ? onAuthRequired?.() : !paidPlan ? onNavigate?.("upgrade") : onNavigate?.("profile"))} className="jb-btn"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".86rem", fontWeight: 700, color: "#fff", background: C.gold, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer", fontFamily: "inherit" }}>
+                {!user ? <><LogIn size={15} /> Sign in to start</>
+                  : !paidPlan ? <><Crown size={15} /> See plans</>
+                  : <><Settings size={15} /> Turn on Auto-apply</>}
               </button>
             </div>
-          </form>
+          )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.cardBorder}` }}>
-            <span style={{ fontSize: ".68rem", fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: ".04em" }}>Quick filters</span>
-            <button type="button" onClick={toggleIndia} className="jp-pill-btn"
-              style={{ fontSize: ".76rem", fontWeight: 700, borderRadius: 999, padding: "6px 14px", cursor: "pointer",
-                background: location.trim().toLowerCase() === "india" ? C.accentSoft : C.active,
-                color: location.trim().toLowerCase() === "india" ? C.accentText : C.textSub,
-                border: `1px solid ${location.trim().toLowerCase() === "india" ? C.accent : C.cardBorder}` }}>
-              🇮🇳 India
-            </button>
-            <button type="button" onClick={toggleRemote} className="jp-pill-btn"
-              style={{ fontSize: ".76rem", fontWeight: 700, borderRadius: 999, padding: "6px 14px", cursor: "pointer",
-                background: remote ? C.accentSoft : C.active, color: remote ? C.accentText : C.textSub,
-                border: `1px solid ${remote ? C.accent : C.cardBorder}` }}>
-              Remote only
-            </button>
-            {hasActiveFilters && (
-              <button type="button" onClick={clearFilters}
-                style={{ display: "flex", alignItems: "center", gap: 4, fontSize: ".76rem", fontWeight: 600, color: C.textMuted, background: "none", border: "none", cursor: "pointer", marginLeft: "auto", padding: "6px 4px" }}>
-                <X size={12} /> Clear all
+          {mode === "matched" && user && !needsExtraction && (
+            <p style={{ margin: "0 0 12px", fontSize: ".84rem", color: C.textSub }}>Ranked by how well each job fits the skills and projects on your resume.</p>
+          )}
+
+          {mode === "matched" && !user && (
+            <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "28px 22px", textAlign: "center" }}>
+              <LogIn size={24} color={C.accentText} style={{ display: "block", margin: "0 auto 10px" }} />
+              <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.text, marginBottom: 6 }}>Sign in to see jobs picked for you</div>
+              <div style={{ fontSize: ".84rem", color: C.textSub, marginBottom: 18, maxWidth: 420, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>
+                Anyone can browse. Recommendations, cover letters and Auto-apply need an account.
+              </div>
+              <button onClick={() => onAuthRequired?.()} className="jb-btn"
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: ".86rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontFamily: "inherit" }}>
+                <LogIn size={15} /> Sign in
               </button>
-            )}
+            </div>
+          )}
+
+          {needsExtraction && mode === "matched" && user && <SkillExtractGate onSaved={loadMatched} />}
+
+          {error && (
+            <div style={{ background: `${C.red}14`, border: `1px solid ${C.red}44`, borderRadius: 8, padding: "10px 14px", fontSize: ".84rem", color: C.red, marginBottom: 14 }}>
+              {error}
+            </div>
+          )}
+
+          {showResults && (
+            <>
+              {/* Count + sort */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {!wide && mode === "all" && (
+                    <button type="button" onClick={() => setFiltersOpen(true)} className="jb-btn"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".84rem", fontWeight: 600, color: C.text, background: C.card, border: `1px solid ${activeFilterCount ? C.accent : C.cardBorder}`, borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+                      <SlidersHorizontal size={15} /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
+                    </button>
+                  )}
+                  <span style={{ fontSize: ".9rem", color: C.textSub }}>
+                    {jobs === null ? "Loading jobs…" : <><b style={{ color: C.text, fontVariantNumeric: "tabular-nums" }}>{resultCount.toLocaleString("en-IN")}</b>{clientFiltered ? ` of ${jobs.length} loaded jobs match` : ` job${resultCount === 1 ? "" : "s"} found`}</>}
+                  </span>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: ".86rem", color: C.textSub }}>
+                  Sort by
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="jb-input jb-select" style={{ width: "auto", padding: "7px 12px" }}>
+                    <option value="relevance">{mode === "matched" ? "Best match" : "Relevance"}</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                </label>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {jobs === null && <CardSkeleton />}
+
+                {filteredItems.map(({ job, score, matchedSkills }) => (
+                  <JobCard
+                    key={job._id}
+                    job={job}
+                    score={score}
+                    matchedSkills={matchedSkills}
+                    applied={appliedJobIds.has(job._id)}
+                    paid={paidPlan}
+                    onOpen={() => setOpen({ id: job._id, autoStart: false })}
+                    onAutoApply={() => startAutoApply(job._id)}
+                    onPractice={() => practiceJob(job, onNavigate)}
+                  />
+                ))}
+              </div>
+
+              {jobs?.length === 0 && !error && (
+                <div style={{ textAlign: "center", color: C.textSub, fontSize: ".9rem", padding: "40px 12px", lineHeight: 1.5 }}>
+                  No jobs match this search. Try fewer filters, or check back later. New jobs come in every few hours.
+                </div>
+              )}
+
+              {jobs?.length > 0 && clientFiltered && filteredItems.length === 0 && (
+                <div style={{ textAlign: "center", color: C.textSub, fontSize: ".9rem", padding: "40px 12px", lineHeight: 1.5 }}>
+                  None of the loaded jobs match the date or function you picked. Widen them, or load more jobs first.
+                </div>
+              )}
+
+              {jobs?.length > 0 && jobs.length < total && (
+                <button onClick={loadMore} disabled={loadingMore} className="jb-btn"
+                  style={{ width: "100%", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: ".88rem", fontWeight: 700, color: C.text, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "12px 20px", cursor: "pointer", fontFamily: "inherit" }}>
+                  {loadingMore ? <><Spin size={14} /> Loading…</> : `Show more jobs (${jobs.length} of ${total.toLocaleString("en-IN")})`}
+                </button>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* ── Filters sheet (phones / tablets) ── */}
+      {filtersOpen && !wide && (
+        <div role="dialog" aria-modal="true" aria-label="Filters" style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", justifyContent: "flex-end" }}>
+          <div onClick={() => setFiltersOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(10,8,20,.5)" }} />
+          <div className="jb-drawer" style={{ position: "relative", width: "min(380px, 100%)", height: "100%", background: C.card, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "18px 18px 6px" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => setFiltersOpen(false)} aria-label="Close filters" style={{ display: "flex", background: "none", border: "none", color: C.textSub, cursor: "pointer", padding: 4 }}><X size={20} /></button>
+              </div>
+              {filterHeader}
+              {filterPanel}
+            </div>
+            <div style={{ padding: 14, borderTop: `1px solid ${C.cardBorder}` }}>
+              <button onClick={() => setFiltersOpen(false)} className="jb-btn"
+                style={{ width: "100%", fontSize: ".92rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 8, padding: "12px", cursor: "pointer", fontFamily: "inherit" }}>
+                {jobs === null ? "Loading…" : `Show ${resultCount.toLocaleString("en-IN")} jobs`}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {mode === "matched" && !user && (
-        <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "28px 22px", textAlign: "center" }}>
-          <Sparkles size={24} color={C.accentText} style={{ marginBottom: 10 }} />
-          <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.text, marginBottom: 6 }}>
-            Sign in to see jobs matched to your resume
+      {/* ── Job details panel ── */}
+      {openItem && (
+        <div role="dialog" aria-modal="true" aria-label={openItem.job.title} style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", justifyContent: "flex-end" }}>
+          <div onClick={() => setOpen(null)} style={{ position: "absolute", inset: 0, background: "rgba(10,8,20,.5)" }} />
+          <div className="jb-drawer" style={{ position: "relative", width: "min(680px, 100%)", height: "100%", overflowY: "auto", background: C.card, boxShadow: "-12px 0 40px -20px rgba(0,0,0,.5)" }}>
+            <div style={{ position: "sticky", top: 0, zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: C.card, borderBottom: `1px solid ${C.cardBorder}` }}>
+              <span style={{ fontSize: ".86rem", fontWeight: 600, color: C.textSub }}>Job details</span>
+              <button onClick={() => setOpen(null)} aria-label="Close job details" className="jb-btn"
+                style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: C.text, cursor: "pointer", padding: 6, fontSize: ".86rem", fontFamily: "inherit" }}>
+                <X size={18} /> Close
+              </button>
+            </div>
+            <JobDetail
+              key={openItem.job._id}
+              job={openItem.job}
+              score={openItem.score}
+              matchedSkills={openItem.matchedSkills}
+              appliedStatus={appliedJobIds.has(openItem.job._id)}
+              autoStart={open.autoStart}
+              onApplied={markLocalApplied}
+              onNavigate={onNavigate}
+              onAuthRequired={onAuthRequired}
+            />
           </div>
-          <div style={{ fontSize: ".84rem", color: C.textMuted, marginBottom: 18, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
-            Browsing is open to everyone. Match scores, tailored cover letters and Auto-Apply need an account.
-          </div>
-          <button onClick={() => onAuthRequired?.()} className="jp-pill-btn"
-            style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: ".85rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 10, padding: "10px 20px", cursor: "pointer" }}>
-            <LogIn size={15} /> Sign in
-          </button>
-        </div>
-      )}
-
-      {needsExtraction && mode === "matched" && user && <SkillExtractGate onSaved={loadMatched} />}
-
-      {error && (
-        <div style={{ background: `${C.red}14`, border: `1px solid ${C.red}44`, borderRadius: 10, padding: "10px 14px", fontSize: ".82rem", color: C.red, marginBottom: 14 }}>
-          {error}
-        </div>
-      )}
-
-      {jobs === null && !needsExtraction && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: C.textMuted, fontSize: ".85rem" }}>
-          <Spin size={16} /> Loading…
-        </div>
-      )}
-
-      {jobs?.length > 0 && (
-        <div style={{ fontSize: ".76rem", color: C.textMuted, marginBottom: 10, fontWeight: 600 }}>
-          {clientFiltered
-            ? `${filteredItems.length} of ${jobs.length} loaded jobs match these filters`
-            : `${total} job${total === 1 ? "" : "s"} found`}
-        </div>
-      )}
-
-      {jobs?.length === 0 && !needsExtraction && !error && !(mode === "matched" && !user) && (
-        <div style={{ textAlign: "center", color: C.textMuted, fontSize: ".85rem", padding: "36px 0" }}>
-          No jobs found — try a different search, or check back later (jobs sync every few hours).
-        </div>
-      )}
-
-      {jobs?.length > 0 && clientFiltered && filteredItems.length === 0 && (
-        <div style={{ textAlign: "center", color: C.textMuted, fontSize: ".85rem", padding: "36px 0" }}>
-          No loaded jobs match Department / Posted-within — try widening them, or Load More to pull in a bigger set first.
-        </div>
-      )}
-
-      {filteredItems.map(({ job, score, matchedSkills }) => (
-        <JobCard
-          key={job._id}
-          job={job}
-          score={score}
-          matchedSkills={matchedSkills}
-          appliedStatus={appliedJobIds.has(job._id)}
-          onApplied={markLocalApplied}
-          onNavigate={onNavigate}
-          onAuthRequired={onAuthRequired}
-        />
-      ))}
-
-      {jobs?.length > 0 && jobs.length < total && (
-        <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-          <button onClick={loadMore} disabled={loadingMore} className="jp-pill-btn"
-            style={{ display: "flex", alignItems: "center", gap: 7, fontSize: ".82rem", fontWeight: 700, color: C.textSub, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "10px 20px", cursor: loadingMore ? "default" : "pointer" }}>
-            {loadingMore ? <Spin size={14} /> : null} {loadingMore ? "Loading…" : `Load more (${jobs.length} of ${total})`}
-          </button>
         </div>
       )}
     </div>

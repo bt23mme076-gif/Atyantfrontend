@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI } from "../../api";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -59,8 +59,15 @@ const GREETING_CHIPS = [
 
 // "VNIT Nagpur" ? "VNIT" ; "iit bombay" ? "IIT" ; "Manipal" ? "Manipal"
 function collegeShort(college) {
-  const first = String(college || "").trim().split(/\s+/)[0] || "";
-  if (!first) return "";
+  // Long official names read better as their initials: "Visvesvaraya National Institute
+  // of Technology, Nagpur" → "VNIT", "Indian Institute of Technology Bombay" → "IITB".
+  const name = String(college || "").split(",")[0].trim();
+  const words = name.split(/\s+/).filter(Boolean);
+  if (!words.length) return "";
+  if (words.length >= 3) {
+    return words.filter(w => /^[A-Z]/.test(w)).map(w => w[0]).join("");
+  }
+  const first = words[0];
   return first.length <= 5 ? first.toUpperCase() : first;
 }
 
@@ -388,7 +395,51 @@ const MentorMatches = ({ mentors }) => {
   );
 };
 
-export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs }) {
+// ─── Rotating home headline ─────────────────────────────────────────────────
+// One line at a time, crossfading every few seconds. Holds still while the user
+// types, and stays on the first line for people who turn off motion.
+const HEADLINES = [
+  "Find someone exactly like you…",
+  "Practice before the real interview.",
+  "Ask seniors who cracked the same placement.",
+  "Learn what actually worked for them.",
+  "Find jobs that fit your profile.",
+];
+const HEADLINE_MS = 3000;
+
+function RotatingHeadline({ paused, style }) {
+  const reduceMotion = useReducedMotion();
+  const [i, setI] = useState(0);
+  const still = paused || reduceMotion;
+
+  useEffect(() => {
+    if (still) return;
+    const t = setInterval(() => setI(n => (n + 1) % HEADLINES.length), HEADLINE_MS);
+    return () => clearInterval(t);
+  }, [still]);
+
+  const line = reduceMotion ? HEADLINES[0] : HEADLINES[i];
+  return (
+    // Height is reserved for two lines so the search box below never jumps as lines change length.
+    <h1 aria-label={HEADLINES[0]} style={{ ...style, minHeight: "2.4em", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={line}
+          aria-hidden="true"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          style={{ display: "block", maxWidth: "18em" }}
+        >
+          {line}
+        </motion.span>
+      </AnimatePresence>
+    </h1>
+  );
+}
+
+export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview }) {
   const isMobile = useIsMobile();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
@@ -494,22 +545,35 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     ? `See verified paths for ${short}${context.branch ? " " + context.branch : ""}`
     : "See verified senior paths";
 
-  const quickActions = [
-    { label: "Switch Field" },
-    { label: "Get Roadmap" },
-
-    // Job search is open to everyone — signed-out visitors can browse the board,
-    // so this stays visible without an account. Highlighted because it's the
-    // strongest top-of-funnel hook on the page.
-    ...(user?.role !== "mentor"
-      ? [{ label: "Find Jobs", isNav: true, isHighlight: true }]
-      : []),
-
-    ...(!user
-      ? [{ label: "Become Mentor", isSpecial: true }]
-      : []),
-
-    { label: "Find My Match" },
+  // The two headline features on the landing view. Both are open to signed-out
+  // visitors; mentors don't use either, so they get the plain prompt box.
+  const featureCards = user?.role === "mentor" ? [] : [
+    {
+      key: "mock",
+      Icon: Mic,
+      title: "Practice a mock interview",
+      sub: "Speak your answers out loud and get feedback on each one.",
+      badge: "New",
+      badgeBg: C.accent,
+      // Same first-interview offer the mock interview checkout shows (MockInterviewPage PlanCard).
+      offer: { Icon: Gift, text: "Full report free on your first interview", color: "#1F9D63", bg: "rgba(61,190,130,0.12)" },
+      tint: "var(--c-accentSoft)",
+      ink: "var(--c-accentText)",
+      onClick: () => onGoToMockInterview?.(),
+    },
+    {
+      key: "jobs",
+      Icon: Briefcase,
+      title: "Browse open jobs",
+      sub: "Internships and fresher roles that fit your profile.",
+      badge: "New",
+      badgeBg: "#C2620A",
+      // Auto-Apply is a real toggle in Profile → Auto-Apply (Greenhouse & Lever jobs above your match score).
+      offer: { Icon: Zap, text: "Auto-apply to jobs that match you", color: "#C2620A", bg: "rgba(217,119,6,0.12)" },
+      tint: "rgba(217,119,6,0.12)",
+      ink: "#C2620A",
+      onClick: () => onGoToJobs?.(),
+    },
   ];
 
   // Pre-fill profile context if user is logged in
@@ -933,7 +997,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const wordCount = query.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: messages.length === 0 ? "auto" : "calc(100dvh - 57px)", minHeight: messages.length === 0 ? "calc(100dvh - 57px)" : 0, background: "transparent", fontFamily: "' Inter', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: messages.length === 0 ? "auto" : "calc(100dvh - 57px)", minHeight: messages.length === 0 ? "calc(100dvh - 57px)" : 0, background: "transparent", fontFamily: "var(--font-body)" }}>
       <HiddenFileInputs />
       {/* CSS Animations */}
       <style>{`
@@ -982,15 +1046,16 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
 
       {messages.length === 0 ? (
         /* Landing View */
-        <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-          <h1 style={{ position: "relative", zIndex: 1, textAlign: "center", fontSize: "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: "2rem", color: C.text, fontFamily: "Georgia,'Times New Roman',serif" }}>
-            Find someone exactly like you<span></span>...
-          </h1>
+        <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: isMobile ? "1.5rem 16px" : "2rem" }}>
+          <RotatingHeadline
+            paused={query.trim().length > 0}
+            style={{ position: "relative", zIndex: 1, margin: 0, textAlign: "center", fontSize: isMobile ? "1.7rem" : "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: isMobile ? "1.25rem" : "2rem", color: C.text, fontFamily: "var(--font-display)", textWrap: "balance" }}
+          />
 
           <div
-            style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, marginBottom: "0.6rem", display: "flex", flexDirection: "column", boxShadow: "0 18px 50px -24px var(--accent)", transition: "border-color 0.2s, box-shadow 0.2s" }}
-            onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22, 0 18px 50px -24px var(--accent)`; }}
-            onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "0 18px 50px -24px var(--accent)"; }}
+            style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 680, background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, marginBottom: "0.6rem", display: "flex", flexDirection: "column", boxShadow: "0 1px 2px rgba(20,16,40,0.05), 0 6px 18px -10px rgba(20,16,40,0.18)", transition: "border-color 0.2s, box-shadow 0.2s" }}
+            onFocusCapture={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.accent}22, 0 6px 18px -10px rgba(20,16,40,0.18)`; }}
+            onBlurCapture={e => { e.currentTarget.style.borderColor = C.cardBorder; e.currentTarget.style.boxShadow = "0 1px 2px rgba(20,16,40,0.05), 0 6px 18px -10px rgba(20,16,40,0.18)"; }}
           >
             {pendingFile && <PendingFilePreview />}
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10, padding: "0 0.75rem 0 1.25rem", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
@@ -1004,18 +1069,12 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                 value={query}
                 onChange={e => { setQuery(e.target.value); autoGrow(e.target); }}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Ask Atyant.."
+                placeholder={isMobile ? "Ask about placements…" : "Ask about placements, internships, CGPA…"}
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: "16px", fontFamily: "inherit", resize: "none", lineHeight: 1.5, padding: "15px 0", maxHeight: isMobile ? 96 : 140, overflowY: "auto" }}
               />
 
               {/* Right: badge + mic + send */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, height: 54 }}>
-                {!isMobile && (
-                  <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "3px 11px", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
-                    {badgeText}
-                  </span>
-                )}
                 <button
                   onClick={() => setShowVoiceOverlay(true)}
                   style={{
@@ -1145,18 +1204,10 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
             </div>
           )}
 
-          {isMobile ? (
-            <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
-              <span style={{ fontSize: "0.72rem", color: C.textMuted, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 999, padding: "5px 13px", display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, display: "inline-block", flexShrink: 0 }} />
-                {badgeText}
-              </span>
-            </div>
-          ) : (
-            <p style={{ position: "relative", zIndex: 1, fontSize: "0.78rem", color: C.textMuted, marginBottom: "1.5rem", textAlign: "center" }}>
-              Matched to 800+ verified journeys from engineering colleges across India
-            </p>
-          )}
+          <p style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: "0.78rem", color: C.textMuted, margin: "0.35rem 0 1.5rem", textAlign: "center" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, flexShrink: 0 }} />
+            {badgeText}
+          </p>
 
           <AnimatePresence mode="wait">
             {query.trim().length === 0 && (
@@ -1170,20 +1221,13 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                   visible: { transition: { staggerChildren: 0.06, delayChildren: 0 } },
                   exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
                 }}
-                style={{ position: "relative", zIndex: 1, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}
+                style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, width: "100%", maxWidth: 680, margin: "0 auto" }}
               >
-                {quickActions.map((a, i) => (
+                {featureCards.map(({ key, Icon, title, sub, badge, badgeBg, offer, tint, ink, onClick }) => (
                   <motion.button
-                    key={a.label}
-                    onClick={() => {
-                      if (a.isNav) {
-                        onGoToJobs?.();
-                      } else if (a.isSpecial) {
-                        onGoToMentorOnboard?.();
-                      } else {
-                        handleSend(a.label);
-                      }
-                    }}
+                    key={key}
+                    data-tour={`home-${key}`}
+                    onClick={onClick}
                     variants={{
                       hidden: { opacity: 0, y: 10, scale: 0.98 },
                       visible: { opacity: 1, y: 0, scale: 1 },
@@ -1192,49 +1236,39 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                     transition={{ duration: 0.22, ease: "easeOut" }}
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: a.isHighlight ? 7 : 0,
-                      background: a.isHighlight
-                        ? "linear-gradient(135deg, #F97316 0%, #EC4899 100%)"
-                        : a.isSpecial ? C.accent : "var(--c-active)",
-                      border: a.isHighlight
-                        ? "1px solid transparent"
-                        : a.isSpecial ? `1px solid ${C.accent}` : `1px solid var(--c-cardBorder)`,
-                      borderRadius: 999,
-                      padding: a.isHighlight ? "7px 20px" : "7px 18px",
-                      color: (a.isSpecial || a.isHighlight) ? "#fff" : C.textSub,
-                      fontSize: "0.82rem",
-                      fontWeight: (a.isSpecial || a.isHighlight) ? 600 : 500,
+                      alignItems: "flex-start",
+                      gap: 13,
+                      padding: "15px 16px",
+                      borderRadius: 12,
+                      border: "1px solid var(--c-cardBorder)",
+                      background: "var(--c-card)",
+                      color: C.text,
+                      textAlign: "left",
                       cursor: "pointer",
                       fontFamily: "inherit",
-                      boxShadow: a.isHighlight
-                        ? "0 4px 14px rgba(249,115,22,0.35)"
-                        : a.isSpecial ? "0 4px 12px rgba(117,103,201,0.25)" : "none",
-                      transition: "all 0.15s"
+                      transition: "border-color 0.15s ease, background-color 0.15s ease",
                     }}
-                    onMouseEnter={e => {
-                      if (a.isSpecial || a.isHighlight) {
-                        e.currentTarget.style.filter = "brightness(1.08)";
-                        e.currentTarget.style.transform = "translateY(-1px)";
-                      } else {
-                        e.currentTarget.style.background = C.cardHover;
-                        e.currentTarget.style.color = C.text;
-                        e.currentTarget.style.borderColor = C.accent + "88";
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (a.isSpecial || a.isHighlight) {
-                        e.currentTarget.style.filter = "none";
-                        e.currentTarget.style.transform = "none";
-                      } else {
-                        e.currentTarget.style.background = "var(--c-active)";
-                        e.currentTarget.style.color = C.textSub;
-                        e.currentTarget.style.borderColor = "var(--c-cardBorder)";
-                      }
-                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--c-activeBorder)"; e.currentTarget.style.background = "var(--c-cardHover)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--c-cardBorder)"; e.currentTarget.style.background = "var(--c-card)"; }}
                   >
-                    {a.isHighlight && <Briefcase size={14} />}
-                    {a.label}
+                    <span style={{ width: 38, height: 38, borderRadius: 9, background: tint, color: ink, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={19} strokeWidth={2} />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.3 }}>
+                        {title}
+                        {badge && (
+                          <span style={{ fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#fff", background: badgeBg || C.accent, borderRadius: 5, padding: "2px 6px", lineHeight: 1.3 }}>{badge}</span>
+                        )}
+                        <ArrowRight size={15} style={{ color: C.textMuted }} />
+                      </span>
+                      <span style={{ display: "block", fontSize: "0.8rem", color: C.textSub, marginTop: 4, lineHeight: 1.45 }}>{sub}</span>
+                      {offer && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, fontSize: "0.74rem", fontWeight: 600, color: offer.color, background: offer.bg, borderRadius: 4, padding: "3px 8px" }}>
+                          <offer.Icon size={12} /> {offer.text}
+                        </span>
+                      )}
+                    </span>
                   </motion.button>
                 ))}
               </motion.div>
@@ -1319,7 +1353,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", context)}
                           style={{
                             marginTop: 12,
-                            background: "linear-gradient(135deg, #7567C9, var(--c-accentText))",
+                            background: "#7567C9",
                             border: "none",
                             borderRadius: 8,
                             padding: "9px 14px",
@@ -1330,10 +1364,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 6,
-                            boxShadow: "0 3px 10px rgba(117,103,201,0.3)",
                           }}
                         >
-                          <Sparkles size={12} /> {matchBtnLabel} <ArrowRight size={12} />
+                          {matchBtnLabel} <ArrowRight size={12} />
                         </button>
                       )}
                     </div>

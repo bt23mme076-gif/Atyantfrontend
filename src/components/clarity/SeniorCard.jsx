@@ -61,18 +61,16 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
         <div style={{
           position: "absolute", top: 0, left: 0, bottom: 0, width: 3,
           borderRadius: "16px 0 0 16px",
-          background: `linear-gradient(180deg, ${T.accent}, #9F7AEA)`,
+          background: T.accent,
         }} />
       )}
 
       {/* Top row: avatar + name + match% */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 11, marginBottom: 10 }}>
-        {/* Avatar with gradient ring */}
+        {/* Avatar with ring — accent when selected */}
         <div style={{
           width: 42, height: 42, borderRadius: 12, flexShrink: 0, padding: 2,
-          background: isSelected
-            ? `linear-gradient(135deg, ${T.accent}, ${T.green})`
-            : `linear-gradient(135deg, ${T.accent}50, ${T.green}40)`,
+          background: isSelected ? T.accent : "var(--c-cardBorder)",
         }}>
           <Avatar
             src={mentor.profilePicture}
@@ -86,7 +84,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
             <p style={{
-              fontFamily: "Fraunces, Georgia, serif",
+              fontFamily: "var(--font-display)",
               fontSize: 14, fontWeight: 700, color: T.text,
               margin: 0, lineHeight: 1.2,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -99,7 +97,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
           </div>
           <p style={{
             fontSize: 11.5, color: T.textSub, margin: "2px 0 0",
-            fontFamily: " Inter, sans-serif", fontWeight: 400,
+            fontFamily: "var(--font-body)", fontWeight: 400,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {mentor.role || [mentor.college, mentor.branch].filter(Boolean).join(" · ")}
@@ -114,12 +112,12 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
             borderRadius: 8, padding: isSelected ? "3px 7px" : "3px 0",
           }}>
             <span style={{
-              fontFamily: "Fraunces, serif", fontSize: 17, fontWeight: 800,
+              fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 800,
               color: T.accent, lineHeight: 1, display: "block",
             }}>
               {mentor.matchPct}%
             </span>
-            <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: " Inter, sans-serif" }}>match</span>
+            <span style={{ fontSize: 9.5, color: T.textMuted, fontFamily: "var(--font-body)" }}>match</span>
           </div>
         )}
       </div>
@@ -131,7 +129,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
             <span style={{
               padding: "3px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
               background: `${T.accent}14`, color: T.accentText,
-              border: `1px solid ${T.accent}28`, fontFamily: " Inter, sans-serif",
+              border: `1px solid ${T.accent}28`, fontFamily: "var(--font-body)",
             }}>
               {domainLabel}
             </span>
@@ -140,7 +138,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
             <span style={{
               padding: "3px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 600,
               background: `${T.green}12`, color: T.green,
-              border: `1px solid ${T.green}28`, fontFamily: " Inter, sans-serif",
+              border: `1px solid ${T.green}28`, fontFamily: "var(--font-body)",
             }}>
               {fieldLabel}
             </span>
@@ -152,7 +150,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
       {mentor.matchReason && (
         <p style={{
           fontSize: 12, lineHeight: 1.65, color: T.textSub,
-          fontFamily: " Inter, sans-serif", margin: 0,
+          fontFamily: "var(--font-body)", margin: 0,
         }}>
           <span style={{ fontWeight: 600, color: T.textMuted }}>Why matched: </span>
           {mentor.matchReason}

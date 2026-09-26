@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import PageHeader from "../components/ui/PageHeader";
 import {
   FiSearch,
   FiAward,
@@ -332,10 +333,10 @@ function CountdownBanner() {
   const s = String(secondsLeft % 60).padStart(2, "0");
 
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-red-200/60 bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 dark:border-red-900/30 dark:from-red-950/30 dark:via-orange-950/20 dark:to-amber-950/20">
+    <div className="mb-6 overflow-hidden rounded-xl border border-red-200/60 bg-red-50 dark:border-red-900/30 dark:bg-red-950/20">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/25">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500">
             <FiZap className="text-white" size={14} />
           </div>
           <div>
@@ -350,11 +351,11 @@ function CountdownBanner() {
         <div className="flex items-center gap-1.5 font-mono">
           {[h, m, s].map((unit, i) => (
             <span key={i} className="flex items-center gap-1.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500 text-sm font-black text-white shadow-lg shadow-red-500/30">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500 text-sm font-bold text-white shadow-lg shadow-red-500/30">
                 {unit}
               </span>
               {i < 2 && (
-                <span className="text-lg font-black text-red-500">:</span>
+                <span className="text-lg font-bold text-red-500">:</span>
               )}
             </span>
           ))}
@@ -367,7 +368,7 @@ function CountdownBanner() {
 function ProgressStepper({ percent }) {
   const steps = ["Session", "Schedule", "Details", "Payment"];
   return (
-    <div className="mb-8 rounded-2xl border p-5 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+    <div className="mb-8 rounded-xl border p-5 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
       <div className="mb-4 flex items-center justify-between">
         <span className="text-xs font-semibold text-[var(--c-textSub)]">Booking progress</span>
         <span className="text-xs font-bold text-[#7567C9]">{percent}% complete</span>
@@ -375,7 +376,7 @@ function ProgressStepper({ percent }) {
       <div className="relative">
         <div className="h-1.5 w-full rounded-full bg-[var(--c-active)]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#7567C9] to-[#8E80DB] transition-all duration-700 ease-out"
+            className="h-full rounded-full bg-[#7567C9] transition-all duration-700 ease-out"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -386,7 +387,7 @@ function ProgressStepper({ percent }) {
               <div key={step} className="flex flex-col items-center gap-1.5">
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shadow-sm transition-all duration-300 ${done
-                    ? "bg-[#7567C9] text-white shadow-[#7567C9]/30"
+                    ? "bg-[#7567C9] text-white"
                     : "bg-black/5 text-[var(--c-textMuted)] bg-[var(--c-active)] text-[var(--c-textSub)]"
                     }`}
                 >
@@ -408,9 +409,9 @@ function ProgressStepper({ percent }) {
 
 function MentorCard({ mentor }) {
   return (
-    <div className="relative overflow-hidden rounded-[1.5rem] border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+    <div className="relative overflow-hidden rounded-xl border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#7567C9]/3 via-transparent to-transparent pointer-events-none" />
+      <div className="hidden" />
       <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#7567C9]/5 pointer-events-none" />
 
       <div className="relative p-6 md:p-8">
@@ -418,8 +419,8 @@ function MentorCard({ mentor }) {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
-            <div className="relative h-24 w-24 overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-[#7567C9] to-[#a07035] ring-4 ring-[#7567C9]/20 shadow-xl shadow-[#7567C9]/20">
-              <div className="absolute inset-0 flex items-center justify-center text-2xl font-black text-white select-none">
+            <div className="relative h-24 w-24 overflow-hidden rounded-xl bg-[#7567C9] ring-4 ring-[#7567C9]/20">
+              <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white select-none">
                 {mentor.name ? mentor.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "ME"}
               </div>
               {mentor.photo && (
@@ -441,7 +442,7 @@ function MentorCard({ mentor }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl font-black text-[var(--c-text)] sm:text-3xl">
+                  <h2 className="text-2xl font-normal text-[var(--c-text)] sm:text-3xl" style={{ fontFamily: "var(--font-display)" }}>
                     {mentor.name}
                   </h2>
                   <MdVerified className="text-blue-500 flex-shrink-0" size={20} />
@@ -524,10 +525,10 @@ function MentorCard({ mentor }) {
           {mentor.stats.map(({ value, label, icon: Icon }) => (
             <div
               key={label}
-              className="group rounded-2xl border bg-[var(--c-active)] p-4 transition-all hover:border-[#7567C9]/40 hover:shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-active)]"
+              className="group rounded-xl border bg-[var(--c-active)] p-4 transition-all hover:border-[#7567C9]/40 hover:shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-active)]"
             >
               <Icon size={16} className="mb-2 text-[#7567C9]" />
-              <div className="text-xl font-black text-[var(--c-text)]">{value}</div>
+              <div className="text-xl font-bold text-[var(--c-text)]">{value}</div>
               <div className="mt-0.5 text-xs text-[var(--c-textSub)]">{label}</div>
             </div>
           ))}
@@ -546,15 +547,15 @@ function SessionCard({ session, selected, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(session)}
-      className={`group relative flex min-h-[300px] flex-col rounded-[1.25rem] border p-5 text-left transition-all duration-300 ${isSelected
-        ? "border-[#7567C9] bg-gradient-to-b from-[var(--c-card)] to-white shadow-xl shadow-[#7567C9]/15 ring-1 ring-[#7567C9]/40 dark:from-[var(--c-active)] dark:to-[var(--c-card)]"
+      className={`group relative flex min-h-[300px] flex-col rounded-xl border p-5 text-left transition-all duration-300 ${isSelected
+        ? "border-[#7567C9] bg-[var(--c-accentSoft)] ring-1 ring-[#7567C9]/40"
         : "hover:border-[#7567C9]/50 hover:shadow-md border-[var(--c-cardBorder)] bg-[var(--c-card)]"
         }`}
     >
       {/* Tag */}
       {session.tag && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap">
-          <span className="rounded-full bg-gradient-to-r from-[#7567C9] to-[#8E80DB] px-4 py-1 text-[11px] font-black text-white shadow-lg shadow-[#7567C9]/30">
+          <span className="rounded-full bg-[#7567C9] px-4 py-1 text-[11px] font-bold text-white">
             {session.tag}
           </span>
         </div>
@@ -563,7 +564,7 @@ function SessionCard({ session, selected, onSelect }) {
       {/* Discount ribbon */}
       {discount > 0 && (
         <div className="absolute right-4 top-4">
-          <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
+          <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
             {discount}% OFF
           </div>
         </div>
@@ -572,8 +573,8 @@ function SessionCard({ session, selected, onSelect }) {
       {/* Icon + badge */}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div
-          className={`rounded-2xl p-3 transition-all duration-300 ${isSelected
-            ? "bg-gradient-to-br from-[#7567C9] to-[#5a52a8] text-white shadow-lg shadow-[#7567C9]/30"
+          className={`rounded-xl p-3 transition-all duration-300 ${isSelected
+            ? "bg-[#7567C9] text-white"
             : "bg-[#7567C9]/10 text-[#7567C9] group-hover:bg-[#7567C9]/20"
             }`}
         >
@@ -583,7 +584,7 @@ function SessionCard({ session, selected, onSelect }) {
 
       {/* Title */}
       <div>
-        <h3 className="text-xl font-black text-[var(--c-text)]">{session.title}</h3>
+        <h3 className="text-xl font-bold text-[var(--c-text)]">{session.title}</h3>
         <p className="text-xs font-semibold text-[#7567C9]">{session.subtitle}</p>
       </div>
 
@@ -606,7 +607,7 @@ function SessionCard({ session, selected, onSelect }) {
       <div className="mt-5 flex items-end justify-between border-t pt-4 border-[var(--c-cardBorder)]">
         <div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-[var(--c-accentText)]">
+            <span className="text-2xl font-bold text-[var(--c-accentText)]">
               ₹{session.price}
             </span>
             <span className="text-lg text-[var(--c-textMuted)] line-through">
@@ -765,21 +766,21 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
   }, [daysInMonth, isAvailDay, calYear, calMonth]);
 
   return (
-    <div className="rounded-[1.5rem] border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] overflow-hidden">
+    <div className="rounded-xl border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] overflow-hidden">
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, rgba(117,103,201,0.14) 0%, rgba(117,103,201,0.04) 100%)", borderBottom: "1px solid var(--c-cardBorder)", padding: "18px 22px" }}>
+      <div style={{ borderBottom: "1px solid var(--c-cardBorder)", padding: "18px 22px" }}>
         <div className="flex items-center gap-3">
-          <div style={{ width: 38, height: 38, borderRadius: 11, background: "linear-gradient(135deg,#7567C9,#5a52a8)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(117,103,201,0.35)" }}>
-            <FiCalendar size={17} color="#fff" />
+          <div style={{ width: 38, height: 38, borderRadius: 9, background: "var(--c-accentSoft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <FiCalendar size={17} color="#7567C9" />
           </div>
           <div>
-            <h2 className="text-[1rem] font-black text-[var(--c-text)] leading-tight">Pick a date & time</h2>
+            <h2 className="text-[1rem] font-bold text-[var(--c-text)] leading-tight">Pick a date & time</h2>
           </div>
         </div>
       </div>
 
       <div style={{ padding: "18px 20px" }}>
-        <div className="rounded-2xl border border-border overflow-hidden bg-background">
+        <div className="rounded-xl border border-border overflow-hidden bg-background">
           {/* ── Calendar ── */}
           <div className="flex justify-center p-3">
             <Calendar
@@ -898,8 +899,8 @@ function SchedulePicker({ mentorId, date, setDate, time, setTime, today, refresh
 
 function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
-      <h2 className="text-xl font-black text-[var(--c-text)]">Your Details</h2>
+    <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-bold text-[var(--c-text)]">Your Details</h2>
       <p className="mt-1 text-sm text-[var(--c-textSub)]">
         We'll send your confirmation and meeting link here.
       </p>
@@ -919,7 +920,7 @@ function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
               value={value}
               onChange={(e) => setter(e.target.value)}
               placeholder={placeholder}
-              className="w-full rounded-2xl border bg-[var(--c-card)] px-4 py-3.5 text-sm outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
+              className="w-full rounded-xl border bg-[var(--c-card)] px-4 py-3.5 text-sm outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
             />
           </div>
         ))}
@@ -937,10 +938,10 @@ function UserDetailsForm({ name, setName, email, setEmail, phone, setPhone }) {
 
 function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+    <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-black text-[var(--c-text)]">Session Brief</h2>
+          <h2 className="text-xl font-bold text-[var(--c-text)]">Session Brief</h2>
           <p className="mt-1 text-sm text-[var(--c-textSub)]">
             Select up to {MAX_GOALS} focus areas.
           </p>
@@ -961,7 +962,7 @@ function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
               type="button"
               onClick={() => toggleGoal(goal.label)}
               disabled={maxed}
-              className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${active
+              className={`flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all ${active
                 ? "border-[#7567C9] bg-[var(--c-card)] shadow-sm bg-[var(--c-active)]"
                 : maxed
                   ? "cursor-not-allowed opacity-40 border-[var(--c-cardBorder)]"
@@ -1003,7 +1004,7 @@ function SessionBriefForm({ selectedGoals, toggleGoal, brief, setBrief }) {
           maxLength={600}
           rows={4}
           placeholder="Example: I'm in 3rd year CSE, know Python basics, and want a roadmap to crack ML internships before my final year. Currently on LeetCode for 2 weeks."
-          className="w-full resize-none rounded-2xl border bg-[var(--c-card)] p-4 text-sm leading-6 outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
+          className="w-full resize-none rounded-xl border bg-[var(--c-card)] p-4 text-sm leading-6 outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] bg-[var(--c-bg)] text-[var(--c-text)]"
         />
         <div className="mt-1.5 flex items-center justify-between">
           <p className="text-xs text-[var(--c-textMuted)]">
@@ -1022,10 +1023,10 @@ function TestimonialsSection({ active, setActive }) {
   const [helpfulClicked, setHelpfulClicked] = useState({});
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+    <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-[var(--c-text)]">
+          <h2 className="text-xl font-bold text-[var(--c-text)]">
             What Students Say
           </h2>
           <p className="mt-1 text-sm text-[var(--c-textSub)]">
@@ -1048,20 +1049,20 @@ function TestimonialsSection({ active, setActive }) {
         {TESTIMONIALS.map((t, i) => (
           <div
             key={t.name}
-            className={`rounded-2xl border p-5 transition-all duration-500 ${active === i
-              ? "border-[#7567C9]/40 bg-gradient-to-br from-[var(--c-card)] to-white shadow-md dark:from-[var(--c-active)] dark:to-[var(--c-card)]"
+            className={`rounded-xl border p-5 transition-all duration-500 ${active === i
+              ? "border-[#7567C9]/40 bg-[var(--c-card)]"
               : "bg-[var(--c-active)] border-[var(--c-cardBorder)] bg-[var(--c-active)]"
               }`}
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7567C9] to-[#a07035] text-sm font-black text-white shadow-sm">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#7567C9] text-sm font-bold text-white shadow-sm">
                   {t.avatar}
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-black text-[var(--c-text)]">
+                    <span className="text-sm font-bold text-[var(--c-text)]">
                       {t.name}
                     </span>
                     {t.verified && (
@@ -1135,8 +1136,8 @@ function AgendaSection() {
   };
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
-      <h2 className="text-xl font-black text-[var(--c-text)]">
+    <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-bold text-[var(--c-text)]">
         What Happens After Booking
       </h2>
       <p className="mt-1 text-sm text-[var(--c-textSub)]">
@@ -1145,7 +1146,7 @@ function AgendaSection() {
 
       <div className="relative mt-8">
         {/* Connector line */}
-        <div className="absolute left-6 top-0 h-full w-px bg-gradient-to-b from-blue-300 via-[#7567C9] to-emerald-300 opacity-30 dark:opacity-20 hidden md:block" />
+        <div className="absolute left-6 top-0 h-full w-px bg-[var(--c-cardBorder)] hidden md:block" />
 
         <div className="space-y-5">
           {AGENDA_STEPS.map((step, i) => {
@@ -1155,18 +1156,18 @@ function AgendaSection() {
               <div key={step.title} className="group flex gap-5">
                 <div className="relative flex-shrink-0">
                   <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${c.bg} ring-2 ${c.ring} shadow-sm`}
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${c.bg} ring-2 ${c.ring} shadow-sm`}
                   >
                     <Icon size={20} className={c.text} />
                   </div>
                   <div
-                    className={`absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full ${c.num} text-[10px] font-black text-white shadow`}
+                    className={`absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full ${c.num} text-[10px] font-bold text-white shadow`}
                   >
                     {i + 1}
                   </div>
                 </div>
-                <div className="flex-1 rounded-2xl border bg-[var(--c-active)] p-5 transition group-hover:group-hover:shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-active)]">
-                  <h3 className="font-black text-[var(--c-text)]">{step.title}</h3>
+                <div className="flex-1 rounded-xl border bg-[var(--c-active)] p-5 transition group-hover:group-hover:shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-active)]">
+                  <h3 className="font-bold text-[var(--c-text)]">{step.title}</h3>
                   <p className="mt-1.5 text-sm leading-6 text-[var(--c-textSub)]">
                     {step.desc}
                   </p>
@@ -1184,8 +1185,8 @@ function FAQSection() {
   const [expanded, setExpanded] = useState(null);
 
   return (
-    <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
-      <h2 className="text-xl font-black text-[var(--c-text)]">
+    <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+      <h2 className="text-xl font-bold text-[var(--c-text)]">
         Frequently Asked Questions
       </h2>
       <p className="mt-1 text-sm text-[var(--c-textSub)]">
@@ -1199,7 +1200,7 @@ function FAQSection() {
           return (
             <div
               key={i}
-              className={`overflow-hidden rounded-2xl border transition-all ${open
+              className={`overflow-hidden rounded-xl border transition-all ${open
                 ? "border-[#7567C9]/30 shadow-sm"
                 : "border-[var(--c-cardBorder)]"
                 }`}
@@ -1273,11 +1274,11 @@ function BookingSidebar({
   return (
     <div className="space-y-4">
       {/* Main summary card */}
-      <div className="rounded-[1.5rem] border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+      <div className="rounded-xl border shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
         {/* Header */}
         <div className="flex items-center justify-between border-b p-6 border-[var(--c-cardBorder)]">
           <div>
-            <h2 className="text-xl font-black text-[var(--c-text)]">
+            <h2 className="text-xl font-bold text-[var(--c-text)]">
               Booking Summary
             </h2>
             <p className="mt-0.5 text-xs text-[var(--c-textSub)]">Review before payment</p>
@@ -1293,7 +1294,7 @@ function BookingSidebar({
 
         <div className="p-6 space-y-5">
           {/* Session info */}
-          <div className="rounded-2xl bg-[var(--c-active)] p-4 bg-[var(--c-active)]">
+          <div className="rounded-xl bg-[var(--c-active)] p-4 bg-[var(--c-active)]">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7567C9]/10 text-[#7567C9]">
                 {(() => {
@@ -1302,7 +1303,7 @@ function BookingSidebar({
                 })()}
               </div>
               <div>
-                <div className="font-black text-[var(--c-text)]">
+                <div className="font-bold text-[var(--c-text)]">
                   {selectedSession.title}
                 </div>
                 <div className="text-xs text-[var(--c-textSub)]">{selectedSession.duration} · {selectedSession.subtitle}</div>
@@ -1330,7 +1331,7 @@ function BookingSidebar({
           </div>
 
           {/* Price breakdown */}
-          <div className="rounded-2xl border p-4 space-y-3 border-[var(--c-cardBorder)]">
+          <div className="rounded-xl border p-4 space-y-3 border-[var(--c-cardBorder)]">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Session fee</span>
               <div className="flex items-center gap-2">
@@ -1374,9 +1375,9 @@ function BookingSidebar({
             )}
             <div className="border-t pt-3 border-[var(--c-cardBorder)]">
               <div className="flex items-end justify-between">
-                <span className="text-base font-black text-[var(--c-text)]">Total</span>
+                <span className="text-base font-bold text-[var(--c-text)]">Total</span>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-[var(--c-text)]">
+                  <div className="text-2xl font-bold text-[var(--c-text)]">
                     ₹{total}
                   </div>
                   {totalSaved > 0 && (
@@ -1441,7 +1442,7 @@ function BookingSidebar({
 
           {/* Focus areas */}
           {selectedGoals.length > 0 && (
-            <div className="rounded-2xl bg-[var(--c-active)] p-4 bg-[var(--c-active)]">
+            <div className="rounded-xl bg-[var(--c-active)] p-4 bg-[var(--c-active)]">
               <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[var(--c-text)]">
                 <FiTarget size={14} className="text-[#7567C9]" />
                 Focus areas ({selectedGoals.length}/{MAX_GOALS})
@@ -1482,7 +1483,7 @@ function BookingSidebar({
                 type="button"
                 onClick={handleContinue}
                 disabled={!isFormValid}
-                className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] py-4 text-base font-black text-white shadow-xl shadow-[#7567C9]/30 transition-all hover:shadow-2xl hover:shadow-[#7567C9]/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                className="relative w-full overflow-hidden rounded-xl bg-[#7567C9] py-4 text-base font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               >
                 <span className="flex items-center justify-center gap-2">
                   Continue to Payment
@@ -1504,7 +1505,7 @@ function BookingSidebar({
                 type="button"
                 onClick={handleBooking}
                 disabled={isBooking}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] py-4 text-base font-black text-white shadow-xl shadow-[#7567C9]/30 transition-all hover:shadow-2xl hover:shadow-[#7567C9]/40 disabled:opacity-70"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#7567C9] py-4 text-base font-bold text-white transition-all disabled:opacity-70"
               >
                 {isBooking ? (
                   <>
@@ -1520,7 +1521,7 @@ function BookingSidebar({
               </button>
               <button
                 onClick={() => setShowPayment(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
               >
                 <FiArrowLeft size={14} />
                 Go Back
@@ -1535,13 +1536,13 @@ function BookingSidebar({
       </div>
 
       {/* Social proof */}
-      <div className="rounded-2xl border p-4 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+      <div className="rounded-xl border p-4 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
         <div className="flex items-center gap-3">
           <div className="flex -space-x-2">
             {["AK", "PS", "RV", "SM"].map((init, i) => (
               <div
                 key={i}
-                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#7567C9] to-[#a07035] text-[10px] font-black text-white dark:border-[var(--c-card)]"
+                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#7567C9] text-[10px] font-bold text-white dark:border-[var(--c-card)]"
               >
                 {init}
               </div>
@@ -1559,13 +1560,13 @@ function BookingSidebar({
       </div>
 
       {/* Guarantee */}
-      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-4 shadow-sm dark:border-emerald-800 dark:from-emerald-950/20 dark:to-teal-950/20">
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20">
         <div className="flex gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 -900/30">
             <MdWorkspacePremium size={20} className="text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-emerald-800 dark:text-emerald-300">
+            <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
               100% Satisfaction Guarantee
             </h3>
             <p className="mt-0.5 text-xs leading-5 text-emerald-700 dark:text-emerald-400">
@@ -1594,9 +1595,8 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border shadow-2xl border-[var(--c-cardBorder)] bg-[var(--c-card)]">
-        {/* Top gradient bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#7567C9] via-yellow-400 to-emerald-400" />
+      <div className="relative w-full max-w-md overflow-hidden rounded-xl border shadow-2xl border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+        
 
         <div className="p-8">
           <button
@@ -1614,7 +1614,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
                 <FiCheck className="text-4xl text-emerald-500" />
               </div>
             </div>
-            <h3 className="text-2xl font-black text-[var(--c-text)]">
+            <h3 className="text-2xl font-bold text-[var(--c-text)]">
               You're all set! 🎉
             </h3>
             <p className="mt-2 text-sm text-[var(--c-textSub)]">
@@ -1623,7 +1623,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
           </div>
 
           {/* Details */}
-          <div className="mt-6 space-y-3 rounded-2xl border bg-[var(--c-active)] p-5 border-[var(--c-cardBorder)] bg-[var(--c-active)]">
+          <div className="mt-6 space-y-3 rounded-xl border bg-[var(--c-active)] p-5 border-[var(--c-cardBorder)] bg-[var(--c-active)]">
             {[
               ["Session", bookingDetails?.sessionType],
               ["Date", bookingDetails?.date],
@@ -1638,7 +1638,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Booking ID</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-black text-[#7567C9]">{bookingId}</span>
+                  <span className="font-mono font-bold text-[#7567C9]">{bookingId}</span>
                   <button
                     onClick={handleCopy}
                     className="rounded-lg p-1 text-[var(--c-textMuted)] hover:text-[#7567C9] transition"
@@ -1659,7 +1659,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
               "Join 5 minutes early for a smooth start",
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-2.5 text-xs text-[var(--c-textSub)]">
-                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#7567C9]/10 text-[10px] font-black text-[#7567C9]">
+                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#7567C9]/10 text-[10px] font-bold text-[#7567C9]">
                   {i + 1}
                 </div>
                 {step}
@@ -1670,7 +1670,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
           <div className="mt-6 flex gap-3">
             <button
               onClick={onViewDetails || onClose}
-              className="flex-1 rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] py-3.5 text-sm font-black text-white shadow-lg shadow-[#7567C9]/25 hover:shadow-xl"
+              className="flex-1 rounded-xl bg-[#7567C9] py-3.5 text-sm font-bold text-white"
             >
               View Details
             </button>
@@ -1684,7 +1684,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
                   toast.success("Copied to clipboard — share it anywhere!");
                 }
               }}
-              className="flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
+              className="flex items-center justify-center gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
             >
               <FiShare2 size={15} />
               Share
@@ -1704,16 +1704,16 @@ function NoMentorState({ onFindMentor }) {
 
       <div className="relative w-full max-w-lg text-center">
         {/* Icon cluster */}
-        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-[#7567C9]/20 bg-[var(--c-card)] shadow-xl shadow-[#7567C9]/10">
+        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-xl border border-[#7567C9]/20 bg-[var(--c-card)]">
           <div className="relative">
             <FiUsers size={32} className="text-[#7567C9]" />
-            <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#7567C9] shadow-lg shadow-[#7567C9]/40">
+            <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#7567C9]">
               <FiSearch size={10} className="text-white" />
             </div>
           </div>
         </div>
 
-        <h2 className="text-2xl font-black text-[var(--c-text)] sm:text-3xl">
+        <h2 className="text-2xl font-normal text-[var(--c-text)] sm:text-3xl" style={{ fontFamily: "var(--font-display)" }}>
           Find your mentor first
         </h2>
         <p className="mt-3 text-sm leading-7 text-[var(--c-textSub)] max-w-sm mx-auto">
@@ -1727,7 +1727,7 @@ function NoMentorState({ onFindMentor }) {
             { icon: FiUsers, label: "Get matched" },
             { icon: FiCalendar, label: "Book in 2 mins" },
           ].map(({ icon: Icon, label }, i) => (
-            <div key={label} className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] p-4">
+            <div key={label} className="flex flex-col items-center gap-2 rounded-xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] p-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7567C9]/10">
                 <Icon size={16} className="text-[#7567C9]" />
               </div>
@@ -1740,7 +1740,7 @@ function NoMentorState({ onFindMentor }) {
         <button
           type="button"
           onClick={onFindMentor}
-          className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] px-8 py-4 text-base font-black text-white shadow-xl shadow-[#7567C9]/30 transition-all hover:shadow-2xl hover:shadow-[#7567C9]/40 hover:scale-[1.02] active:scale-[0.98]"
+          className="mt-8 inline-flex items-center gap-3 rounded-xl bg-[#7567C9] px-8 py-4 text-base font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <HiSparkles size={18} />
           Find My Mentor
@@ -1780,13 +1780,13 @@ function PaymentPanel({
   return (
     <div className="space-y-4">
       {/* Price Breakdown */}
-      <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
-        <h2 className="text-base font-black text-[var(--c-text)]">Price Breakdown</h2>
+      <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+        <h2 className="text-base font-bold text-[var(--c-text)]">Price Breakdown</h2>
 
         {totalSaved > 0 && (
           <div className="mt-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 dark:border-emerald-800 dark:bg-emerald-950/20">
             <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Your total savings</span>
-            <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">₹{totalSaved}</span>
+            <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">₹{totalSaved}</span>
           </div>
         )}
 
@@ -1814,8 +1814,8 @@ function PaymentPanel({
             </div>
           )}
           <div className="flex items-end justify-between border-t pt-3 border-[var(--c-cardBorder)]">
-            <span className="text-base font-black text-[var(--c-text)]">Total amount &amp; taxes</span>
-            <span className="text-2xl font-black text-[var(--c-accentText)]">₹{total}</span>
+            <span className="text-base font-bold text-[var(--c-text)]">Total amount &amp; taxes</span>
+            <span className="text-2xl font-bold text-[var(--c-accentText)]">₹{total}</span>
           </div>
         </div>
 
@@ -1845,7 +1845,7 @@ function PaymentPanel({
       </div>
 
       {/* Describe your query */}
-      <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
+      <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)]">
         <label className="mb-2 block text-sm font-bold text-[var(--c-text)]">Describe your query</label>
         <textarea
           value={brief}
@@ -1853,7 +1853,7 @@ function PaymentPanel({
           maxLength={600}
           rows={3}
           placeholder="What do you want to get out of this session? The more context, the more useful the call."
-          className="w-full resize-none rounded-2xl border bg-[var(--c-bg)] p-4 text-sm leading-6 outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] text-[var(--c-text)]"
+          className="w-full resize-none rounded-xl border bg-[var(--c-bg)] p-4 text-sm leading-6 outline-none transition placeholder:text-[var(--c-textMuted)] focus:border-[#7567C9] focus:ring-2 focus:ring-[#7567C9]/20 border-[var(--c-cardBorder)] text-[var(--c-text)]"
         />
       </div>
 
@@ -1881,7 +1881,7 @@ function PaymentPanel({
         type="button"
         onClick={handleConfirm}
         disabled={isBooking}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#7567C9] to-[#5a52a8] py-4 text-base font-black text-white shadow-xl shadow-[#7567C9]/30 transition-all hover:shadow-2xl hover:shadow-[#7567C9]/40 disabled:opacity-70"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#7567C9] py-4 text-base font-bold text-white transition-all disabled:opacity-70"
       >
         {isBooking ? (
           <>
@@ -2205,8 +2205,8 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:px-8">
 
         {/* Early Bird offer banner */}
-        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-[#7567C9]/25 bg-gradient-to-r from-[#7567C9]/10 via-[#7567C9]/5 to-transparent px-4 py-3 sm:px-5">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7567C9] to-[#5a52a8] shadow-lg shadow-[#7567C9]/25">
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[#7567C9]/25 bg-[var(--c-accentSoft)] px-4 py-3 sm:px-5">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#7567C9]">
             <HiSparkles className="text-white" size={16} />
           </div>
           <p className="flex-1 text-sm font-semibold text-[var(--c-text)]">
@@ -2218,25 +2218,11 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
           </span>
         </div>
 
-        {/* Header */}
-        <header className="mb-8 flex items-start gap-3 border-b pb-6 border-[var(--c-cardBorder)]">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            aria-label="Go back"
-            className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--c-cardBorder)] bg-[var(--c-card)] text-[var(--c-textSub)] transition hover:border-[#7567C9] hover:text-[#7567C9]"
-          >
-            <FiArrowLeft size={17} />
-          </button>
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-[var(--c-text)] sm:text-4xl">
-              Book the Session
-            </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-7 text-[var(--c-textSub)] sm:text-base">
-              Get personalised guidance from your matched senior.
-            </p>
-          </div>
-        </header>
+        <PageHeader
+          title="Book a session"
+          subtitle="Pick a time with your matched senior. You'll get a call link by email once it's booked."
+          onBack={() => window.history.back()}
+        />
 
         {/* ── No mentor selected ─────────────────────────────── */}
         {!activeMentor ? (
@@ -2248,10 +2234,10 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
               <MentorCard mentor={activeMentor} />
 
               {/* Sessions */}
-              <div className="rounded-[1.5rem] border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
+              <div className="rounded-xl border p-6 shadow-sm border-[var(--c-cardBorder)] bg-[var(--c-card)] md:p-8">
                 <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-black text-[var(--c-text)]">
+                    <h2 className="text-xl font-bold text-[var(--c-text)]">
                       Available Sessions
                     </h2>
                     <p className="mt-1 text-sm text-[var(--c-textSub)]">

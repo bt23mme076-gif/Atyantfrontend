@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   Bot, ShieldCheck, Building2, Plus, X, Check, Loader2,
-  AlertTriangle, ExternalLink, Power,
+  AlertTriangle, ExternalLink, Power, Crown, Lock,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { jobsAPI } from "../api";
+import { canAutoApply } from "../lib/plan";
 
 // Theme palette — maps to CSS vars defined in index.css (light + dark).
 const C = {
@@ -36,6 +37,16 @@ const STATUS_STYLE = {
   failed:               { label: "Failed",                color: C.red    },
 };
 
+// Same deterministic company colour as the Jobs page tiles.
+const COMPANY_HUES = ["#7567C9", "#3DBE82", "#FB923C", "#3B82F6", "#EC4899", "#F59E0B", "#14B8A6"];
+function companyHue(name = "") {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return COMPANY_HUES[Math.abs(hash) % COMPANY_HUES.length];
+}
+
+const APPS_PREVIEW = 8;   // rows shown before "Show all"
+
 function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || { label: status, color: C.textMuted };
   return (
@@ -53,9 +64,12 @@ function StatusBadge({ status }) {
 // Opt-in Greenhouse/Lever auto-apply. Enabling requires an explicit consent
 // checkbox (mirrors the backend's confirm:true gate) — this is never a
 // silent default-on toggle. Disabling is instant, no friction (kill switch).
-export default function AutoApplySettings() {
+export default function AutoApplySettings({ onUpgrade }) {
   const { user, setUser } = useAuth();
   const autoApply = user?.autoApply || {};
+  // Paid feature (Clarity or Pro). Free users see an upgrade card instead of the switch;
+  // anyone who turned it on before it was paid can still turn it off.
+  const paid = canAutoApply(user);
 
   const [minMatchScore, setMinMatchScore] = useState(autoApply.minMatchScore ?? 70);
   const [phone, setPhone] = useState(autoApply.phone || "");
@@ -70,6 +84,7 @@ export default function AutoApplySettings() {
 
   const [applications, setApplications] = useState(null); // null = not loaded yet
   const [loadingApps, setLoadingApps] = useState(false);
+  const [showAllApps, setShowAllApps] = useState(false);
 
   useEffect(() => {
     setMinMatchScore(autoApply.minMatchScore ?? 70);
@@ -133,7 +148,9 @@ export default function AutoApplySettings() {
       setConsentChecked(false);
       setMsg("Auto-Apply is on");
     } catch (err) {
-      setError(err.message || "Failed to enable auto-apply");
+      setError(err.data?.code === "PLAN_REQUIRED"
+        ? "Auto-apply is part of the Clarity and Pro plans. Upgrade to turn it on."
+        : err.message || "Failed to enable auto-apply");
     } finally {
       setSaving(false);
     }
@@ -155,6 +172,34 @@ export default function AutoApplySettings() {
   };
 
   const hasResume = !!user?.resumeUrl;
+
+  // ── Free plan: locked card ──
+  if (!paid && !autoApply.enabled) {
+    return (
+      <div className="pf-card pf-anim" style={{ background: C.card, border: "1px solid rgba(217,119,6,0.35)", borderRadius: 12, marginBottom: 18, padding: "16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Bot size={15} color={C.accentText} />
+            <span style={{ fontSize: ".85rem", fontWeight: 700, color: C.text }}>Auto-Apply</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".62rem", fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "#fff", background: "#B45309", borderRadius: 4, padding: "2px 6px" }}>
+              <Crown size={10} /> Premium
+            </span>
+          </div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: ".72rem", fontWeight: 600, color: C.textMuted }}>
+            <Lock size={12} /> Locked
+          </span>
+        </div>
+        <div style={{ fontSize: ".8rem", color: C.textSub, margin: "8px 0 12px", lineHeight: 1.5 }}>
+          We fill in and submit applications for Greenhouse and Lever jobs that match your resume, so you don't have to.
+          Auto-apply comes with the Clarity and Pro plans.
+        </div>
+        <button onClick={() => onUpgrade?.()}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".8rem", fontWeight: 700, color: "#fff", background: "#B45309", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+          <Crown size={13} /> Upgrade to turn on
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="pf-card pf-anim" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, padding: "16px 18px" }}>
@@ -197,6 +242,15 @@ export default function AutoApplySettings() {
         Automatically applies to Greenhouse &amp; Lever jobs that match your profile above your score threshold.
         Forms with custom screening questions are left for you to finish — never auto-answered.
       </div>
+
+      {!paid && autoApply.enabled && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "rgba(217,119,6,0.10)", border: "1px solid rgba(217,119,6,0.35)", borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontSize: ".76rem", color: "#C2620A" }}>
+          <Crown size={14} /> Paused: auto-apply now needs a Clarity or Pro plan. No new applications go out until you upgrade.
+          <button onClick={() => onUpgrade?.()} style={{ marginLeft: "auto", fontSize: ".74rem", fontWeight: 700, color: "#fff", background: "#B45309", border: "none", borderRadius: 7, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+            Upgrade
+          </button>
+        </div>
+      )}
 
       {!hasResume && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: `${C.orange}14`, border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontSize: ".76rem", color: C.orange }}>
@@ -326,32 +380,71 @@ export default function AutoApplySettings() {
       {/* ── Application audit trail ── */}
       {autoApply.enabled && (
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.cardBorder}` }}>
-          <div style={{ fontSize: ".72rem", fontWeight: 700, color: C.textSub, marginBottom: 10 }}>
-            Applications {applications ? `(${applications.length})` : ""}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+            <div style={{ fontSize: ".86rem", fontWeight: 700, color: C.text }}>
+              Applications {applications ? `(${applications.length})` : ""}
+            </div>
+            {applications?.length > 0 && (() => {
+              const counts = applications.reduce((m, a) => ({ ...m, [a.status]: (m[a.status] || 0) + 1 }), {});
+              return (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["submitted", "needs_manual_action", "queued", "failed"].filter(k => counts[k]).map(k => (
+                    <span key={k} style={{ fontSize: ".7rem", fontWeight: 600, color: STATUS_STYLE[k].color, background: `${STATUS_STYLE[k].color}14`, borderRadius: 6, padding: "3px 8px" }}>
+                      {counts[k]} {STATUS_STYLE[k].label.toLowerCase()}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {loadingApps && <div style={{ fontSize: ".76rem", color: C.textMuted, display: "flex", alignItems: "center", gap: 6 }}><Spin size={13} /> Loading…</div>}
 
           {!loadingApps && applications?.length === 0 && (
-            <div style={{ fontSize: ".76rem", color: C.textMuted }}>No applications yet — the engine checks for matches every 30 minutes.</div>
+            <div style={{ fontSize: ".78rem", color: C.textMuted }}>No applications yet. We check for matching jobs every 30 minutes.</div>
           )}
 
-          {!loadingApps && applications?.map(app => (
-            <div key={app._id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: `1px solid ${C.cardBorder}` }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: ".78rem", fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {app.job?.title || "Job removed"}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {!loadingApps && (showAllApps ? applications : applications?.slice(0, APPS_PREVIEW))?.map(app => {
+              const company = app.job?.company || "";
+              const hue = companyHue(company);
+              const needsAction = app.status === "needs_manual_action" && app.job?.applyUrl;
+              return (
+                <div key={app._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", border: `1px solid ${C.cardBorder}`, borderRadius: 10, background: C.card }}>
+                  {/* Company tile */}
+                  <div aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${hue}1f`, border: `1px solid ${hue}44`, color: hue, fontWeight: 700, fontSize: ".95rem", textTransform: "uppercase" }}>
+                    {company[0] || "?"}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: ".84rem", fontWeight: 600, color: C.text, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {app.job?.title || "Job removed"}
+                    </div>
+                    {company && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 5, fontSize: ".72rem", fontWeight: 600, color: C.textSub, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 6, padding: "2px 8px", textTransform: "capitalize" }}>
+                        <Building2 size={11} /> {company}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                    <StatusBadge status={app.status} />
+                    {needsAction && (
+                      <a href={app.job.applyUrl} target="_blank" rel="noopener noreferrer" title="Finish this application on the company site"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".72rem", fontWeight: 700, color: C.accentText, textDecoration: "none" }}>
+                        Finish <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <div style={{ fontSize: ".7rem", color: C.textMuted }}>{app.job?.company}</div>
-              </div>
-              <StatusBadge status={app.status} />
-              {app.status === "needs_manual_action" && app.job?.applyUrl && (
-                <a href={app.job.applyUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", color: C.accentText }} title="Finish this application yourself">
-                  <ExternalLink size={13} />
-                </a>
-              )}
-            </div>
-          ))}
+              );
+            })}
+          </div>
+
+          {!loadingApps && applications?.length > APPS_PREVIEW && (
+            <button onClick={() => setShowAllApps(v => !v)}
+              style={{ marginTop: 10, width: "100%", fontSize: ".8rem", fontWeight: 600, color: C.accentText, background: "none", border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+              {showAllApps ? "Show fewer" : `Show all ${applications.length} applications`}
+            </button>
+          )}
         </div>
       )}
     </div>

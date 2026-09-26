@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2, Sparkles, Video, ChevronLeft, ChevronRight, MapPin, AlertTriangle, ListChecks, Users, Trophy, BookOpen, Target, Wrench, ShieldCheck } from "lucide-react";
+import { Send, CheckCircle, Loader2, Lightbulb, Flag, Video, ChevronLeft, ChevronRight, MapPin, AlertTriangle, ListChecks, Users, Trophy, BookOpen, Target, Wrench, ShieldCheck } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -131,15 +131,15 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
       <div className="flex items-start gap-3">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-          style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)" }}
+          style={{ background: "#7567C9" }}
         >
-          <span className="text-xs font-bold" style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>A</span>
+          <span className="text-xs font-bold" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>A</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold leading-snug" style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
+          <p className="text-sm font-semibold leading-snug" style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
             {activeQuery}
           </p>
-          <p className="text-xs mt-1" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
+          <p className="text-xs mt-1" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
             Context: {contextLine}
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   // ── MOBILE: single column, one view at a time ──
   if (isMobile) {
     return (
-      <div className="flex flex-col w-full" style={{ background: "var(--c-bg)", fontFamily: " Inter, sans-serif", height: "100%", minHeight: 0 }}>
+      <div className="flex flex-col w-full" style={{ background: "var(--c-bg)", fontFamily: "var(--font-body)", height: "100%", minHeight: 0 }}>
         {header}
         <div className="flex-1" style={{ minHeight: 0 }}>
           {fetchLoading ? (
@@ -236,12 +236,12 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                             )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>{mentor.name}</span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", fontFamily: "var(--font-display)" }}>{mentor.name}</span>
                                 {rankLabel && (
                                   <span style={{ fontSize: 10, fontWeight: 700, color: isTop ? "#fff" : "var(--c-accentText)", background: isTop ? "#7567C9" : "var(--c-accentSoft)", borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{rankLabel}</span>
                                 )}
                               </div>
-                              <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: " Inter, sans-serif", marginTop: 2, fontWeight: 600 }}>
+                              <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "var(--font-body)", marginTop: 2, fontWeight: 600 }}>
                                 {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
                               </div>
                               {(mentor.primaryDomain || mentor.companyDomain) && (
@@ -294,7 +294,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   return (
     <div
       className="flex h-full w-full overflow-hidden"
-      style={{ background: "var(--c-bg)", fontFamily: " Inter, sans-serif", minHeight: 0, flexDirection: "row" }}
+      style={{ background: "var(--c-bg)", fontFamily: "var(--font-body)", minHeight: 0, flexDirection: "row" }}
     >
       {/* ── Left: Main content ── */}
       <div
@@ -316,7 +316,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 exit={{ opacity: 0 }}
               >
                 <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
-                <p className="text-xs" style={{ fontFamily: " Inter, sans-serif" }}>
+                <p className="text-xs" style={{ fontFamily: "var(--font-body)" }}>
                   Finding seniors from your exact background…
                 </p>
               </motion.div>
@@ -327,7 +327,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <p className="text-xs" style={{ color: "#f87171", fontFamily: " Inter, sans-serif" }}>
+                <p className="text-xs" style={{ color: "#f87171", fontFamily: "var(--font-body)" }}>
                   {fetchError}
                 </p>
               </motion.div>
@@ -346,7 +346,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   className="flex items-center gap-2 px-6 py-2.5 flex-shrink-0 text-left"
                   style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}
                 >
-                  <span className="text-xs font-bold tracking-wide" style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
+                  <span className="text-xs font-bold tracking-wide" style={{ color: "var(--c-accentText)", fontFamily: "var(--font-body)" }}>
                     ← Back to answers · Connect with {selectedMentor.name}
                   </span>
                 </button>
@@ -381,7 +381,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <p className="text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
+                <p className="text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
                   {mentors.length > 0
                     ? "No written answers for this question yet. Pick a matched senior on the right to see their journey or talk to them."
                     : "No matching seniors found. Try a different question below."}
@@ -409,7 +409,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             style={{ color: "var(--c-textMuted)" }}
           >
             <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
-            <p className="text-xs" style={{ fontFamily: " Inter, sans-serif" }}>
+            <p className="text-xs" style={{ fontFamily: "var(--font-body)" }}>
               Finding your seniors…
             </p>
           </div>
@@ -424,7 +424,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center"
             style={{ color: "var(--c-textMuted)" }}
           >
-            <p className="text-xs" style={{ fontFamily: " Inter, sans-serif" }}>
+            <p className="text-xs" style={{ fontFamily: "var(--font-body)" }}>
               {activeQuery
                 ? "No matching seniors found. Try a different question."
                 : "Ask a question to find matched seniors."}
@@ -444,10 +444,10 @@ function AnswerSection({ label, children }) {
   return (
     <div className="mb-5">
       <p className="text-xs font-bold uppercase tracking-widest mb-1.5"
-        style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
+        style={{ color: "var(--c-accentText)", fontFamily: "var(--font-body)" }}>
         {label}
       </p>
-      <div className="text-sm leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: " Inter, sans-serif" }}>
+      <div className="text-sm leading-relaxed" style={{ color: "var(--c-textSub)", fontFamily: "var(--font-body)" }}>
         {children}
       </div>
     </div>
@@ -473,7 +473,7 @@ const truncateNodeText = (text, max = 42) => {
 const nodeIconFor = (type, label = "") => {
   if (type === "start") return MapPin;
   if (type === "mistake") return AlertTriangle;
-  if (type === "turning") return Sparkles;
+  if (type === "turning") return Flag;
   if (type === "outcome") return Trophy;
   const l = label.toLowerCase();
   if (/senior|alumni|mentor|people|talk|network|connect/.test(l)) return Users;
@@ -566,7 +566,7 @@ function MentorJourneyFlow({ card }) {
     <div className="px-4 sm:px-6 pt-5 pb-2 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "var(--font-body)" }}>
             The journey
           </p>
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: journeyPct === 100 ? "#3DBE82" : "var(--c-accentText)", background: journeyPct === 100 ? "rgba(61,190,130,0.12)" : "rgba(117,103,201,0.12)" }}>
@@ -574,7 +574,7 @@ function MentorJourneyFlow({ card }) {
           </span>
         </div>
         {canScrollRight && (
-          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
+          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
             Swipe <ChevronRight size={11} />
           </span>
         )}
@@ -612,13 +612,13 @@ function MentorJourneyFlow({ card }) {
                       line rhythm stays even; the first node just hides its line. */}
                   <div style={{ flex: 1, height: 2, background: i === 0 ? "transparent" : "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
                     <div
-                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${leftFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "linear-gradient(90deg,#7567C9,#5a52a8)" }}
+                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${leftFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "#7567C9" }}
                     />
                   </div>
                   <motion.div
                     animate={{
                       scale: isActive ? 1.08 : 1,
-                      boxShadow: isActive ? "0 0 0 5px rgba(117,103,201,0.18), 0 4px 14px rgba(117,103,201,0.35)" : "0 0 0 0px rgba(117,103,201,0)",
+                      boxShadow: isActive ? "0 0 0 4px rgba(117,103,201,0.16)" : "0 0 0 0px rgba(117,103,201,0)",
                     }}
                     transition={{ duration: 0.25 }}
                     className="flex items-center justify-center flex-shrink-0"
@@ -626,7 +626,7 @@ function MentorJourneyFlow({ card }) {
                       width: 38,
                       height: 38,
                       borderRadius: "50%",
-                      background: isCompleted ? "linear-gradient(135deg,#7567C9,#5a52a8)" : "var(--c-card)",
+                      background: isCompleted ? "#7567C9" : "var(--c-card)",
                       border: isCompleted ? "2px solid transparent" : `2px solid ${isActive ? "#7567C9" : "var(--c-sidebarBorder)"}`,
                     }}
                   >
@@ -636,13 +636,13 @@ function MentorJourneyFlow({ card }) {
                       doesn't trail past the final milestone. */}
                   <div style={{ flex: 1, height: 2, background: i === nodes.length - 1 ? "transparent" : "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
                     <div
-                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${rightFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "linear-gradient(90deg,#7567C9,#5a52a8)" }}
+                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${rightFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "#7567C9" }}
                     />
                   </div>
                 </div>
                 <p
                   className="text-[11px] font-bold text-center mt-2 px-1"
-                  style={{ color: isActive || isCompleted ? "var(--c-text)" : "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}
+                  style={{ color: isActive || isCompleted ? "var(--c-text)" : "var(--c-textMuted)", fontFamily: "var(--font-body)" }}
                 >
                   {n.label}
                 </p>
@@ -650,7 +650,7 @@ function MentorJourneyFlow({ card }) {
                   className="text-[11px] text-center mt-1 px-1.5 leading-snug"
                   style={{
                     color: "var(--c-textMuted)",
-                    fontFamily: " Inter, sans-serif",
+                    fontFamily: "var(--font-body)",
                     display: "-webkit-box",
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: "vertical",
@@ -703,7 +703,7 @@ function MentorHeader({ profile, fallbackName, onProfile, headline }) {
     <div className="mb-6">
       <div
         className="flex items-center gap-4 flex-wrap"
-        style={{ padding: "16px 18px", borderRadius: 16, background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", boxShadow: "0 1px 6px rgba(117,103,201,0.08)" }}
+        style={{ padding: "16px 18px", borderRadius: 16, background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", boxShadow: "none" }}
       >
         <div style={{ position: "relative", flexShrink: 0 }}>
           {profile.profilePicture ? (
@@ -718,9 +718,9 @@ function MentorHeader({ profile, fallbackName, onProfile, headline }) {
           </span>
         </div>
 
-        <div className="flex-1 min-w-0" style={{ fontFamily: " Inter, sans-serif" }}>
+        <div className="flex-1 min-w-0" style={{ fontFamily: "var(--font-body)" }}>
           <div className="flex items-center gap-2 flex-wrap">
-            <span style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", fontFamily: "Fraunces, serif", lineHeight: 1.2 }}>{name}</span>
+            <span style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{name}</span>
             <span className="flex items-center gap-1" style={{ fontSize: 11, fontWeight: 700, color: "#3DBE82", background: "rgba(61,190,130,0.12)", border: "1px solid rgba(61,190,130,0.3)", borderRadius: 999, padding: "2px 9px" }}>
               <ShieldCheck size={11} /> Verified senior
             </span>
@@ -739,7 +739,7 @@ function MentorHeader({ profile, fallbackName, onProfile, headline }) {
           <button
             onClick={onProfile}
             className="flex-shrink-0"
-            style={{ fontSize: 13, fontWeight: 600, color: "var(--c-accentText)", background: "rgba(117,103,201,0.08)", border: "1px solid rgba(117,103,201,0.3)", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: " Inter, sans-serif" }}
+            style={{ fontSize: 13, fontWeight: 600, color: "var(--c-accentText)", background: "rgba(117,103,201,0.08)", border: "1px solid rgba(117,103,201,0.3)", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "var(--font-body)" }}
           >
             View profile →
           </button>
@@ -748,10 +748,10 @@ function MentorHeader({ profile, fallbackName, onProfile, headline }) {
 
       {headline && (
         <div style={{ marginTop: 22 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-accentText)", fontFamily: " Inter, sans-serif", marginBottom: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-accentText)", fontFamily: "var(--font-body)", marginBottom: 6 }}>
             Their story
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, color: "var(--c-text)", fontFamily: "Fraunces, serif", margin: 0 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, color: "var(--c-text)", fontFamily: "var(--font-display)", margin: 0 }}>
             {headline}
           </h2>
         </div>
@@ -777,14 +777,14 @@ function InstantAnswerCard({ card, onBook, onProfile, profile }) {
       <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-2.5 flex-shrink-0"
         style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}>
         <div className="flex items-center gap-2 min-w-0">
-          <Sparkles size={13} style={{ color: "var(--c-accentText)", flexShrink: 0 }} />
+          <Lightbulb size={13} style={{ color: "var(--c-accentText)", flexShrink: 0 }} />
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest truncate"
-            style={{ color: "var(--c-accentText)", fontFamily: " Inter, sans-serif" }}>
+            style={{ color: "var(--c-accentText)", fontFamily: "var(--font-body)" }}>
             Instant Clarity · from {mentorName}'s journey
           </span>
         </div>
         {card?.matchScore ? (
-          <span className="text-xs font-bold" style={{ color: "#7567C9", fontFamily: "Fraunces, serif" }}>
+          <span className="text-xs font-bold" style={{ color: "#7567C9", fontFamily: "var(--font-display)" }}>
             {card.matchScore}% match
           </span>
         ) : null}
@@ -797,7 +797,7 @@ function InstantAnswerCard({ card, onBook, onProfile, profile }) {
         ) : (
           <>
             {/* Mentor identity line (mobile: the photo is in the header row above this card) */}
-            <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: " Inter, sans-serif" }}>
+            <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
               <CheckCircle size={12} style={{ color: "#3DBE82", flexShrink: 0 }} />
               <span>
                 {mentorName}
@@ -808,7 +808,7 @@ function InstantAnswerCard({ card, onBook, onProfile, profile }) {
 
             {c.mainAnswer && (
               <p className="text-base font-semibold leading-snug mb-5"
-                style={{ color: "var(--c-text)", fontFamily: "Fraunces, serif" }}>
+                style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
                 {c.mainAnswer}
               </p>
             )}
@@ -858,7 +858,7 @@ function InstantAnswerCard({ card, onBook, onProfile, profile }) {
           <button
             onClick={onBook}
             className="mt-2 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-base font-semibold"
-            style={{ background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#fff", fontFamily: " Inter, sans-serif", boxShadow: "0 4px 20px rgba(117,103,201,0.4)" }}
+            style={{ background: "#7567C9", color: "#fff", fontFamily: "var(--font-body)" }}
           >
             <Video size={16} /> Book 1:1 session — starting ₹{STARTING_PRICE}
           </button>
@@ -868,7 +868,7 @@ function InstantAnswerCard({ card, onBook, onProfile, profile }) {
           <button
             onClick={onProfile}
             className="mt-2 ml-0 sm:ml-3 text-sm font-semibold"
-            style={{ background: "transparent", border: "none", color: "var(--c-accentText)", fontFamily: " Inter, sans-serif", cursor: "pointer", padding: "6px 0" }}
+            style={{ background: "transparent", border: "none", color: "var(--c-accentText)", fontFamily: "var(--font-body)", cursor: "pointer", padding: "6px 0" }}
           >
             View {mentorName}'s profile
           </button>

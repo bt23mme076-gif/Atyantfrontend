@@ -8,7 +8,7 @@ import {
   Activity, IndianRupee, CalendarClock, UserRound,
   GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, ArrowLeft,
   Eye, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Headphones, FileText, CheckCircle2, AlertTriangle, Mic, ClipboardList, ChevronDown,
+  Headphones, FileText, CheckCircle2, AlertTriangle, Mic, ClipboardList, ChevronDown, HelpCircle, RotateCw, Lightbulb,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -28,6 +28,10 @@ const JobsPage = lazy(() => import("./pages/JobsPage"));
 const MockInterviewPage = lazy(() => import("./pages/MockInterviewPage"));
 import Avatar from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
+import PageHeader from "./components/ui/PageHeader";
+import PlanBadge from "./components/ui/PlanBadge";
+import { activePlan, PLAN_NAME, planExpiryText } from "./lib/plan";
+import ProductTour from "./components/ProductTour";
 import { useAuth } from "./context/AuthContext";
 
 import { ThemeToggle } from "./context/ThemeContext";
@@ -64,6 +68,20 @@ const C = {
   textMuted: "var(--c-textMuted)",
   green: "#3DBE82",
 };
+
+// Returning from Google OAuth (?token=…) without a pending mentor sign-up. Read once at
+// load, before App's initial state clears the mentor_intent flag.
+const OAUTH_HOME_LANDING = !!new URLSearchParams(window.location.search).get("token") && !sessionStorage.getItem("mentor_intent");
+
+// The minimum a profile needs before answers and matches can be personalised.
+// Students: college, branch and at least one goal. Mentors: college and an area of expertise.
+function needsOnboarding(u) {
+  if (!u) return false;
+  const edu = u.education?.[0] || {};
+  const hasCollege = !!(edu.institutionName || edu.institution);
+  if (u.role === "mentor") return !hasCollege || !(u.expertise?.length || u.primaryDomain);
+  return !hasCollege || !edu.field || !u.interests?.length;
+}
 
 function Spin({ size = 18 }) {
   return <Loader2 size={size} style={{ animation: "spin 1s linear infinite" }} />;
@@ -237,8 +255,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
   };
 
   return (
-    <div style={{ background: C.card, border: `1px solid ${isUpcoming ? C.accent + "44" : C.cardBorder}`, borderRadius: 18, overflow: "hidden" }}>
-      {isUpcoming && <div style={{ height: 4, background: "linear-gradient(90deg,#7567C9,#9F7AEA,#3DBE82)" }} />}
+    <div style={{ background: C.card, border: `1px solid ${isUpcoming ? C.accent + "44" : C.cardBorder}`, borderRadius: 12, overflow: "hidden" }}>
       <div style={{ padding: "1.3rem 1.4rem" }}>
         {/* header — show the other party (student sees mentor, mentor sees student) */}
         <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
@@ -276,7 +293,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
           <a href={isInJoinWindow ? meetUrl : undefined}
             target={isInJoinWindow ? "_blank" : undefined}
             rel="noreferrer"
-            style={{ marginTop: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "0.85rem", borderRadius: 12, background: "linear-gradient(90deg,#7567C9,#5a52a8)", color: "#fff", fontWeight: 700, fontSize: "0.88rem", textDecoration: "none", boxShadow: "0 8px 20px -8px #7567C9", opacity: isInJoinWindow ? 1 : 0.55, cursor: isInJoinWindow ? "pointer" : "default" }}>
+            style={{ marginTop: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "0.85rem", borderRadius: 8, background: "#7567C9", color: "#fff", fontWeight: 700, fontSize: "0.88rem", textDecoration: "none", boxShadow: "0 8px 20px -8px #7567C9", opacity: isInJoinWindow ? 1 : 0.55, cursor: isInJoinWindow ? "pointer" : "default" }}>
             <Video size={17} /> {isInJoinWindow ? "Join Session" : `Opens at ${timeStr}`} <ExternalLink size={13} style={{ opacity: 0.85 }} />
           </a>
         ) : (
@@ -326,7 +343,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
                   placeholder="What did you take away? (optional)"
                   maxLength={300}
                   rows={2}
-                  style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: 8, border: `1px solid ${C.cardBorder}`, background: C.card, color: C.text, fontSize: "0.8rem", resize: "none", fontFamily: " Inter, sans-serif", marginBottom: "0.6rem", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: 8, border: `1px solid ${C.cardBorder}`, background: C.card, color: C.text, fontSize: "0.8rem", resize: "none", fontFamily: "var(--font-body)", marginBottom: "0.6rem", outline: "none", boxSizing: "border-box" }}
                 />
                 {chosenRating > 0 && (
                   <button
@@ -339,7 +356,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
                       } catch { /* silent */ }
                       setReviewing(false);
                     }}
-                    style={{ padding: "0.5rem 1.2rem", borderRadius: 8, background: "linear-gradient(135deg,#7567C9,#5a52a8)", color: "#fff", fontWeight: 600, fontSize: "0.8rem", border: "none", cursor: "pointer", opacity: reviewing ? 0.7 : 1 }}
+                    style={{ padding: "0.5rem 1.2rem", borderRadius: 8, background: "#7567C9", color: "#fff", fontWeight: 600, fontSize: "0.8rem", border: "none", cursor: "pointer", opacity: reviewing ? 0.7 : 1 }}
                   >
                     {reviewing ? "Saving…" : "Submit Review"}
                   </button>
@@ -385,14 +402,13 @@ function MySessionsPage({ onNavigate }) {
   if (loading) return <div style={{ padding: "3rem", textAlign: "center", color: C.textMuted }}><Spin /></div>;
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 680, margin: "0 auto" }}>
-      <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: C.text, marginBottom: "0.4rem" }}>My Sessions</h2>
-      <p style={{ fontSize: "0.85rem", color: C.textMuted, marginBottom: "2rem" }}>Your booked mentorship sessions and Meet links.</p>
+    <div style={{ padding: "24px 16px 60px", maxWidth: 820, margin: "0 auto" }}>
+      <PageHeader title="My sessions" subtitle="Calls you've booked with seniors. The join button opens a few minutes before each call starts." />
 
       <div style={{ marginBottom: "2.2rem" }}>
         <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "0.9rem" }}>UPCOMING</div>
         {upcoming.length === 0
-          ? <p style={{ fontSize: "0.85rem", color: C.textMuted }}>No upcoming sessions. Book one from the calendar!</p>
+          ? <p style={{ fontSize: "0.85rem", color: C.textMuted }}>No upcoming sessions. When you book a senior, it shows up here.</p>
           : <div style={{ display: "grid", gap: 14 }}>{upcoming.map((s, i) => <SessionDetailCard key={s._id || i} s={s} isUpcoming={true} onNavigate={onNavigate} />)}</div>}
       </div>
       <div>
@@ -527,21 +543,19 @@ function MyRoadmapPage({ user }) {
   if (loading) return <div style={{ padding: "3rem", textAlign: "center", color: C.textMuted }}><Spin /></div>;
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-        <h2 style={{ fontSize: "1.35rem", fontWeight: 500, color: C.text }}>My Roadmap</h2>
-        {activeTab === "skill" && (
+    <div style={{ padding: "24px 16px 60px", maxWidth: 1040, margin: "0 auto" }}>
+      <PageHeader
+        title="My roadmap"
+        subtitle={user?.interests?.[0]
+          ? `${user?.education?.[0]?.field || "Engineering"} to ${user.interests[0]}, planned around your profile.`
+          : "A step-by-step plan built around your profile."}
+        actions={activeTab === "skill" && (
           <button onClick={generate} disabled={genLoading}
-            style={{ fontSize: "0.78rem", background: C.accentSoft, border: `1px solid ${C.accent}55`, color: C.accentText, borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
-            {genLoading ? <><Spin size={13} /> Generating…</> : "↻ Regenerate"}
+            style={{ fontSize: "0.78rem", background: C.card, border: `1px solid ${C.cardBorder}`, color: C.text, borderRadius: 8, padding: "7px 13px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+            {genLoading ? <><Spin size={13} /> Updating…</> : <><RotateCw size={13} /> Regenerate</>}
           </button>
         )}
-      </div>
-      <p style={{ color: C.textSub, fontSize: "0.88rem", marginBottom: "1.25rem" }}>
-        {user?.interests?.[0]
-          ? `${user?.education?.[0]?.field || "Engineering"} → ${user.interests[0]} · personalised for your profile`
-          : "Personalised for your profile"}
-      </p>
+      />
 
       {/* Roadmap switcher tabs under My Roadmap heading */}
       {sessionSteps.length > 0 && (
@@ -642,7 +656,7 @@ function MyRoadmapPage({ user }) {
       {activeTab === "skill" && (
         <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1rem 1.25rem", marginBottom: "2rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <Sparkles size={15} color={C.accentText} />
+            <Lightbulb size={15} color={C.accentText} />
             <span style={{ fontSize: "0.82rem", fontWeight: 600, color: C.text }}>How your roadmap is built</span>
           </div>
           <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
@@ -818,14 +832,11 @@ function SavedAnswersPage() {
   if (loading) return <div style={{ padding: "3rem", textAlign: "center", color: C.textMuted }}><Spin /></div>;
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 760, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-        <h2 style={{ fontSize: "1.35rem", fontWeight: 600, color: C.text, margin: 0 }}>Saved Answers</h2>
-        {answers.length > 0 && (
-          <span style={{ fontSize: "0.72rem", fontWeight: 600, color: C.accentText, background: C.accentSoft, border: `1px solid ${C.accent}44`, borderRadius: 999, padding: "2px 10px" }}>{answers.length}</span>
-        )}
-      </div>
-      <p style={{ color: C.textSub, fontSize: "0.88rem", marginBottom: "1.5rem" }}>Session summaries, action items and insights you've saved.</p>
+    <div style={{ padding: "24px 16px 60px", maxWidth: 820, margin: "0 auto" }}>
+      <PageHeader
+        title={answers.length > 0 ? `Saved answers (${answers.length})` : "Saved answers"}
+        subtitle="Session summaries, action items and answers you've bookmarked."
+      />
 
       <div style={{ position: "relative", marginBottom: "1.5rem" }}>
         <Search size={15} color={focused ? C.accentText : C.textMuted} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", transition: "color 0.15s" }} />
@@ -890,9 +901,9 @@ function AuthModal({ onClose, onAuthed }) {
 
     try {
       if (mode === "login") {
-        await login(email, password);
+        const u = await login(email, password);
         onClose();
-        onAuthed?.();
+        onAuthed?.(u, { isNew: false });
 
       } else if (mode === "signup") {
         const cleanPhone = phone.replace(/\D/g, "").slice(-10);
@@ -913,10 +924,10 @@ function AuthModal({ onClose, onAuthed }) {
 
       } else if (mode === "signup-otp") {
         // Step 2 — verify OTP
-        await signupVerify(email, otp);
+        const u = await signupVerify(email, otp);
         sessionStorage.removeItem("referredBy");
         onClose();
-        onAuthed?.();
+        onAuthed?.(u, { isNew: true });
 
       } else if (mode === "forgot") {
         const response = await authAPI.forgotPassword(email);
@@ -1238,15 +1249,17 @@ function RequirePhoneGate() {
 
 export default function App() {
   const { user, loading, logout } = useAuth();
-  // After Google OAuth the backend redirects back with ?token=… — land such
-  // users on their profile (matches the email/password login behaviour).
+  const userPlan = activePlan(user);   // "clarity" | "pro" | null
+  // After Google OAuth the backend redirects back with ?token=… — land on home, and
+  // once the user loads, send them to profile onboarding only if it's incomplete
+  // (same rule as email/password login, see handleAuthed).
+  const googleLandingRef = useRef(OAUTH_HOME_LANDING);
   const [activePage, setActivePage] = useState(() => {
     const hasToken = new URLSearchParams(window.location.search).get("token");
     if (hasToken) {
       // If mentor intent was set before Google OAuth redirect, resume onboarding
       const mentorIntent = sessionStorage.getItem("mentor_intent");
       if (mentorIntent) { sessionStorage.removeItem("mentor_intent"); return "mentor-onboard"; }
-      return "profile";
     }
     return "ask";
   });
@@ -1338,6 +1351,60 @@ export default function App() {
   const collapsed = !isMobile && sidebarCollapsed;
   const [profileSection, setProfileSection] = useState('overview');
 
+  // Post-login flow: complete profile → stay where you were; new or incomplete → profile onboarding,
+  // then straight back to where you came from once it's filled in (or on "Skip for now").
+  const [onboarding, setOnboarding] = useState(null);   // null, or { returnTo: pageId }
+  const handleAuthed = (u, { isNew } = {}) => {
+    if (isNew || needsOnboarding(u)) {
+      setOnboarding({ returnTo: activePage === "profile" ? "ask" : activePage });
+      setProfileSection("overview");
+      setActivePage("profile");
+    }
+  };
+  const finishOnboarding = () => {
+    const to = onboarding?.returnTo || "ask";
+    setOnboarding(null);
+    setActivePage(to);
+  };
+  const handleProfileSaved = (u) => {
+    if (onboarding && !needsOnboarding(u)) finishOnboarding();
+  };
+  useEffect(() => {
+    if (!googleLandingRef.current || !user) return;
+    googleLandingRef.current = false;
+    if (needsOnboarding(user)) handleAuthed(user);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+  // Leaving the profile any other way ends onboarding too.
+  useEffect(() => {
+    if (activePage !== "profile" && onboarding) setOnboarding(null);
+  }, [activePage, onboarding]);
+
+  // First-visit product tour. Auto-starts once per browser; "?" in the header replays it.
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    if (loading) return;
+    let seen = false;
+    try { seen = localStorage.getItem(ProductTour.storageKey) === '1'; } catch { /* ignore */ }
+    if (seen) return;
+    const t = setTimeout(() => setTourOpen(true), 800);
+    return () => clearTimeout(t);
+  }, [loading]);
+  // The tour points at the home page's cards, so it always runs from home.
+  const startTour = () => {
+    if (activePage === "ask") { setTourOpen(true); return; }
+    setActivePage("ask");
+    setTimeout(() => setTourOpen(true), 400);   // let the home page mount before steps are resolved
+  };
+  // On mobile the sidebar is an off-canvas drawer — slide it in for sidebar steps.
+  const handleTourStep = (step) => {
+    if (isMobile) setSidebarOpen(!!step.sidebar);
+  };
+  const closeTour = () => {
+    setTourOpen(false);
+    if (isMobile) setSidebarOpen(false);
+  };
+
   const MENTOR_PROFILE_NAV = [
     { key: 'overview', Icon: Activity, label: 'Overview' },
     { key: 'booking', Icon: CalendarClock, label: 'Availability' },
@@ -1412,9 +1479,10 @@ export default function App() {
   ];
 
   const pages = {
-    ask: <AskAtyantPage key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} />,
-    jobs: <JobsPage onNavigate={setActivePage} onAuthRequired={() => setShowAuth(true)} />,
-    "mock-interview": <MockInterviewPage onAuthRequired={() => setShowAuth(true)} />,
+    ask: <AskAtyantPage key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} onGoToMockInterview={() => setActivePage("mock-interview")} />,
+    // "upgrade" goes through goToUpgrade so the pricing page's Back returns here.
+    jobs: <JobsPage onNavigate={(p) => (p === "upgrade" ? goToUpgrade() : setActivePage(p))} onAuthRequired={() => setShowAuth(true)} />,
+    "mock-interview": <MockInterviewPage onAuthRequired={() => setShowAuth(true)} onNavigate={setActivePage} />,
     clarity: <ClarityView key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} onOpenChat={handleOpenChat} />,
     chat: <ChatPage key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
@@ -1422,7 +1490,37 @@ export default function App() {
     sessions: <MySessionsPage onNavigate={setActivePage} />,
     roadmap: <MyRoadmapPage user={user} />,
     saved: <SavedAnswersPage />,
-    profile: <ProfilePage activeSection={profileSection} setActiveSection={setProfileSection} />,
+    profile: (
+      <>
+        {/* Same width and side padding as ProfilePage's own container, so these line up with it. */}
+        <div style={{ maxWidth: 1140, margin: "0 auto", padding: isMobile ? "1rem 16px 0" : "1.5rem 2rem 0", display: "flex", flexDirection: "column", gap: 12 }}>
+          <button onClick={onboarding ? finishOnboarding : () => setActivePage("ask")}
+            style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px 7px 10px", borderRadius: 8, border: `1px solid ${C.cardBorder}`, background: C.card, color: C.text, fontSize: "0.84rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s ease" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.activeBorder; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBorder; }}>
+            <ArrowLeft size={16} /> Back home
+          </button>
+          {onboarding && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap", padding: "14px 16px", borderRadius: 12, background: C.accentSoft, border: `1px solid ${C.activeBorder}` }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "0.92rem", fontWeight: 700, color: C.text }}>Finish setting up your profile</div>
+                <div style={{ fontSize: "0.8rem", color: C.textSub, marginTop: 3 }}>
+                  {user?.role === "mentor"
+                    ? "Add your college and what you can help with, so the right students find you."
+                    : "Add your college, branch and goals. Answers and senior matches are based on them."}
+                  {" "}Tap Edit Profile, fill them in and save. We'll take you back after that.
+                </div>
+              </div>
+              <button onClick={finishOnboarding}
+                style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.cardBorder}`, background: C.card, color: C.text, fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                Skip for now
+              </button>
+            </div>
+          )}
+        </div>
+        <ProfilePage activeSection={profileSection} setActiveSection={setProfileSection} onSaved={handleProfileSaved} onUpgrade={goToUpgrade} />
+      </>
+    ),
     upgrade: <UpgradePage onBack={goToFree} />,
 
     roadmap: <MyRoadmapPage user={user} />,
@@ -1443,6 +1541,7 @@ export default function App() {
     const isActive = activePage === item.id;
     return (
       <button onClick={() => { setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
+        data-tour={`nav-${item.id}`}
         title={collapsed ? item.label : undefined}
         style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius: 10, border: "none", background: isActive ? C.accentSoft : "transparent", color: isActive ? C.text : C.textSub, cursor: "pointer", fontFamily: "inherit", fontSize: "0.9rem", lineHeight: 1.2, textAlign: "left", transition: "background-color 0.2s ease, color 0.2s ease", fontWeight: 500 }}
         onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
@@ -1467,7 +1566,7 @@ export default function App() {
 
   return (
     <>
-      <div style={{ background: C.bg, minHeight: "100dvh", display: "flex", fontFamily: "'Satoshi',-apple-system,sans-serif", color: C.text }}>
+      <div style={{ background: C.bg, minHeight: "100dvh", display: "flex", fontFamily: "var(--font-body)", color: C.text }}>
 
         <SEOHead {...seo} />
 
@@ -1487,10 +1586,10 @@ export default function App() {
               title="Back to atyant.in"
               style={{ display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}
             >
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#7567C9,#9F7AEA)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px -6px #7567C9", flexShrink: 0 }}>
-                <Sparkles size={17} color="#fff" strokeWidth={2.2} />
-              </div>
-              {!collapsed && <span style={{ fontWeight: 700, fontSize: "1.4rem", letterSpacing: "-0.01em", color: C.text, lineHeight: 1, fontFamily: "'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>}
+              {/* The wordmark is the logo. The collapsed rail is too narrow for it, so it keeps just the first letter. */}
+              <span style={{ fontWeight: 700, fontSize: collapsed ? "1.5rem" : "1.55rem", letterSpacing: "-0.01em", color: C.text, lineHeight: 1, fontFamily: "'Noto Serif Devanagari','Georgia',serif" }}>
+                {collapsed ? "अ" : "अत्यanT"}
+              </span>
             </div>
             {isMobile && (
               <button onClick={() => setSidebarOpen(false)} aria-label="Close menu"
@@ -1527,37 +1626,21 @@ export default function App() {
                   gap: collapsed ? 0 : 8,
                   height: 46,
                   padding: collapsed ? 0 : "0 14px",
-                  borderRadius: 13,
-                  // A visible ring is what reads as "raised, clickable" on a dark
-                  // sidebar — the gradient alone sat flush against the background
-                  // with nothing marking its edge, so it looked pasted-on flat.
-                  border: "1px solid rgba(255,255,255,0.16)",
-                  background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
+                  borderRadius: 10,
+                  border: "none",
+                  background: C.accent,
                   color: "#fff",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   fontSize: "0.92rem",
                   fontWeight: 600,
-                  // A true black shadow underneath (not just the accent's own
-                  // color) is what actually separates the button from a dark
-                  // background — the old accent-colored glow alone barely showed.
-                  boxShadow: "0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -6px rgba(0,0,0,0.45)",
-                  transition: "transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease",
+                  boxShadow: "0 1px 2px rgba(20,16,40,0.18)",
+                  transition: "background-color 0.15s ease",
                   marginBottom: "1.5rem",
                   boxSizing: "border-box",
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.filter = "brightness(1.08)";
-                  e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.25) inset, 0 12px 26px -6px rgba(0,0,0,0.55)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.filter = "none";
-                  e.currentTarget.style.boxShadow = "0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -6px rgba(0,0,0,0.45)";
-                  e.currentTarget.style.transform = "none";
-                }}
-                onMouseDown={e => { e.currentTarget.style.transform = "translateY(0) scale(0.97)"; }}
-                onMouseUp={e => { e.currentTarget.style.transform = "translateY(-1px) scale(1)"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#6557B8"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = C.accent; }}
               >
                 <ArrowLeft size={17} strokeWidth={2.5} />
                 {!collapsed && <span>Back Home</span>}
@@ -1571,6 +1654,7 @@ export default function App() {
                   setChatSession(prev => prev + 1);  // remount AskAtyantPage clean
                   if (isMobile) setSidebarOpen(false);
                 }}
+                data-tour="new-chat"
                 title={collapsed ? "New chat" : undefined}
                 style={{
                   width: "100%",
@@ -1580,29 +1664,21 @@ export default function App() {
                   gap: collapsed ? 0 : 8,
                   height: 46,
                   padding: collapsed ? 0 : "0 14px",
-                  borderRadius: 13,
+                  borderRadius: 10,
                   border: "none",
-                  background: "linear-gradient(135deg,#7567C9,#8B7BE0)",
+                  background: C.accent,
                   color: "#fff",
                   cursor: "pointer",
                   fontFamily: "inherit",
                   fontSize: "0.92rem",
                   fontWeight: 600,
-                  boxShadow: "0 8px 20px -8px #7567C9",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease",
+                  boxShadow: "0 1px 2px rgba(20,16,40,0.18)",
+                  transition: "background-color 0.15s ease",
                   marginBottom: "1.5rem",
                   boxSizing: "border-box",
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.filter = "brightness(1.08)";
-                  e.currentTarget.style.boxShadow = "0 12px 26px -8px #7567C9";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.filter = "none";
-                  e.currentTarget.style.boxShadow = "0 8px 20px -8px #7567C9";
-                  e.currentTarget.style.transform = "none";
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#6557B8"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = C.accent; }}
               >
                 <Plus size={17} strokeWidth={2.5} />
                 {!collapsed && <span>New chat</span>}
@@ -1656,23 +1732,40 @@ export default function App() {
           <div style={{ padding: "0.875rem", borderTop: `1px solid ${C.sidebarBorder}` }}>
             {/* Become a mentor — only for logged-out visitors */}
             {!user && (
-              <button onClick={() => { setActivePage("mentor-onboard"); if (isMobile) setSidebarOpen(false); }}
-                title={collapsed ? "Become a mentor" : undefined}
-                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: collapsed ? 0 : 7, background: "transparent", border: `1px solid ${C.accent}55`, borderRadius: 10, padding: collapsed ? "9px 0" : "9px 12px", color: C.accentText, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.background = C.accentSoft; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                <Sparkles size={13} /> {!collapsed && "Become a mentor"}
-              </button>
+              collapsed ? (
+                <button onClick={() => setActivePage("mentor-onboard")} title="Become a mentor"
+                  style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 0", borderRadius: 10, border: "1px solid var(--c-mentorBorder)", background: "var(--c-mentorBg)", color: "var(--c-mentorText)", cursor: "pointer" }}>
+                  <GraduationCap size={17} />
+                </button>
+              ) : (
+                <div style={{ marginBottom: 12, padding: "13px 14px 12px", borderRadius: 12, background: "var(--c-mentorBg)", border: "1px solid var(--c-mentorBorder)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, color: "var(--c-mentorText)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    <GraduationCap size={15} strokeWidth={2.2} /> For seniors
+                  </div>
+                  <p style={{ margin: "7px 0 11px", fontSize: "0.84rem", lineHeight: 1.45, color: C.text }}>
+                    Cracked a placement or internship? Help juniors who are where you were.
+                  </p>
+                  <button onClick={() => { setActivePage("mentor-onboard"); if (isMobile) setSidebarOpen(false); }}
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px 12px", borderRadius: 8, border: "none", background: "var(--c-mentorBtn)", color: "#fff", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "filter 0.15s ease" }}
+                    onMouseEnter={e => { e.currentTarget.style.filter = "brightness(0.92)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = "none"; }}>
+                    Become a mentor <ChevronRight size={15} />
+                  </button>
+                </div>
+              )
             )}
             {user ? (
               <div onClick={() => { setActivePage("profile"); if (isMobile) setSidebarOpen(false); }}
+                data-tour="profile"
                 title={collapsed ? (user.username || user.name || "Profile") : undefined}
                 style={{ background: activePage === "profile" ? C.cardHover : C.active, border: `1px solid ${activePage === "profile" ? C.accent + "55" : C.activeBorder}`, borderRadius: 12, padding: collapsed ? "9px 0" : "11px 13px", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 10, cursor: "pointer" }}
                 onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.borderColor = C.accent + "55"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = activePage === "profile" ? C.cardHover : C.active; e.currentTarget.style.borderColor = activePage === "profile" ? C.accent + "55" : C.activeBorder; }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <Avatar src={user.profilePicture} name={user.username || user.name || "You"} size={34} bg="7567c9" style={{ border: `1.5px solid ${C.accent}70` }} />
-                  <span style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: C.green, border: `2px solid ${C.sidebar}` }} />
+                  <Avatar src={user.profilePicture} name={user.username || user.name || "You"} size={34} bg="7567c9" style={{ border: `1.5px solid ${userPlan === "pro" ? "#B45309" : C.accent + "70"}` }} />
+                  {/* Paid plan: badge sits on the photo's bottom edge, so the online dot moves to the top. */}
+                  <span style={{ position: "absolute", ...(userPlan ? { top: -1 } : { bottom: 0 }), right: 0, width: 9, height: 9, borderRadius: "50%", background: C.green, border: `2px solid ${C.sidebar}` }} />
+                  {userPlan && <PlanBadge user={user} style={{ position: "absolute", bottom: -7, left: "50%", transform: "translateX(-50%)", boxShadow: `0 0 0 2px ${C.sidebar}` }} />}
                 </div>
                 {!collapsed && (
                   <>
@@ -1694,6 +1787,7 @@ export default function App() {
               </div>
             ) : (
               <button onClick={() => setShowAuth(true)}
+                data-tour="profile"
                 title={collapsed ? "Sign in" : undefined}
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: collapsed ? 0 : 8, background: C.accent, border: "none", borderRadius: 12, padding: collapsed ? "11px 0" : "11px 13px", color: "#fff", fontSize: "0.86rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 <LogIn size={15} /> {!collapsed && "Sign in"}
@@ -1704,18 +1798,6 @@ export default function App() {
 
         {/* ── Main ── */}
         <div style={{ position: "relative", flex: 1, overflow: activePage === "ask" ? "visible" : "hidden", height: activePage === "ask" ? "auto" : "100dvh", minHeight: activePage === "ask" ? "100dvh" : undefined, display: "flex", flexDirection: "column" }}>
-          {/* Ambient AI backdrop — spans the toolbar + page so the gradient is one
-            continuous surface (no seam under the header). Home view only.
-            Own clipping layer: .ai-aurora deliberately bleeds -10% past its
-            edges for the glow, and the parent needs overflow:visible for
-            other reasons — without this wrapper that bleed forces a
-            page-wide horizontal scrollbar. */}
-          {activePage === "ask" && (
-            <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
-              <div className="ai-grid" aria-hidden="true" />
-              <div className="ai-aurora" aria-hidden="true" />
-            </div>
-          )}
           <div style={{ position: "relative", zIndex: 1, height: 57, display: "flex", justifyContent: "space-between", alignItems: "center", padding: isMobile ? "0 16px" : "0 24px", background: "transparent", flexShrink: 0 }}>
             {isMobile ? (
               <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
@@ -1728,13 +1810,32 @@ export default function App() {
               <span style={{ fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.01em", color: C.text, lineHeight: 1, fontFamily: "'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
             ) : <div />}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <ThemeToggle size={16} style={{ padding: 7, borderRadius: 7 }} />
+              <button onClick={startTour} aria-label="Take the tour" title="Take the tour"
+                style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "transparent", color: C.textSub, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; }}>
+                <HelpCircle size={17} />
+              </button>
+              <span data-tour="theme" style={{ display: "inline-flex" }}>
+                <ThemeToggle size={16} style={{ padding: 7, borderRadius: 7 }} />
+              </span>
               {(() => {
                 const onUpgrade = activePage === "upgrade"; return (<>
-                  <button onClick={goToFree}
-                    style={{ background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: C.accentText, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Free Plan</button>
-                  <button onClick={goToUpgrade}
-                    style={{ background: C.accent, border: `1px solid ${C.accent}`, borderRadius: 7, padding: "5px 12px", color: "#fff", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Upgrade</button>
+                  {userPlan ? (
+                    // Paying user: show their plan and when it runs out (click → plans page).
+                    <button onClick={goToUpgrade} title={planExpiryText(user) ? `${PLAN_NAME[userPlan]} plan · until ${planExpiryText(user)}` : `${PLAN_NAME[userPlan]} plan`}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "4px 10px 4px 6px", color: C.text, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      <PlanBadge user={user} size="md" />
+                      {!isMobile && planExpiryText(user) && <span style={{ color: C.textSub, fontWeight: 500 }}>until {planExpiryText(user)}</span>}
+                    </button>
+                  ) : (
+                    <button onClick={goToFree}
+                      style={{ background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: C.accentText, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Free Plan</button>
+                  )}
+                  {userPlan !== "pro" && (
+                    <button onClick={goToUpgrade} data-tour="upgrade"
+                      style={{ background: C.accent, border: `1px solid ${C.accent}`, borderRadius: 7, padding: "5px 12px", color: "#fff", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>{userPlan ? "Go Pro" : "Upgrade"}</button>
+                  )}
                 </>);
               })()}
             </div>
@@ -1746,7 +1847,9 @@ export default function App() {
           </div>
         </div>
 
-        {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={() => setActivePage("profile")} />}
+        {tourOpen && <ProductTour onClose={closeTour} onStepChange={handleTourStep} />}
+
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={handleAuthed} />}
 
         {/* Mandatory mobile capture for phone-less (e.g. Google) accounts */}
         <RequirePhoneGate />

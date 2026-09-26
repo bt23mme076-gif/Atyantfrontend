@@ -6,7 +6,7 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 .chat-page {
-  --chat-bubble-out: linear-gradient(135deg, #7567C9 0%, #6f5fc4 55%, #8a78de 100%);
+  --chat-bubble-out: #7567C9;
   --chat-msg-bg: #F4F2FC;
   --chat-incoming: #FFFFFF;
   --chat-incoming-text: var(--c-text);
@@ -17,7 +17,7 @@
   height: 100%;
   min-height: 0;
   background: var(--c-bg);
-  font-family: Inter, sans-serif;
+  font-family: var(--font-body);
   color: var(--c-text);
   overflow: hidden;
 }
@@ -488,13 +488,13 @@
   padding: 12px 15px 10px;
   border-radius: 16px;
   border-bottom-left-radius: 5px;
-  background: linear-gradient(135deg, rgba(117, 103, 201, 0.12) 0%, rgba(159, 122, 234, 0.10) 100%);
+  background: rgba(117, 103, 201, 0.08);
   border: 1px solid var(--c-activeBorder);
   box-shadow: var(--chat-shadow);
 }
 
 .dark .chat-page .auto-card {
-  background: linear-gradient(135deg, rgba(117, 103, 201, 0.22) 0%, rgba(159, 122, 234, 0.16) 100%);
+  background: rgba(117, 103, 201, 0.16);
 }
 
 .chat-page .auto-badge {
@@ -643,7 +643,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(117, 103, 201, 0.4);
   transition: transform 0.12s, opacity 0.12s;
 }
 
@@ -674,7 +673,7 @@
   position: absolute;
   inset: -50% -20% auto -20%;
   height: 150%;
-  background: radial-gradient(45% 60% at 50% 0%, rgba(117, 103, 201, 0.28), transparent 70%);
+  display: none;
   pointer-events: none;
 }
 
@@ -733,7 +732,6 @@
   font-weight: 800;
   font-size: 0.86rem;
   font-family: inherit;
-  box-shadow: 0 6px 18px rgba(117, 103, 201, 0.4);
   transition: transform 0.12s, opacity 0.12s;
 }
 

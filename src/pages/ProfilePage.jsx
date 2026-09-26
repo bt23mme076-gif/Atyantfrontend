@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Pencil, Camera, X, Loader2, Check, FileText, Sparkles,
+  Pencil, Camera, X, Loader2, Check, FileText, ListChecks,
   UserRound, GraduationCap, Briefcase, Zap, Trophy, Compass,
-  CalendarCheck, Link2, ShieldCheck, Eye, MessageSquareText,
-  Activity, Users, Plus, MapPin, Target, BadgeCheck, TrendingUp,
+  CalendarCheck, Link2, ShieldCheck, Eye,
+  Activity, Plus, MapPin, Target, BadgeCheck, TrendingUp,
   CalendarClock, Upload, Globe, Copy, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +15,8 @@ import Avatar from "../components/Avatar";
 import ShareProfile from "../components/ShareProfile";
 import AnswerCardManager from "../components/AnswerCardManager";
 import AutoApplySettings from "../components/AutoApplySettings";
+import PlanBadge from "../components/ui/PlanBadge";
+import { activePlan, PLAN_NAME, planExpiryText } from "../lib/plan";
 
 // Chip color palette — cycles so each tag has a distinct hue
 const CHIP_PALETTE = [
@@ -59,10 +61,10 @@ const PageStyles = () => (
     .pf-anim-3 { animation-delay:.13s } .pf-anim-4 { animation-delay:.18s }
 
     .pf-card { transition: border-color .2s ease, box-shadow .25s ease, transform .25s ease; }
-    .pf-card:hover { border-color: #7567C955; box-shadow: var(--shadow); transform: translateY(-1px); }
+    .pf-card:hover { border-color: var(--c-activeBorder); }
 
     .pf-stat { transition: border-color .2s ease, box-shadow .25s ease, transform .25s ease; }
-    .pf-stat:hover { border-color:#7567C966; transform: translateY(-2px); box-shadow: var(--shadow); }
+    .pf-stat:hover { border-color: var(--c-activeBorder); }
 
     .pf-input, .pf-select, .pf-textarea {
       width:100%; box-sizing:border-box; background:var(--c-active);
@@ -96,10 +98,10 @@ const PageStyles = () => (
       background-size:400px 100%; animation:pfShimmer 1.3s infinite linear; border-radius:8px; }
 
     .pf-svc-row { transition: all .15s ease; cursor:pointer; }
-    .pf-svc-row:hover { border-color:#7567C9 !important; transform:translateY(-1px); box-shadow:0 4px 14px rgba(117,103,201,0.18); }
+    .pf-svc-row:hover { border-color:#7567C9 !important; }
     .pf-svc-row.on { border-color:#7567C9 !important; background:rgba(117,103,201,0.09) !important; }
     .pf-svc-card { transition: border-color .15s, transform .15s, box-shadow .15s; cursor:pointer; }
-    .pf-svc-card:hover { border-color:#7567C9 !important; transform:translateY(-2px); box-shadow:0 6px 18px rgba(117,103,201,0.2); }
+    .pf-svc-card:hover { border-color:#7567C9 !important; }
     .pf-svc-card.on { border-color:#7567C9 !important; }
     .pf-svc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
     @media (max-width:880px) { .pf-svc-grid { grid-template-columns:repeat(2,1fr); } }
@@ -109,6 +111,16 @@ const PageStyles = () => (
     .pf-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
     .pf-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
     .pf-hero-actions { display:flex; gap:9px; flex-wrap:wrap; }
+    .pf-hero-actions.m { margin-top:14px; }
+    .pf-hero-actions.m > * { flex:1 1 0; justify-content:center; }
+    /* Overview: main column (to-dos) + side column (plan, resume); one column on narrow screens */
+    .pf-ov { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:18px; align-items:start; }
+    .pf-ov > div { display:flex; flex-direction:column; gap:18px; min-width:0; }
+    .pf-ov > div > * { margin-bottom:0 !important; }
+    @media (max-width: 1000px) { .pf-ov { grid-template-columns:1fr; } }
+    /* Key numbers inside the hero */
+    .pf-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:18px; padding-top:14px; border-top:1px solid var(--c-cardBorder); }
+    @media (max-width: 480px) { .pf-strip { grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:14px; } }
     @media (max-width: 880px) {
       .pf-grid { grid-template-columns:1fr; }
       .pf-stats { grid-template-columns:repeat(2,1fr); }
@@ -118,40 +130,6 @@ const PageStyles = () => (
     }
   `}</style>
 );
-
-/* ─── Completion ring (SVG) ─────────────────────────────────────────────────── */
-function Ring({ pct, size = 76, stroke = 7 }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const color = pct < 40 ? "#F87171" : pct < 75 ? "#F5A623" : C.green;
-  return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }} role="img" aria-label={`Profile ${pct}% complete`}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.active} strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct / 100)}
-          style={{ transition: "stroke-dashoffset .8s ease, stroke .3s ease" }} />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: size > 70 ? "1rem" : ".85rem", fontWeight: 700, color: C.text, lineHeight: 1 }}>{pct}%</span>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Stat card ─────────────────────────────────────────────────────────────── */
-function StatCard({ Icon, label, value, hint, delay }) {
-  return (
-    <div className={`pf-stat pf-anim pf-anim-${delay}`} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1rem 1.1rem", minWidth: 0 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
-        <Icon size={16} style={{ color: C.accentText }} />
-      </div>
-      <div style={{ fontSize: "1.35rem", fontWeight: 700, color: C.text, lineHeight: 1.1, letterSpacing: "-0.02em" }}>{value}</div>
-      <div style={{ fontSize: ".72rem", color: C.textSub, marginTop: 4, fontWeight: 500 }}>{label}</div>
-      {hint && <div style={{ fontSize: ".66rem", color: C.textMuted, marginTop: 2 }}>{hint}</div>}
-    </div>
-  );
-}
 
 /* ─── Section card shell ────────────────────────────────────────────────────── */
 function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2, id }) {
@@ -165,13 +143,12 @@ function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2, 
   };
   return (
     <section id={id} className={`pf-card pf-anim pf-anim-${delay}`} onClick={handleCardClick}
-      style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1.35rem 1.4rem", minWidth: 0, cursor: tapToEdit ? "pointer" : "default" }}>
+      style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "1.35rem 1.4rem", minWidth: 0, cursor: tapToEdit ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.2rem", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "linear-gradient(135deg, rgba(117,103,201,0.22) 0%, rgba(117,103,201,0.08) 100%)",
-            border: `1px solid rgba(117,103,201,0.25)`,
+            background: C.accentSoft,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <Icon size={16} style={{ color: C.accentText }} />
@@ -695,7 +672,7 @@ function AvailabilityEditor({ userId, serviceCatalog, servicesOffered, toggleSer
 }
 
 /* ─── Profile page ──────────────────────────────────────────────────────────── */
-export default function ProfilePage({ activeSection: sectionProp, setActiveSection: setSectionProp } = {}) {
+export default function ProfilePage({ activeSection: sectionProp, setActiveSection: setSectionProp, onSaved, onUpgrade } = {}) {
   const { user, setUser } = useAuth();
   const isMobileView = useIsMobile();
   const [editing, setEditing] = useState(false);
@@ -973,8 +950,10 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         }
         : { ...base, city: form.city, goals: form.goals, skills: form.skills };
       const res = await profileAPI.update(payload);
-      setUser(res.user || res);
+      const savedUser = res.user || res;
+      setUser(savedUser);
       setEditing(false);
+      onSaved?.(savedUser);
     } catch (e) { alert(e.message || "Save failed"); }
     finally { setSaving(false); }
   };
@@ -1093,7 +1072,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   ], [isMentor, form, user?.profilePicture]);
 
   const pct = Math.round(completionItems.reduce((s, it) => s + (it.done ? it.pts : 0), 0));
-  const missing = completionItems.filter(it => !it.done);
+  const plan = activePlan(user);   // "clarity" | "pro" | null
   const startEdit = () => setEditing(true);
 
   // ── Loading skeleton (auth still resolving) ──
@@ -1143,8 +1122,30 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
     goals: 'goals', skills: 'goals',
   };
 
+  const heroActions = (
+    <div className={`pf-hero-actions${isMobileView ? " m" : ""}`}>
+      {!editing && <ShareProfile publicUrl={publicUrl} />}
+      {isMentor && !editing && (
+        <button onClick={() => setShowAnswerCards(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, transition: "all .15s" }}>
+          <FileText size={13} /> Answer Card
+        </button>
+      )}
+      {editing && (
+        <button onClick={() => setEditing(false)} disabled={saving}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+          <X size={13} /> Cancel
+        </button>
+      )}
+      <button onClick={() => editing ? handleSave() : setEditing(true)} disabled={saving}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: editing ? C.green : C.accent, border: "none", borderRadius: 10, padding: "8px 17px", color: "#fff", fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, boxShadow: "0 3px 12px rgba(117,103,201,0.28)" }}>
+        {saving ? <><Spin size={13} /> Saving…</> : editing ? <><Check size={13} /> Save changes</> : <><Pencil size={13} /> Edit Profile</>}
+      </button>
+    </div>
+  );
+
   return (
-    <div style={{ padding: isMobileView ? "1rem 0.75rem 3rem" : "1.5rem 2rem 3rem", maxWidth: 1140, margin: "0 auto" }}>
+    <div style={{ padding: isMobileView ? "1rem 16px 3rem" : "1.5rem 2rem 3rem", maxWidth: 1140, margin: "0 auto" }}>
       <PageStyles />
 
       {showAnswerCards && (
@@ -1156,44 +1157,26 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       )}
 
       {/* ════════ HERO ════════ */}
-      <header className="pf-anim" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 18, overflow: "hidden", marginBottom: 18, boxShadow: "var(--shadow)" }}>
-        {/* Gradient banner */}
-        <div style={{ height: isMobileView ? 84 : 104, background: "linear-gradient(120deg, #7567C9 0%, #8E80DB 45%, #5A4CB0 100%)", position: "relative" }}>
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 75% -20%, rgba(255,255,255,0.28), transparent 55%)" }} />
-        </div>
+      <header className="pf-anim" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, overflow: "hidden", marginBottom: 18 }}>
+        {/* Cover band */}
+        <div style={{ height: isMobileView ? 72 : 88, background: "var(--c-active)", borderBottom: `1px solid ${C.cardBorder}` }} />
 
         <div style={{ padding: isMobileView ? "0 1.1rem 1.2rem" : "0 1.75rem 1.5rem" }}>
           {/* Avatar + actions row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginTop: isMobileView ? -34 : -44 }}>
             <label style={{ position: "relative", cursor: "pointer", display: "inline-block", flexShrink: 0 }} title="Change photo">
-              <div style={{ borderRadius: "50%", padding: 4, background: C.card, display: "inline-flex" }}>
+              {/* Paid plans get a coloured ring (amber Pro, purple Clarity) and a badge on the photo. */}
+              <div style={{ borderRadius: "50%", padding: 4, background: C.card, display: "inline-flex", boxShadow: plan ? `0 0 0 2.5px ${plan === "pro" ? "#B45309" : C.accent}` : "none" }}>
                 <Avatar src={user?.profilePicture} name={user?.username || user?.name || "You"} size={isMobileView ? 72 : 92} bg="7567c9" style={{ opacity: uploading ? 0.5 : 1 }} />
               </div>
               <input type="file" accept="image/*" onChange={onPickImage} style={{ display: "none" }} disabled={uploading} />
               <span style={{ position: "absolute", bottom: 6, right: 4, width: 26, height: 26, borderRadius: "50%", background: C.accent, border: `2.5px solid ${C.card}`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                 {uploading ? <Spin size={12} /> : <Camera size={12} />}
               </span>
+              {plan && <PlanBadge user={user} size="md" style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", boxShadow: `0 0 0 2.5px ${C.card}` }} />}
             </label>
 
-            <div className="pf-hero-actions">
-              {!editing && <ShareProfile publicUrl={publicUrl} />}
-              {isMentor && !editing && (
-                <button onClick={() => setShowAnswerCards(true)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, transition: "all .15s" }}>
-                  <FileText size={13} /> Answer Card
-                </button>
-              )}
-              {editing && (
-                <button onClick={() => setEditing(false)} disabled={saving}
-                  style={{ display: "flex", alignItems: "center", gap: 6, background: C.active, border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: "8px 15px", color: C.textSub, fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
-                  <X size={13} /> Cancel
-                </button>
-              )}
-              <button onClick={() => editing ? handleSave() : setEditing(true)} disabled={saving}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: editing ? C.green : C.accent, border: "none", borderRadius: 10, padding: "8px 17px", color: "#fff", fontSize: ".8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, boxShadow: "0 3px 12px rgba(117,103,201,0.28)" }}>
-                {saving ? <><Spin size={13} /> Saving…</> : editing ? <><Check size={13} /> Save changes</> : <><Pencil size={13} /> Edit Profile</>}
-              </button>
-            </div>
+            {!isMobileView && heroActions}
           </div>
 
           {/* Identity */}
@@ -1213,8 +1196,8 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                 )}
               </div>
 
-              <div style={{ fontSize: ".86rem", color: C.textSub, marginTop: 7, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <GraduationCap size={14} style={{ color: C.textMuted, flexShrink: 0 }} />
+              <div style={{ fontSize: ".86rem", color: C.textSub, marginTop: 7, display: "flex", alignItems: "flex-start", gap: 6, lineHeight: 1.45 }}>
+                <GraduationCap size={14} style={{ color: C.textMuted, flexShrink: 0, marginTop: 3 }} />
                 <span>{edu.institutionName || edu.institution || "Add your college"}{edu.field ? ` · ${edu.field}` : ""}{edu.year ? ` · ${edu.year}` : ""}</span>
               </div>
 
@@ -1234,9 +1217,6 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                     <MapPin size={12} /> {form.city}
                   </span>
                 )}
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, display: "inline-block" }} /> Active now
-                </span>
               </div>
 
               {/* Expertise tags in hero */}
@@ -1252,16 +1232,28 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
               )}
             </div>
 
-            {/* Completion ring */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-              <Ring pct={pct} size={isMobileView ? 64 : 76} />
-              <div>
-                <div style={{ fontSize: ".78rem", fontWeight: 600, color: C.text }}>Profile strength</div>
-                <div style={{ fontSize: ".7rem", color: C.textMuted, marginTop: 2, maxWidth: 130, lineHeight: 1.45 }}>
-                  {pct === 100 ? "Fully complete 🎉" : `${missing.length} item${missing.length === 1 ? "" : "s"} left`}
-                </div>
+          </div>
+
+          {isMobileView && heroActions}
+
+          {/* Key numbers */}
+          <div className="pf-strip">
+            {(isMentor ? [
+              { label: "Profile views", value: user?.profileViews ?? 0 },
+              { label: "Questions answered", value: user?.totalAnswered ?? 0 },
+              { label: "Response rate", value: `${user?.responseRate ?? 0}%` },
+              { label: "Students helped", value: user?.successfulMatches ?? 0 },
+            ] : [
+              { label: "Profile complete", value: `${pct}%` },
+              { label: "Goals", value: form.goals.length },
+              { label: "Skills", value: form.skills.length },
+              { label: "Credits", value: user?.credits ?? 0 },
+            ]).map(st => (
+              <div key={st.label} style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "1.2rem", fontWeight: 700, color: C.text, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{st.value}</div>
+                <div style={{ fontSize: ".74rem", color: C.textSub, marginTop: 3 }}>{st.label}</div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </header>
@@ -1273,12 +1265,54 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
 
       {/* ════════ CONTENT ════════ */}
       <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
-        {/* RIGHT CONTENT PANEL */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* RIGHT CONTENT PANEL — forms stay a readable width; overview and availability use the full row */}
+        <div style={{ flex: 1, minWidth: 0, maxWidth: ["overview", "booking"].includes(activeSection) ? "none" : 760 }}>
 
         {/* ── OVERVIEW ── */}
         {activeSection === 'overview' && (<>
 
+      <div className="pf-ov">
+        {/* Main column — things to do */}
+        <div>
+      {/* ════════ COMPLETION CHECKLIST ════════ */}
+      {pct < 100 && (
+        <div className="pf-card pf-anim pf-anim-2" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12, padding: "1.2rem 1.4rem", marginBottom: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <ListChecks size={15} style={{ color: C.accentText }} />
+              <span style={{ fontSize: ".88rem", fontWeight: 600, color: C.text }}>Complete your profile</span>
+            </div>
+            <span style={{ fontSize: ".72rem", color: C.textMuted }}>
+              {isMentor ? "Complete profiles get matched to 3× more students" : "A complete profile gets sharper mentor matches"}
+            </span>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ height: 8, borderRadius: 999, background: C.active, overflow: "hidden", marginBottom: 14 }} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <div style={{ height: "100%", width: "100%", transform: `scaleX(${pct / 100})`, transformOrigin: "left", borderRadius: 999, background: C.accent, transition: "transform .8s ease" }} />
+          </div>
+
+          {/* Checklist chips */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {completionItems.map(it => (
+              it.done
+                ? <span key={it.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(61,190,130,0.1)", border: `1px solid ${C.green}44`, borderRadius: 999, padding: "4px 12px", color: C.green, fontSize: ".72rem", fontWeight: 600 }}>
+                  <Check size={11} /> {it.label}
+                </span>
+                : <button key={it.key} className="pf-chipbtn"
+                  onClick={() => {
+                    const sec = CHIP_TO_SECTION[it.key] || 'basic';
+                    setActiveSection(sec);
+                    if (sec !== 'booking') startEdit();
+                  }}
+                  title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Plus size={11} /> {it.label} <span style={{ color: C.accentText, fontWeight: 700 }}>+{it.pts}%</span>
+                </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* ════════ IMPORT — LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
       {isMentor && pct < 60 && (
         <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, overflow: "hidden" }}>
@@ -1336,7 +1370,44 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           </div>
         </div>
       )}
+      {/* ════════ AUTO-APPLY (students only) ════════ */}
+      {!isMentor && <AutoApplySettings onUpgrade={onUpgrade} />}
+        </div>
 
+        {/* Side column — plan and resume */}
+        <div>
+      {!isMentor && (() => {
+        const expiryText = planExpiryText(user);
+        const daysLeft = user?.subscriptionExpiry ? Math.ceil((new Date(user.subscriptionExpiry) - new Date()) / 86400000) : null;
+        const cancelled = user?.subscriptionStatus === "cancelled";
+        const lapsed = !plan && user?.subscriptionPlan && user.subscriptionPlan !== "free";
+        return (
+          <div className="pf-anim" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", background: C.card, border: `1px solid ${plan === "pro" ? "rgba(180,83,9,0.45)" : plan ? `${C.accent}55` : C.cardBorder}`, borderRadius: 12, padding: "14px 18px", marginBottom: 18 }}>
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: ".9rem", fontWeight: 700, color: C.text }}>
+                  {plan ? `${PLAN_NAME[plan]} plan` : "Free plan"}
+                </span>
+                {plan && cancelled && <span style={{ fontSize: ".7rem", fontWeight: 600, color: C.textMuted }}>Won't renew</span>}
+              </div>
+              <div style={{ fontSize: ".8rem", color: C.textSub, marginTop: 4, lineHeight: 1.5 }}>
+                {plan
+                  ? <>{expiryText ? <>{cancelled ? "Access until" : "Active until"} <b style={{ color: C.text }}>{expiryText}</b>{daysLeft != null && daysLeft >= 0 ? ` · ${daysLeft} day${daysLeft === 1 ? "" : "s"} left` : ""}</> : "Active"}
+                      {" · "}Auto-apply included{user?.subscriptionCredits > 0 ? ` · ${user.subscriptionCredits} session credit${user.subscriptionCredits === 1 ? "" : "s"} left` : ""}</>
+                  : lapsed
+                    ? `Your ${PLAN_NAME[user.subscriptionPlan] || ""} plan ended${expiryText ? ` on ${expiryText}` : ""}. Renew to get Auto-apply and session credits back.`
+                    : "Upgrade for Auto-apply, full senior profiles and monthly session credits."}
+              </div>
+            </div>
+            {plan !== "pro" && (
+              <button onClick={() => onUpgrade?.()}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, background: plan ? C.card : C.accent, border: plan ? `1px solid ${C.cardBorder}` : "none", color: plan ? C.text : "#fff", borderRadius: 8, padding: "8px 14px", fontSize: ".8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {plan ? "Go Pro" : lapsed ? "Renew plan" : "See plans"}
+              </button>
+            )}
+          </div>
+        );
+      })()}
       {/* ════════ RESUME UPLOAD ════════ */}
       <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, padding: "16px 18px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -1385,64 +1456,8 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           PDF only · max 5 MB · shown in your Meet panel &amp; used by AI to personalize session insights
         </div>
       </div>
-
-      {/* ════════ AUTO-APPLY (students only) ════════ */}
-      {!isMentor && <AutoApplySettings />}
-
-      {/* ════════ STATS ════════ */}
-      <div className="pf-stats" style={{ marginBottom: 18 }}>
-        {isMentor ? <>
-          <StatCard Icon={Eye} label="Profile Views" value={user?.profileViews ?? 0} delay={1} />
-          <StatCard Icon={MessageSquareText} label="Questions Answered" value={user?.totalAnswered ?? 0} delay={2} />
-          <StatCard Icon={Activity} label="Response Rate" value={`${user?.responseRate ?? 0}%`} delay={3} />
-          <StatCard Icon={Users} label="Students Helped" value={user?.successfulMatches ?? 0} delay={4} />
-        </> : <>
-          <StatCard Icon={TrendingUp} label="Profile Strength" value={`${pct}%`} delay={1} />
-          <StatCard Icon={Target} label="Goals Set" value={form.goals.length} delay={2} />
-          <StatCard Icon={Zap} label="Skills Added" value={form.skills.length} delay={3} />
-          <StatCard Icon={Sparkles} label="Credits" value={user?.credits ?? 0} delay={4} />
-        </>}
-      </div>
-
-      {/* ════════ COMPLETION CHECKLIST ════════ */}
-      {pct < 100 && (
-        <div className="pf-card pf-anim pf-anim-2" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, padding: "1.2rem 1.4rem", marginBottom: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Sparkles size={15} style={{ color: C.accentText }} />
-              <span style={{ fontSize: ".88rem", fontWeight: 600, color: C.text }}>Complete your profile</span>
-            </div>
-            <span style={{ fontSize: ".72rem", color: C.textMuted }}>
-              {isMentor ? "Complete profiles get matched to 3× more students" : "A complete profile gets sharper mentor matches"}
-            </span>
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ height: 8, borderRadius: 999, background: C.active, overflow: "hidden", marginBottom: 14 }} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-            <div style={{ height: "100%", width: "100%", transform: `scaleX(${pct / 100})`, transformOrigin: "left", borderRadius: 999, background: "linear-gradient(90deg, #7567C9, #8E80DB)", transition: "transform .8s ease" }} />
-          </div>
-
-          {/* Checklist chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {completionItems.map(it => (
-              it.done
-                ? <span key={it.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(61,190,130,0.1)", border: `1px solid ${C.green}44`, borderRadius: 999, padding: "4px 12px", color: C.green, fontSize: ".72rem", fontWeight: 600 }}>
-                  <Check size={11} /> {it.label}
-                </span>
-                : <button key={it.key} className="pf-chipbtn"
-                  onClick={() => {
-                    const sec = CHIP_TO_SECTION[it.key] || 'basic';
-                    setActiveSection(sec);
-                    if (sec !== 'booking') startEdit();
-                  }}
-                  title={`Add ${it.label.toLowerCase()} (+${it.pts}%)`}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.active, border: `1px dashed ${C.activeBorder}`, borderRadius: 999, padding: "4px 12px", color: C.textSub, fontSize: ".72rem", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
-                  <Plus size={11} /> {it.label} <span style={{ color: C.accentText, fontWeight: 700 }}>+{it.pts}%</span>
-                </button>
-            ))}
-          </div>
         </div>
-      )}
+      </div>
 
         </>)}
         {/* end overview */}
@@ -1718,7 +1733,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                       <span style={{ fontSize: ".68rem", fontWeight: 700, color: pct >= 60 ? C.accentText : C.textMuted }}>{pct}% / 80% needed</span>
                     </div>
                     <div style={{ height: 6, borderRadius: 999, background: C.active, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: "100%", transform: `scaleX(${Math.min(pct / 80, 1)})`, transformOrigin: "left", borderRadius: 999, background: pct >= 60 ? "linear-gradient(90deg,#7567C9,#8E80DB)" : C.cardBorder, transition: "transform .6s ease" }} />
+                      <div style={{ height: "100%", width: "100%", transform: `scaleX(${Math.min(pct / 80, 1)})`, transformOrigin: "left", borderRadius: 999, background: pct >= 60 ? C.accent : C.cardBorder, transition: "transform .6s ease" }} />
                     </div>
                     <div style={{ fontSize: ".66rem", color: C.textMuted, marginTop: 5 }}>
                       {pct < 80 ? `${80 - pct}% more to unlock your verified badge` : "Unlocking…"}

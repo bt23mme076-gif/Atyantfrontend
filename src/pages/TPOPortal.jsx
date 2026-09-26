@@ -43,9 +43,8 @@ function PartnershipLogos({ size = "md", variant = "light" }) {
     width: imgSize, height: imgSize, borderRadius: r,
     overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
     flexShrink: 0,
-    background: "linear-gradient(135deg, #6a5cc4 0%, #7567C9 100%)",
+    background: "#7567C9",
     border: "1px solid rgba(255,255,255,0.18)",
-    boxShadow: "0 2px 8px rgba(117,103,201,0.35)",
   });
 
   const imgStyle = () => ({
@@ -105,15 +104,15 @@ function LoginScreen({ onLogin }) {
         .tpo-input:focus { outline:none; border-color:#7567C9 !important; box-shadow:0 0 0 3px rgba(117,103,201,0.18); }
         .tpo-input { transition: border-color .2s, box-shadow .2s; }
         .tpo-btn { transition: all .2s; }
-        .tpo-btn:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); box-shadow:0 8px 24px rgba(117,103,201,0.4); }
+        .tpo-btn:hover:not(:disabled) { filter:brightness(0.94); }
         .tpo-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
         /* ── Shared gradient wrapper ── */
         .tpo-login-wrap {
-          background: linear-gradient(145deg, #edeaff 0%, #e0dbff 55%, #d8d0ff 100%);
+          background: #EFECF9;
         }
         .dark .tpo-login-wrap {
-          background: linear-gradient(145deg, #1a1535 0%, #0f0d1a 60%, #12103d 100%);
+          background: #15141D;
         }
 
         /* ── Left panel (transparent — inherits wrapper bg) ── */
@@ -131,9 +130,8 @@ function LoginScreen({ onLogin }) {
         .tpo-phase-pill   { background: rgba(117,103,201,0.15); border: 1px solid rgba(117,103,201,0.35); }
         .tpo-phase-text   { color: #5a52c8; }
         .tpo-phase-dot    { background: #7567C9; }
-        .tpo-orb1 { background: radial-gradient(circle, rgba(117,103,201,0.2) 0%, transparent 70%); }
-        .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%); }
-        .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.1) 0%, transparent 70%); }
+
+        .tpo-orb1, .tpo-orb2, .tpo-orb3 { display: none; }
 
         /* Dark text colors */
         .dark .tpo-brand-title  { color: #fff; }
@@ -145,9 +143,6 @@ function LoginScreen({ onLogin }) {
         .dark .tpo-phase-pill   { background: rgba(117,103,201,0.2); border: 1px solid rgba(117,103,201,0.4); }
         .dark .tpo-phase-text   { color: #c4b5fd; }
         .dark .tpo-phase-dot    { background: #a78bfa; }
-        .dark .tpo-orb1 { background: radial-gradient(circle, rgba(117,103,201,0.3) 0%, transparent 70%); }
-        .dark .tpo-orb2 { background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%); }
-        .dark .tpo-orb3 { background: radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%); }
 
         /* ── Right panel — frosted glass card ── */
         .tpo-right-panel {
@@ -178,13 +173,13 @@ function LoginScreen({ onLogin }) {
         {/* Center copy */}
         <div style={{ animation:"tpoFadeUp .6s ease" }}>
           <div className="tpo-phase-pill" style={{ display:"inline-flex", alignItems:"center", gap:8, borderRadius:999, padding:"6px 16px", marginBottom:"1.5rem" }}>
-            <span className="tpo-phase-dot" style={{ width:7, height:7, borderRadius:"50%", display:"inline-block", animation:"tpoPulse 2s ease-in-out infinite" }} />
+            <span className="tpo-phase-dot" style={{ width:7, height:7, borderRadius:"50%", display:"inline-block" }} />
             <span className="tpo-phase-text" style={{ fontSize:"0.72rem", fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase" }}>Phase 1 · Mock Interview Pilot</span>
           </div>
 
-          <h1 className="tpo-brand-title" style={{ fontSize:"clamp(2rem,3vw,2.8rem)", fontWeight:900, margin:"0 0 1rem", lineHeight:1.1, letterSpacing:"-0.03em" }}>
+          <h1 className="tpo-brand-title" style={{ fontFamily:"var(--font-display)", fontSize:"clamp(2rem,3vw,2.6rem)", fontWeight:400, margin:"0 0 1rem", lineHeight:1.15 }}>
             VNIT Nagpur<br />
-            <span style={{ background:"linear-gradient(135deg,#7567C9,#5a52c8,#6366f1)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
+            <span style={{ color: "#7567C9" }}>
               Placement Portal
             </span>
           </h1>
@@ -231,8 +226,8 @@ function LoginScreen({ onLogin }) {
 
           {/* Heading */}
           <div style={{ marginBottom: "2rem" }}>
-            <h2 style={{ fontSize: "1.65rem", fontWeight: 900, color: "var(--c-text)", margin: "0 0 0.4rem", letterSpacing: "-0.025em" }}>
-              Welcome back 👋
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.65rem", fontWeight: 400, color: "var(--c-text)", margin: "0 0 0.4rem" }}>
+              Welcome back
             </h2>
             <p style={{ fontSize: "0.85rem", color: "var(--c-textSub)", margin: 0, lineHeight: 1.6 }}>
               Sign in as <strong style={{ color: "#7567C9" }}>VNIT T&P administrator</strong> to access the placement dashboard.
@@ -291,9 +286,9 @@ function LoginScreen({ onLogin }) {
               disabled={loading || !email || !password}
               style={{
                 width: "100%", padding: "13px",
-                background: "linear-gradient(135deg,#5a52c8 0%,#7567C9 50%,#8b7cf0 100%)",
-                border: "none", borderRadius: 12,
-                color: "#fff", fontWeight: 800, fontSize: "0.95rem",
+                background: "#7567C9",
+                border: "none", borderRadius: 8,
+                color: "#fff", fontWeight: 700, fontSize: "0.95rem",
                 fontFamily: "inherit", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 letterSpacing: "0.01em",

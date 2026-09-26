@@ -1,0 +1,118 @@
+/* The AI interviewer's tile: hide LiveKit's grey placeholder and name tag, the avatar replaces them. */
+.lk-participant-tile[data-lk-local-participant="false"] .lk-participant-placeholder,
+.lk-participant-tile[data-lk-local-participant="false"] .lk-participant-metadata {
+  display: none;
+}
+
+.ia-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+  background: #1c1a28;
+}
+
+.ia-ring {
+  width: min(58%, 300px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  background: #231f40;
+  box-shadow: 0 0 0 3px rgba(165, 150, 224, 0.25);
+  transition: box-shadow 0.25s ease;
+}
+
+.ia-speaking .ia-ring {
+  animation: ia-glow 1.4s ease-in-out infinite;
+}
+
+.ia-face {
+  width: 92%;
+  height: auto;
+}
+
+/* A small nod while talking, so the face isn't frozen. */
+.ia-talking .ia-head {
+  transform-origin: 100px 130px;
+  animation: ia-nod 2.6s ease-in-out infinite;
+}
+
+.ia-eyes {
+  transform-origin: 100px 92px;
+  animation: ia-blink 4.8s infinite;
+}
+
+.ia-name {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.ia-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d9d3f5;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ia-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a596e0;
+}
+
+.ia-speaking .ia-dot { background: #4ade80; }
+.ia-listening .ia-dot { background: #60a5fa; animation: ia-pulse 1.6s ease-in-out infinite; }
+.ia-thinking .ia-dot { background: #fbbf24; }
+
+.ia-dots { display: inline-flex; gap: 3px; }
+.ia-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ia-bounce 1s infinite;
+}
+.ia-dots i:nth-child(2) { animation-delay: 0.15s; }
+.ia-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes ia-glow {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(165, 150, 224, 0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(165, 150, 224, 0.8); }
+}
+@keyframes ia-nod {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-1.5deg) translateY(1px); }
+  70%      { transform: rotate(1.2deg); }
+}
+@keyframes ia-blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  96%           { transform: scaleY(0.1); }
+}
+@keyframes ia-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes ia-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30%           { transform: translateY(-3px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ia-speaking .ia-ring, .ia-talking .ia-head, .ia-eyes, .ia-listening .ia-dot, .ia-dots i { animation: none; }
+}

@@ -4,7 +4,7 @@ export default function Footer() {
       style={{
         borderTop: "1px solid rgba(255,255,255,0.06)",
         marginTop: "48px",
-        fontFamily: "Inter, sans-serif",
+        fontFamily: "var(--font-body)",
       }}
     >
       <div

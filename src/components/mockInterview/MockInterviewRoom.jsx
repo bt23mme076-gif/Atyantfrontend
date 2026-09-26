@@ -12,6 +12,7 @@ import PreCallCheck from '../meet/PreCallCheck';
 import AdvancedMicrophoneCheck from '../LiveKit/AdvancedMicrophoneCheck';
 import '../LiveKit/MicrophoneCheck.css';
 import { mockInterviewAPI } from '../../api';
+import InterviewerAvatar from './InterviewerAvatar';
 
 // The AI mock interview reuses the mentor-meet room as-is (720p camera, forced
 // TURN relay for mobile/CGNAT, pre-call network check, mic check, timer,
@@ -72,6 +73,7 @@ function InterviewTools() {
       <BackgroundControl top={14} right={14} />
       <CameraReminder />
       <InterviewerCaptions />
+      <InterviewerAvatar />
     </>
   );
 }

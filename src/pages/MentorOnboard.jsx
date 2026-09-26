@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Loader2, ArrowRight, ArrowLeft, Camera, Sparkles, Link2, Upload, FileText } from "lucide-react";
+import { Check, Loader2, ArrowRight, ArrowLeft, Camera, Clock, Link2, Upload, FileText } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { profileAPI, mentorAPI } from "../api";
 import Avatar from "../components/Avatar";
@@ -235,8 +235,8 @@ export default function MentorOnboard({ onDone }) {
           }}>
             <Check size={32} color={C.green} />
           </div>
-          <h2 style={{ color: C.text, fontSize: "1.4rem", fontWeight: 700, marginBottom: 10, fontFamily: "Fraunces, serif" }}>
-            You're already a mentor! 🎉
+          <h2 style={{ color: C.text, fontSize: "1.4rem", fontWeight: 700, marginBottom: 10, fontFamily: "var(--font-display)" }}>
+            You're already a mentor
           </h2>
           <p style={{ color: C.textSub, fontSize: "0.9rem", lineHeight: 1.7, maxWidth: 380, margin: "0 auto 6px" }}>
             This email is already registered as a mentor on Atyant.
@@ -258,10 +258,10 @@ export default function MentorOnboard({ onDone }) {
       <Wrap>
         <div style={{ textAlign: "center", padding: "2rem 0" }}>
           <div style={{ width: 64, height: 64, borderRadius: "50%", background: result.listed ? C.green + "22" : C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem" }}>
-            {result.listed ? <Check size={30} color={C.green} /> : <Sparkles size={28} color={C.accentText} />}
+            {result.listed ? <Check size={30} color={C.green} /> : <Clock size={28} color={C.accentText} />}
           </div>
           <h2 style={{ color: C.text, fontSize: "1.5rem", fontWeight: 600, marginBottom: 8 }}>
-            {result.listed ? "You're live on Atyant! 🎉" : "Almost there"}
+            {result.listed ? "You're live on Atyant" : "Almost there"}
           </h2>
           <p style={{ color: C.textSub, fontSize: "0.92rem", lineHeight: 1.6, maxWidth: 460, margin: "0 auto" }}>{result.message}</p>
           {!result.listed && result.missing?.length > 0 && (
@@ -601,7 +601,7 @@ function Header({ step }) {
             {left} step{left > 1 ? "s" : ""} left
           </span>
         ) : (
-          <span style={{ fontSize: "0.7rem", color: C.green, fontWeight: 700 }}>Last step 🎉</span>
+          <span style={{ fontSize: "0.7rem", color: C.green, fontWeight: 700 }}>Last step</span>
         )}
       </div>
 

@@ -3,6 +3,7 @@ import { Compass, Target, Rocket } from "lucide-react";
 import { purchaseSubscription } from "../lib/subscriptionCheckout";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import PageHeader from "../components/ui/PageHeader";
 
 // Theme-aware palette (maps to CSS vars in index.css for light + dark).
 const T = {
@@ -42,6 +43,7 @@ const STUDENT_PLANS = [
       { text: "Unlimited AnswerCards", green: true },
       { text: "Full senior profiles + journeys", green: true },
       { text: "1 session credit / month (₹299 value)", green: true },
+      { text: "Auto-apply to jobs that match your resume", green: true },
       { text: "Journey tracker dashboard", green: true },
       { text: "Priority senior matching (4hr response)", green: true },
       { text: "Session notes & recordings", green: true },
@@ -127,9 +129,9 @@ function SessionPricingNote() {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.cardBorder}`,
-      borderRadius: 14, padding: "16px 20px", marginBottom: 32,
+      borderRadius: 12, padding: "16px 20px", marginBottom: 24,
       display: "flex", flexWrap: "wrap", gap: 20,
-      alignItems: "center", justifyContent: "center",
+      alignItems: "center", justifyContent: "space-between",
     }}>
       <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>
         Pay-per-session (no subscription needed)
@@ -178,36 +180,23 @@ export default function UpgradePage({ onBack }) {
   };
 
   const ctaStyle = (style) => {
-    if (style === "accent") return { background: "linear-gradient(135deg,#7567C9,#9B8EE8)", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(117,103,201,0.3)" };
+    if (style === "accent") return { background: T.accent, color: "#fff", border: "none" };
     if (style === "green")  return { background: "rgba(61,190,130,0.08)", color: T.green, border: `1px solid rgba(61,190,130,0.25)` };
     return { background: "transparent", color: T.textSub, border: `1px solid ${T.cardBorder}` };
   };
 
   return (
-    <div style={{ position: "relative", minHeight: "100%", background: T.bg, fontFamily: "'Satoshi', sans-serif" }}>
-      {/* Ambient blobs */}
-      <div style={{ position: "fixed", width: 400, height: 400, borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none", zIndex: 0, opacity: 0.1, background: T.accent, top: -100, right: -50 }} />
-      <div style={{ position: "fixed", width: 300, height: 300, borderRadius: "50%", filter: "blur(120px)", pointerEvents: "none", zIndex: 0, opacity: 0.08, background: "#3A2A7C", bottom: -50, left: -50 }} />
+    <div style={{ position: "relative", minHeight: "100%", background: T.bg, fontFamily: "var(--font-body)" }}>
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px) 80px" }}>
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "24px 16px 80px" }}>
 
         {/* ── Header ── */}
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: T.accentSoft, border: `1px solid ${T.activeBorder}`, color: T.accentText, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "4px 12px", borderRadius: 100, marginBottom: 14 }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.accent, animation: "pulse 2.2s ease-in-out infinite" }} />
-            Simple, transparent pricing
-          </div>
-
-          <h1 style={{ fontFamily: "'Syne', 'Satoshi', sans-serif", fontSize: "clamp(26px,4.5vw,42px)", fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 10, color: T.text }}>
-            Career clarity that{" "}
-            <span style={{ background: "linear-gradient(130deg,#8E80DB 0%,#C4BAF5 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              actually moves you forward
-            </span>
-          </h1>
-
-          <p style={{ fontSize: 14, color: T.textMuted, maxWidth: 480, margin: "0 auto 24px", lineHeight: 1.6 }}>
-            Verified paths from seniors who walked your exact journey. Free to explore, affordable to go deep.
-          </p>
+        <div style={{ marginBottom: 28 }}>
+          <PageHeader
+            title="Plans and pricing"
+            subtitle="Exploring is free. Pay when you want full senior profiles, sessions and deeper prep. Every price is in rupees and you can cancel anytime."
+            style={{ marginBottom: 18 }}
+          />
 
           {/* Tab switcher */}
           <div style={{ display: "inline-flex", flexWrap: "wrap", justifyContent: "center", background: T.sidebar, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: 4, gap: 4 }}>
@@ -233,7 +222,7 @@ export default function UpgradePage({ onBack }) {
         {tab === "student" && (
           <>
             {/* Billing toggle */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+            <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 20 }}>
               <div style={{ display: "inline-flex", alignItems: "center", background: T.sidebar, border: `1px solid ${T.cardBorder}`, borderRadius: 10, padding: 3, position: "relative" }}>
                 <div style={{ position: "absolute", top: 3, left: 3, height: "calc(100% - 6px)", borderRadius: 7, background: T.active, border: `1px solid ${T.activeBorder}`, transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s", zIndex: 0, width: sliderStyle.width, transform: sliderStyle.transform }} />
                 <button ref={btnMonthlyRef} onClick={() => setB("monthly")} style={{ position: "relative", zIndex: 1, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: billing === "monthly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
@@ -241,7 +230,7 @@ export default function UpgradePage({ onBack }) {
                 </button>
                 <button ref={btnYearlyRef} onClick={() => setB("yearly")} style={{ position: "relative", zIndex: 1, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: billing === "yearly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
                   Yearly
-                  <span style={{ background: T.green, color: "#071a0e", fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 100 }}>–20%</span>
+                  <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>save 20%</span>
                 </button>
               </div>
             </div>
@@ -257,35 +246,29 @@ export default function UpgradePage({ onBack }) {
                   <div key={plan.key} style={{
                     background: plan.featured ? T.active : T.card,
                     border: `1px solid ${plan.featured ? T.activeBorder : T.cardBorder}`,
-                    borderRadius: 20, padding: plan.featured ? "38px 20px 24px" : "24px 20px",
+                    borderRadius: 12, padding: "24px 20px",
                     position: "relative", display: "flex", flexDirection: "column",
-                    boxShadow: plan.featured ? "0 10px 30px -10px rgba(117,103,201,0.25)" : "none",
-                    transition: "transform 0.2s, box-shadow 0.2s",
                   }}>
-                    {plan.featured && (
-                      <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(130deg,#7567C9,#A89EEB)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 14px", borderRadius: 100, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(117,103,201,0.4)" }}>
-                        ⭐ Most Popular
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 700, color: T.text }}>
+                        {plan.Icon && <plan.Icon size={17} color={T.accentText} strokeWidth={2} />}
+                        {plan.name}
                       </div>
-                    )}
-                    {plan.featured && (
-                      <div style={{ position: "absolute", inset: 0, borderRadius: 20, background: "radial-gradient(ellipse at 50% -10%, rgba(117,103,201,0.08) 0%, transparent 65%)", pointerEvents: "none" }} />
-                    )}
-
-                    <div style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", background: plan.featured ? "#7567C9" : T.accentSoft, border: plan.featured ? "none" : `1px solid ${T.cardBorder}`, boxShadow: plan.featured ? "0 4px 14px rgba(117,103,201,0.35)" : "none" }}>
-                      {plan.Icon && <plan.Icon size={20} color={plan.featured ? "#fff" : T.accentText} strokeWidth={2.2} />}
+                      {plan.featured && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: T.accent, padding: "3px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>Most popular</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 3 }}>{plan.name}</div>
-                    <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 20, lineHeight: 1.5 }}>{plan.tagline}</div>
+                    <div style={{ fontSize: 13, color: T.textSub, marginBottom: 18, lineHeight: 1.5 }}>{plan.tagline}</div>
 
                     {/* Price */}
                     <div style={{ marginBottom: 20 }}>
                       {price === 0 ? (
-                        <div style={{ fontSize: 36, fontWeight: 800, color: T.text, lineHeight: 1 }}>Free</div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 36, color: T.text, lineHeight: 1 }}>Free</div>
                       ) : (
                         <>
                           <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
                             <span style={{ fontSize: 16, fontWeight: 600, color: T.textSub }}>₹</span>
-                            <span style={{ fontSize: 36, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.03em" }}>{price}</span>
+                            <span style={{ fontFamily: "var(--font-display)", fontSize: 36, color: T.text, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{price}</span>
                             {billing === "yearly" && (
                               <span style={{ fontSize: 12, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{plan.monthly}</span>
                             )}
@@ -338,7 +321,7 @@ export default function UpgradePage({ onBack }) {
                           });
                         }
                       }}
-                      style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...ctaStyle(plan.ctaStyle) }}
+                      style={{ width: "100%", padding: "11px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "filter 0.15s", ...ctaStyle(plan.ctaStyle) }}
                     > 
                       {plan.cta}
                     </button>
@@ -352,7 +335,7 @@ export default function UpgradePage({ onBack }) {
 
             {/* Compare table */}
             <div style={{ marginTop: 56, overflowX: "auto" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: T.textMuted, textAlign: "center", marginBottom: 20 }}>Full comparison</div>
+              <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "1.3rem", color: T.text, margin: "0 0 14px" }}>Compare plans</h2>
               <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 13 }} className="up-compare-table">
                 <thead>
                   <tr>
@@ -373,6 +356,7 @@ export default function UpgradePage({ onBack }) {
                     { label: "Resume review",        cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
                     { section: "Reach" },
                     { label: "Senior matching SLA",  cols: ["—", "4 hrs", "Priority"],                types: ["no", "yes", "green"] },
+                    { label: "Auto-apply to jobs",   cols: ["—", "✓", "✓"],                           types: ["no", "yes", "green"] },
                     { label: "WhatsApp connect",     cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
                     { label: "Placement report",     cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
                   ].map((row, i) => {
@@ -382,9 +366,9 @@ export default function UpgradePage({ onBack }) {
                     const color = (t) => t === "green" ? T.green : t === "yes" ? T.accentText : t === "val" ? T.text : T.textMuted;
                     return (
                       <tr key={i}>
-                        <td style={{ padding: "10px 14px", color: T.text, borderBottom: `1px solid rgba(50,46,64,0.4)` }}>{row.label}</td>
+                        <td style={{ padding: "10px 14px", color: T.text, borderBottom: `1px solid ${T.cardBorder}` }}>{row.label}</td>
                         {row.cols.map((v, j) => (
-                          <td key={j} style={{ padding: "10px 14px", textAlign: "center", color: color(row.types[j]), fontWeight: row.types[j] === "val" ? 500 : 400, borderBottom: `1px solid rgba(50,46,64,0.4)` }}>{v}</td>
+                          <td key={j} style={{ padding: "10px 14px", textAlign: "center", color: color(row.types[j]), fontWeight: row.types[j] === "val" ? 500 : 400, borderBottom: `1px solid ${T.cardBorder}` }}>{v}</td>
                         ))}
                       </tr>
                     );
@@ -402,22 +386,20 @@ export default function UpgradePage({ onBack }) {
               <div key={plan.key} style={{
                 background: plan.featured ? T.active : T.card,
                 border: `1px solid ${plan.featured ? T.activeBorder : T.cardBorder}`,
-                borderRadius: 20, padding: plan.featured ? "38px 20px 24px" : "24px 20px",
+                borderRadius: 12, padding: "24px 20px",
                 position: "relative", display: "flex", flexDirection: "column",
-                boxShadow: plan.featured ? "0 10px 30px -10px rgba(117,103,201,0.2)" : "none",
               }}>
-                {plan.featured && (
-                  <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(130deg,#7567C9,#A89EEB)", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 14px", borderRadius: 100, whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(117,103,201,0.4)" }}>
-                    ⭐ Most Popular
-                  </div>
-                )}
-
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: T.textSub, marginBottom: 4 }}>{plan.name}</div>
-                <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 18, lineHeight: 1.5 }}>{plan.tagline}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{plan.name}</div>
+                  {plan.featured && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: T.accent, padding: "3px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>Most popular</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 13, color: T.textSub, marginBottom: 18, lineHeight: 1.5 }}>{plan.tagline}</div>
 
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                    <span style={{ fontSize: 32, fontWeight: 800, color: T.text, lineHeight: 1, letterSpacing: "-0.02em" }}>{plan.price}</span>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 32, color: T.text, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{plan.price}</span>
                   </div>
                   <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>{plan.period}</div>
                 </div>
@@ -433,7 +415,7 @@ export default function UpgradePage({ onBack }) {
                   ))}
                 </ul>
 
-                <button style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...(plan.featured ? { background: "linear-gradient(135deg,#7567C9,#9B8EE8)", color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(117,103,201,0.3)" } : { background: "transparent", color: T.textSub, border: `1px solid ${T.cardBorder}` }) }}>
+                <button style={{ width: "100%", padding: "11px 16px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s", ...(plan.featured ? { background: T.accent, color: "#fff", border: "none" } : { background: "transparent", color: T.textSub, border: `1px solid ${T.cardBorder}` }) }}>
                   {plan.cta}
                 </button>
               </div>
@@ -443,16 +425,12 @@ export default function UpgradePage({ onBack }) {
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 48, color: T.textMuted, fontSize: 12.5, lineHeight: 1.8 }}>
-          Prices in INR · Cancel anytime · No questions asked<br />
+          Prices in INR. Cancel anytime.<br />
           Need help choosing? <span style={{ color: T.accentText, cursor: "pointer" }}>Chat with us</span>
         </div>
       </div>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.65); }
-        }
         .up-grid-3 {
           grid-template-columns: repeat(3, 1fr) !important;
         }
