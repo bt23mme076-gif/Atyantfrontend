@@ -13,6 +13,7 @@ import AdvancedMicrophoneCheck from '../LiveKit/AdvancedMicrophoneCheck';
 import '../LiveKit/MicrophoneCheck.css';
 import { mockInterviewAPI } from '../../api';
 import InterviewerAvatar from './InterviewerAvatar';
+import CodeExercisePanel from './CodeExercisePanel';
 
 // The AI mock interview reuses the mentor-meet room as-is (720p camera, forced
 // TURN relay for mobile/CGNAT, pre-call network check, mic check, timer,
@@ -62,7 +63,7 @@ function CameraReminder() {
   );
 }
 
-function InterviewTools() {
+function InterviewTools({ interviewId }) {
   const state = useConnectionState();
   if (state !== ConnectionState.Connected) return null;
   return (
@@ -74,6 +75,7 @@ function InterviewTools() {
       <CameraReminder />
       <InterviewerCaptions />
       <InterviewerAvatar />
+      <CodeExercisePanel interviewId={interviewId} />
     </>
   );
 }
@@ -154,7 +156,7 @@ export default function MockInterviewRoom({ interviewId, onExit }) {
         connectOptions={forceRelay ? { rtcConfig: { iceTransportPolicy: 'relay' } } : undefined}
       >
         <VideoConference />
-        <InterviewTools />
+        <InterviewTools interviewId={interviewId} />
       </LiveKitRoom>
     );
   }

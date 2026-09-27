@@ -423,6 +423,11 @@ export const mockInterviewAPI = {
     return data;
   },
   prepare: (id) => api.post(`/api/mock-interviews/${id}/prepare`, {}),
+  getCodeProblem: (id, problemId) => api.get(`/api/mock-interviews/${id}/code-problems/${problemId}`),
+  runCode:        (id, problemId, body) => api.post(`/api/mock-interviews/${id}/code-problems/${problemId}/run`, body),
+  submitCode:     (id, problemId, body) => api.post(`/api/mock-interviews/${id}/code-problems/${problemId}/submit`, body),
+  getSqlProblem:  (id, problemId) => api.get(`/api/mock-interviews/${id}/sql-problems/${problemId}`),
+  submitSql:      (id, problemId, body) => api.post(`/api/mock-interviews/${id}/sql-problems/${problemId}/submit`, body),
   checkout:       (id, bundle = false) => api.post(`/api/mock-interviews/${id}/checkout`, { bundle }),
   verifyCheckout: (id, payment) => api.post(`/api/mock-interviews/${id}/checkout/verify`, payment),
   join:    (id) => api.post(`/api/mock-interviews/${id}/join`, {}),

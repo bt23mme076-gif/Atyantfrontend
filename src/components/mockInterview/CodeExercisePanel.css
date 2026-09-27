@@ -1,0 +1,69 @@
+.cep-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 10, 18, 0.55);
+}
+
+.cep-panel {
+  width: min(760px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #1c1a28;
+  border: 1px solid rgba(165, 150, 224, 0.25);
+  border-radius: 14px;
+  padding: 20px 22px;
+  color: #f1eefc;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.cep-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.cep-title { font-weight: 700; font-size: 1.05rem; }
+.cep-lang {
+  background: #262149; color: #f1eefc; border: 1px solid rgba(165, 150, 224, 0.35);
+  border-radius: 8px; padding: 5px 9px; font-size: .82rem; font-family: inherit;
+}
+
+.cep-prompt { font-size: .88rem; line-height: 1.5; color: #d9d3f5; margin: 0 0 12px; }
+
+.cep-schema {
+  background: #14121e; border: 1px solid rgba(165, 150, 224, 0.2); border-radius: 8px;
+  padding: 10px 12px; font-size: .76rem; line-height: 1.5; color: #b9b0e0;
+  white-space: pre-wrap; overflow-x: auto; margin: 0 0 12px;
+}
+
+.cep-editor {
+  width: 100%; min-height: 200px; resize: vertical;
+  background: #0f0d18; color: #eef; border: 1px solid rgba(165, 150, 224, 0.3); border-radius: 10px;
+  padding: 12px 14px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .84rem; line-height: 1.5; tab-size: 2;
+}
+.cep-editor-sql { min-height: 100px; }
+
+.cep-loading { padding: 30px; text-align: center; color: #b9b0e0; font-size: .9rem; }
+
+.cep-results { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.cep-case { font-size: .82rem; padding: 6px 10px; border-radius: 8px; }
+.cep-case.pass { background: rgba(61, 190, 130, 0.12); color: #7fe0ac; }
+.cep-case.fail { background: rgba(248, 113, 113, 0.12); color: #ff9c9c; }
+.cep-diff { margin: 4px 0 0; font-size: .74rem; white-space: pre-wrap; word-break: break-word; }
+
+.cep-table-wrap { margin-top: 12px; max-height: 220px; overflow: auto; border: 1px solid rgba(165, 150, 224, 0.2); border-radius: 8px; }
+.cep-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.cep-table th, .cep-table td { padding: 6px 10px; border-bottom: 1px solid rgba(165, 150, 224, 0.15); text-align: left; }
+.cep-table th { color: #a596e0; font-weight: 700; }
+
+.cep-error { margin-top: 10px; font-size: .82rem; color: #ff9c9c; }
+
+.cep-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.cep-btn {
+  padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(165, 150, 224, 0.35);
+  background: #262149; color: #f1eefc; font-size: .84rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.cep-btn:disabled { opacity: .55; cursor: default; }
+.cep-btn-primary { background: #7567C9; border-color: #7567C9; }
+.cep-btn-ghost { background: transparent; margin-right: auto; color: #b9b0e0; }
