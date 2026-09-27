@@ -357,13 +357,6 @@ function NewInterviewForm({ onCreated }) {
             <input id="mi-company" value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Razorpay" />
           </div>
         </div>
-        <div>
-          <label style={label} htmlFor="mi-role">Role <span style={{ fontWeight: 500, color: C.textMuted }}>(optional)</span></label>
-          <div className="mi-field">
-            <Briefcase size={16} color={C.textMuted} />
-            <input id="mi-role" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. SDE Intern" />
-          </div>
-        </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
