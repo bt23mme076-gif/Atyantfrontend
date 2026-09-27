@@ -144,7 +144,7 @@ function CompanyTile({ name, size = 40 }) {
 function Hero() {
   const facts = [
     { Icon: Video, text: "Live video round" },
-    { Icon: Clock, text: "About 30 minutes" },
+    { Icon: Clock, text: "About 20 minutes" },
     { Icon: MessageSquareText, text: "Feedback on every answer" },
   ];
   return (
@@ -700,7 +700,7 @@ function Blueprint({ interview, onStart, onPaid, busy }) {
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: C.text }}>Your interview plan</h2>
             <span style={{ fontSize: ".84rem", color: C.textSub }}>
-              <b style={{ color: C.text, fontVariantNumeric: "tabular-nums" }}>{totalQ}</b> questions · about 30 min
+              <b style={{ color: C.text, fontVariantNumeric: "tabular-nums" }}>{totalQ}</b> questions · about 20 min
             </span>
           </div>
           {blueprint?.coverageNote && <p style={{ margin: "8px 0 0", fontSize: ".86rem", color: C.textSub, lineHeight: 1.55 }}>{blueprint.coverageNote}</p>}
@@ -844,7 +844,7 @@ const READY_ITEMS = [
   { text: "My camera and mic are on and working", Icon: Video },
   { text: "I'm in a quiet room with decent lighting", Icon: Lightbulb },
   { text: "I'm dressed the way I would be for the real interview", Icon: Users },
-  { text: "I have about 30 minutes without interruptions", Icon: Clock },
+  { text: "I have about 20 minutes without interruptions", Icon: Clock },
 ];
 
 function ReadyCheck({ interview, onStart, onPaid, busy }) {
