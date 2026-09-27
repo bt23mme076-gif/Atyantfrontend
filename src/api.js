@@ -402,11 +402,12 @@ export const reviewAPI = {
 export const mockInterviewAPI = {
   list:   ()   => api.get('/api/mock-interviews'),
   get:    (id) => api.get(`/api/mock-interviews/${id}`),
-  create: async ({ company, role, jdText, resumeFile, resumeText, useProfileResume }) => {
+  create: async ({ company, role, jdText, resumeFile, resumeText, useProfileResume, interviewCategory }) => {
     const form = new FormData();
     form.append('company', company || '');
     form.append('role', role || '');
     form.append('jdText', jdText || '');
+    if (interviewCategory) form.append('interviewCategory', interviewCategory);
     if (resumeFile) form.append('resume', resumeFile);
     else if (useProfileResume) form.append('useProfileResume', 'true');
     else form.append('resumeText', resumeText || '');

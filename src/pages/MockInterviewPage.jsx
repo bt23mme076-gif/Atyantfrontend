@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Mic, Upload, ArrowRight, Loader2, FileText, Building2, Play, Briefcase, Video, MessageSquareText, Search, TrendingUp, XCircle, CircleDot, ListChecks, Lightbulb,
-  AlertTriangle, RotateCcw, CheckCircle2, Check, Gift, Target, ShieldAlert, Clock, ChevronDown, LogIn, Users, Lock, Star,
+  AlertTriangle, RotateCcw, CheckCircle2, Check, Gift, Target, ShieldAlert, Clock, ChevronDown, LogIn, Users, Lock, Star, Code2, Factory, Palette,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { mockInterviewAPI, reviewAPI } from "../api";
@@ -241,11 +241,36 @@ function takePrefill() {
   } catch { return {}; }
 }
 
+// ─── Interview category ──────────────────────────────────────────────────────
+const CATEGORIES = [
+  { id: "tech",      label: "Tech",      Icon: Code2 },
+  { id: "analytics", label: "Analytics", Icon: TrendingUp },
+  { id: "core",      label: "Core",      Icon: Factory },
+  { id: "business",  label: "Business",  Icon: Briefcase },
+  { id: "product",   label: "Product",   Icon: Palette },
+  { id: "hr",        label: "HR",        Icon: Users },
+];
+
+// Best-effort guess from company + role text, so the picker starts on a
+// sensible default; the user can always override it.
+function detectCategory(company, role) {
+  const t = `${company} ${role}`.toLowerCase();
+  if (/\b(sde|software|developer|engineer|frontend|backend|full[\s-]?stack|devops|qa|sdet)\b/.test(t)) return "tech";
+  if (/\b(data|analyst|analytics|business intelligence|\bbi\b|ml|machine learning)\b/.test(t)) return "analytics";
+  if (/\b(mechanical|civil|electrical|metallurg|manufactur|core|production|chemical eng)\b/.test(t)) return "core";
+  if (/\b(product manager|\bpm\b|product owner)\b/.test(t)) return "product";
+  if (/\b(hr|human resource|recruiter|talent)\b/.test(t)) return "hr";
+  if (/\b(consult|strategy|operations|business analyst|mba)\b/.test(t)) return "business";
+  return null;
+}
+
 // ─── New interview form ──────────────────────────────────────────────────────
 function NewInterviewForm({ onCreated }) {
   const [prefill] = useState(takePrefill);
   const [company, setCompany] = useState(prefill.company || "");
   const [role, setRole] = useState(prefill.role || "");
+  const [category, setCategory] = useState(() => detectCategory(prefill.company || "", prefill.role || ""));
+  const [categoryTouched, setCategoryTouched] = useState(false);
   const [jdText, setJdText] = useState(prefill.jdText || "");
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeText, setResumeText] = useState("");
@@ -269,6 +294,11 @@ function NewInterviewForm({ onCreated }) {
     setResumeFile(file);
   };
 
+  useEffect(() => {
+    if (categoryTouched) return;
+    setCategory(detectCategory(company, role));
+  }, [company, role, categoryTouched]);
+
   const jdShort = jdText.trim().length < MIN_JD_CHARS;
   const resumeShort = resumeText.trim().length < MIN_RESUME_CHARS;
   const hasResume = resumeMode === "paste" ? !resumeShort : resumeMode === "upload" ? !!resumeFile : hasProfileResume;
@@ -283,6 +313,7 @@ function NewInterviewForm({ onCreated }) {
         resumeFile: resumeMode === "upload" ? resumeFile : null,
         resumeText: resumeMode === "paste" ? resumeText.trim() : "",
         useProfileResume: resumeMode === "profile",
+        interviewCategory: category,
       });
       onCreated(res.id);
     } catch (err) {
@@ -332,6 +363,26 @@ function NewInterviewForm({ onCreated }) {
             <Briefcase size={16} color={C.textMuted} />
             <input id="mi-role" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. SDE Intern" />
           </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <span style={label}>Interview focus <span style={{ fontWeight: 500, color: C.textMuted }}>(optional — we'll guess from company/role)</span></span>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {CATEGORIES.map(({ id, label: text, Icon }) => {
+            const on = category === id;
+            return (
+              <button key={id} type="button" aria-pressed={on}
+                onClick={() => { setCategoryTouched(true); setCategory(on ? null : id); }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 999,
+                  border: `1.5px solid ${on ? C.accent : C.cardBorder}`, background: on ? C.accentSoft : C.active,
+                  color: on ? C.accentText : C.textSub, fontSize: ".8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}>
+                <Icon size={14} /> {text}
+              </button>
+            );
+          })}
         </div>
       </div>
 
