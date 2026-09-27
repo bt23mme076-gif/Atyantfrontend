@@ -390,6 +390,15 @@ export const jobsAPI = {
 //   POST /api/mock-interviews/:id/unlock → Razorpay order, or { unlocked: true } when nothing is owed
 //   POST /api/mock-interviews/:id/unlock/verify { razorpay_order_id, razorpay_payment_id, razorpay_signature }
 //   POST /api/mock-interviews/:id/retake → { id, attempt }
+
+// Reviews — platform feedback (signed in or not) and per-service ratings.
+//   POST /api/reviews { kind: "platform"|"mock_interview"|"session", target?, rating, tags?, comment?, page? }
+//   GET  /api/reviews/mine?kind=&target=  → { review | null }
+export const reviewAPI = {
+  submit: (payload)      => api.post('/api/reviews', payload),
+  mine:   (kind, target) => api.get(`/api/reviews/mine?kind=${encodeURIComponent(kind)}${target ? `&target=${encodeURIComponent(target)}` : ''}`),
+};
+
 export const mockInterviewAPI = {
   list:   ()   => api.get('/api/mock-interviews'),
   get:    (id) => api.get(`/api/mock-interviews/${id}`),

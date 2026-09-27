@@ -54,11 +54,13 @@ function Face({ state, volume }) {
         {/* brows */}
         <path d="M70 78 Q80 73 90 77" stroke="#2b2230" strokeWidth="3.5" fill="none" strokeLinecap="round" />
         <path d="M110 77 Q120 73 130 78" stroke="#2b2230" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-        {/* eyes */}
-        <g className="ia-eyes">
+        {/* eyes — each in its own group so blink anchors to each eye individually */}
+        <g className="ia-eye ia-eye-l">
           <ellipse cx="80" cy="92" rx="5" ry="5.5" fill="#241d2b" />
-          <ellipse cx="120" cy="92" rx="5" ry="5.5" fill="#241d2b" />
           <circle cx="81.6" cy="90.4" r="1.4" fill="#fff" />
+        </g>
+        <g className="ia-eye ia-eye-r">
+          <ellipse cx="120" cy="92" rx="5" ry="5.5" fill="#241d2b" />
           <circle cx="121.6" cy="90.4" r="1.4" fill="#fff" />
         </g>
         {/* nose */}

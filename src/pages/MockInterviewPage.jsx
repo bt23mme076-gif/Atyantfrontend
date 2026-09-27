@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Mic, Upload, ArrowRight, Loader2, FileText, Building2, Play, Briefcase, Video, MessageSquareText, Search, TrendingUp, XCircle, CircleDot, ListChecks, Lightbulb,
-  AlertTriangle, RotateCcw, CheckCircle2, Check, Gift, Target, ShieldAlert, Clock, ChevronDown, LogIn, Users, Lock,
+  AlertTriangle, RotateCcw, CheckCircle2, Check, Gift, Target, ShieldAlert, Clock, ChevronDown, LogIn, Users, Lock, Star,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { mockInterviewAPI } from "../api";
+import { mockInterviewAPI, reviewAPI } from "../api";
+import FeedbackModal from "../components/FeedbackModal";
+import { wasAsked, markAsked, RATING_WORDS } from "../lib/feedback";
 import { loadRazorpay } from "../lib/checkout";
 import MockInterviewRoom from "../components/mockInterview/MockInterviewRoom";
 
@@ -1099,6 +1101,30 @@ function Report({ interview, onRetake, busy }) {
   const [paying, setPaying] = useState(false);
   const [note, setNote] = useState("");
   const [answerFilter, setAnswerFilter] = useState("all"); // "all" | "work"
+  // Rating for this interview: undefined = still checking, null = not rated yet.
+  const [myReview, setMyReview] = useState(undefined);
+  const [feedback, setFeedback] = useState(null);   // null, or { rating } while the dialog is open
+
+  useEffect(() => {
+    let cancelled = false;
+    reviewAPI.mine("mock_interview", interview.id)
+      .then(r => { if (!cancelled) setMyReview(r.review || null); })
+      .catch(() => { if (!cancelled) setMyReview(null); });
+    return () => { cancelled = true; };
+  }, [interview.id]);
+
+  // Ask once per interview, a few seconds after the report is on screen.
+  const reportReady = !!data && !data.evaluating;
+  useEffect(() => {
+    if (!reportReady || myReview !== null || wasAsked("mock_interview", interview.id)) return;
+    const t = setTimeout(() => { markAsked("mock_interview", interview.id); setFeedback({ rating: 0 }); }, 4000);
+    return () => clearTimeout(t);
+  }, [reportReady, myReview, interview.id]);
+
+  const submitFeedback = async ({ rating, tags, comment }) => {
+    const res = await reviewAPI.submit({ kind: "mock_interview", target: interview.id, rating, tags, comment, page: "mock-interview-report" });
+    setMyReview(res.review);
+  };
   const { user } = useAuth();
 
   const load = useCallback(() => {
@@ -1154,6 +1180,31 @@ function Report({ interview, onRetake, busy }) {
   const needsWork = answers.filter(q => q.score != null && q.score < 3);
   const shownAnswers = answerFilter === "work" ? needsWork : answers;
 
+  const rateCard = myReview !== undefined && (
+    <SideCard title={myReview ? "Your rating" : "Rate this interview"} Icon={Star}>
+      {myReview ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ display: "flex", gap: 2 }}>
+            {[1, 2, 3, 4, 5].map(n => <Star key={n} size={18} fill={n <= myReview.rating ? "#F59E0B" : "none"} color={n <= myReview.rating ? "#F59E0B" : C.textMuted} />)}
+          </span>
+          <span style={{ fontSize: ".84rem", color: C.textSub }}>{RATING_WORDS[myReview.rating]}. Thanks!</span>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: ".82rem", color: C.textSub, lineHeight: 1.5, marginBottom: 10 }}>Did it feel like the real thing? Tap a star.</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <button key={n} type="button" onClick={() => setFeedback({ rating: n })} aria-label={`${n} star${n > 1 ? "s" : ""}`}
+                style={{ padding: 2, border: "none", background: "none", cursor: "pointer", lineHeight: 0 }}>
+                <Star size={26} strokeWidth={1.6} color={C.textMuted} />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </SideCard>
+  );
+
   const retakeCard = (
     <SideCard title="Try it again" Icon={RotateCcw}>
       <div style={{ fontSize: ".82rem", color: C.textSub, lineHeight: 1.5, marginBottom: 12 }}>
@@ -1167,6 +1218,15 @@ function Report({ interview, onRetake, busy }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {feedback && (
+        <FeedbackModal
+          kind="mock_interview"
+          initialRating={feedback.rating}
+          subtitle={`${[(interview.company || "").replace(/\b\w/g, ch => ch.toUpperCase()), interview.role].filter(Boolean).join(" · ") || "This interview"}. Your rating helps us make the questions and the report better.`}
+          onSubmit={submitFeedback}
+          onClose={() => setFeedback(null)}
+        />
+      )}
       {/* ── Score ── */}
       <div className="mi-card" style={{ ...card, padding: "22px 24px" }}>
         <div className="mi-score">
@@ -1304,6 +1364,7 @@ function Report({ interview, onRetake, busy }) {
             </SideCard>
           )}
 
+          {rateCard}
           {retakeCard}
         </aside>
       </div>

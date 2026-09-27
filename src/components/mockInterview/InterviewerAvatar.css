@@ -45,9 +45,13 @@
   animation: ia-nod 2.6s ease-in-out infinite;
 }
 
-.ia-eyes {
-  transform-origin: 100px 92px;
+.ia-eye {
+  transform-box: fill-box;       /* origin is relative to each eye's own bounding box */
+  transform-origin: center 0%;   /* top of the eye = eyelid hinge */
   animation: ia-blink 4.8s infinite;
+}
+.ia-eye-r {
+  animation-delay: 0.06s;        /* slight stagger so eyes don't blink in perfect sync */
 }
 
 .ia-name {
@@ -102,7 +106,7 @@
 }
 @keyframes ia-blink {
   0%, 94%, 100% { transform: scaleY(1); }
-  96%           { transform: scaleY(0.1); }
+  96%           { transform: scaleY(0.04); }  /* nearly shut — proper eyelid close */
 }
 @keyframes ia-pulse {
   0%, 100% { opacity: 1; }
@@ -114,5 +118,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ia-speaking .ia-ring, .ia-talking .ia-head, .ia-eyes, .ia-listening .ia-dot, .ia-dots i { animation: none; }
+  .ia-speaking .ia-ring, .ia-talking .ia-head, .ia-eye, .ia-listening .ia-dot, .ia-dots i { animation: none; }
 }

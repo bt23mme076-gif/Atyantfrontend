@@ -32,11 +32,14 @@ import PageHeader from "./components/ui/PageHeader";
 import PlanBadge from "./components/ui/PlanBadge";
 import { activePlan, PLAN_NAME, planExpiryText } from "./lib/plan";
 import ProductTour from "./components/ProductTour";
+import FeedbackModal from "./components/FeedbackModal";
+import { wasAsked, markAsked, platformAskedRecently, RATING_WORDS } from "./lib/feedback";
 import { useAuth } from "./context/AuthContext";
 
 import { ThemeToggle } from "./context/ThemeContext";
 import {
   sessionAPI,
+  reviewAPI,
   savedAnswerAPI,
   roadmapAPI,
   servicesAPI,
@@ -214,13 +217,10 @@ function PastSessionInsights({ sessionId, pipelineStatus, isMentorView, onNaviga
   );
 }
 
-function SessionDetailCard({ s, isUpcoming, onNavigate }) {
+function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
   const [copied, setCopied] = useState(false);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [chosenRating, setChosenRating] = useState(s.review?.rating || 0);
-  const [comment, setComment] = useState(s.review?.comment || "");
-  const [reviewing, setReviewing] = useState(false);
-  const [reviewed, setReviewed] = useState(!!s.review?.submittedAt);
+  // Rating shown on the card: the saved review, or one just submitted from the dialog.
+  const review = myRating || (s.review?.submittedAt ? s.review : null);
   const date = new Date(s.scheduledAt);
   const dateStr = date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const timeStr = date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
@@ -307,60 +307,30 @@ function SessionDetailCard({ s, isUpcoming, onNavigate }) {
 
         {/* Review section — only for past student sessions */}
         {treatAsPast && !isMentorView && (
-          <div style={{ marginTop: "1.1rem", padding: "1rem 1.1rem", background: C.bg, borderRadius: 12, border: `1px solid ${C.cardBorder}` }}>
-            {reviewed ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ display: "flex", gap: 3 }}>
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <Star key={n} size={14} fill={n <= chosenRating ? "#F59E0B" : "none"} stroke={n <= chosenRating ? "#F59E0B" : C.textMuted} />
-                  ))}
-                </div>
-                <span style={{ fontSize: "0.75rem", color: C.textSub }}>
-                  {comment ? `"${comment}"` : "Thanks for your review!"}
+          <div style={{ marginTop: "1.1rem", padding: "0.9rem 1.1rem", background: C.bg, borderRadius: 12, border: `1px solid ${C.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            {review ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                <span style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                  {[1, 2, 3, 4, 5].map(n => <Star key={n} size={15} fill={n <= review.rating ? "#F59E0B" : "none"} stroke={n <= review.rating ? "#F59E0B" : C.textMuted} />)}
+                </span>
+                <span style={{ fontSize: "0.8rem", color: C.textSub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {review.comment ? `"${review.comment}"` : `${RATING_WORDS[review.rating]}. Thanks for rating!`}
                 </span>
               </div>
             ) : (
               <>
-                <p style={{ fontSize: "0.72rem", fontWeight: 600, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.6rem" }}>Rate this session</p>
-                <div style={{ display: "flex", gap: 6, marginBottom: "0.7rem" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "0.86rem", fontWeight: 700, color: C.text }}>How was this session?</div>
+                  <div style={{ fontSize: "0.76rem", color: C.textSub, marginTop: 2 }}>Your rating helps other students pick a mentor.</div>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
                   {[1, 2, 3, 4, 5].map(n => (
-                    <Star
-                      key={n}
-                      size={22}
-                      fill={n <= (hoverRating || chosenRating) ? "#F59E0B" : "none"}
-                      stroke={n <= (hoverRating || chosenRating) ? "#F59E0B" : C.textMuted}
-                      style={{ cursor: "pointer", transition: "transform 0.1s", transform: n <= (hoverRating || chosenRating) ? "scale(1.15)" : "scale(1)" }}
-                      onMouseEnter={() => setHoverRating(n)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setChosenRating(n)}
-                    />
+                    <button key={n} type="button" onClick={() => onRate?.(s, n)} aria-label={`Rate ${n} star${n > 1 ? "s" : ""}`}
+                      style={{ padding: 2, border: "none", background: "none", cursor: "pointer", lineHeight: 0 }}>
+                      <Star size={24} strokeWidth={1.6} stroke={C.textMuted} fill="none" />
+                    </button>
                   ))}
                 </div>
-                <p style={{ fontSize: "0.72rem", fontWeight: 600, color: C.textMuted, marginBottom: "0.4rem" }}>Share your feedback</p>
-                <textarea
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  placeholder="What did you take away? (optional)"
-                  maxLength={300}
-                  rows={2}
-                  style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: 8, border: `1px solid ${C.cardBorder}`, background: C.card, color: C.text, fontSize: "0.8rem", resize: "none", fontFamily: "var(--font-body)", marginBottom: "0.6rem", outline: "none", boxSizing: "border-box" }}
-                />
-                {chosenRating > 0 && (
-                  <button
-                    disabled={reviewing}
-                    onClick={async () => {
-                      setReviewing(true);
-                      try {
-                        await sessionAPI.review(s._id, chosenRating, comment);
-                        setReviewed(true);
-                      } catch { /* silent */ }
-                      setReviewing(false);
-                    }}
-                    style={{ padding: "0.5rem 1.2rem", borderRadius: 8, background: "#7567C9", color: "#fff", fontWeight: 600, fontSize: "0.8rem", border: "none", cursor: "pointer", opacity: reviewing ? 0.7 : 1 }}
-                  >
-                    {reviewing ? "Saving…" : "Submit Review"}
-                  </button>
-                )}
               </>
             )}
           </div>
@@ -391,6 +361,23 @@ function MySessionsPage({ onNavigate }) {
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rated, setRated] = useState({});        // sessionId → review saved from the dialog this visit
+  const [rating, setRating] = useState(null);    // { session, rating } while the dialog is open
+
+  // Ask once about the most recent finished session the student hasn't rated.
+  useEffect(() => {
+    if (loading) return;
+    const due = past.find(x => x.viewerRole !== "mentor" && x.status === "completed" && !x.review?.submittedAt && !wasAsked("session", x._id));
+    if (!due) return;
+    const t = setTimeout(() => { markAsked("session", due._id); setRating({ session: due, rating: 0 }); }, 1500);
+    return () => clearTimeout(t);
+  }, [loading, past]);
+
+  const submitSessionReview = async ({ rating: stars, tags, comment }) => {
+    const sess = rating.session;
+    await reviewAPI.submit({ kind: "session", target: sess._id, rating: stars, tags, comment, page: "sessions" });
+    setRated(r => ({ ...r, [sess._id]: { rating: stars, comment } }));
+  };
 
   useEffect(() => {
     sessionAPI.my()
@@ -405,6 +392,16 @@ function MySessionsPage({ onNavigate }) {
     <div style={{ padding: "24px 16px 60px", maxWidth: 820, margin: "0 auto" }}>
       <PageHeader title="My sessions" subtitle="Calls you've booked with seniors. The join button opens a few minutes before each call starts." />
 
+      {rating && (
+        <FeedbackModal
+          kind="session"
+          initialRating={rating.rating}
+          subtitle={`Your session with ${rating.session.counterpartName || rating.session.mentorName || "your mentor"}. Your rating goes on their profile and helps other students choose.`}
+          onSubmit={submitSessionReview}
+          onClose={() => setRating(null)}
+        />
+      )}
+
       <div style={{ marginBottom: "2.2rem" }}>
         <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "0.9rem" }}>UPCOMING</div>
         {upcoming.length === 0
@@ -415,7 +412,7 @@ function MySessionsPage({ onNavigate }) {
         <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", color: C.textMuted, marginBottom: "0.9rem" }}>PAST SESSIONS</div>
         {past.length === 0
           ? <p style={{ fontSize: "0.85rem", color: C.textMuted }}>No past sessions yet.</p>
-          : <div style={{ display: "grid", gap: 14 }}>{past.map((s, i) => <SessionDetailCard key={s._id || i} s={s} isUpcoming={false} onNavigate={onNavigate} />)}</div>}
+          : <div style={{ display: "grid", gap: 14 }}>{past.map((s, i) => <SessionDetailCard key={s._id || i} s={s} isUpcoming={false} onNavigate={onNavigate} myRating={rated[s._id]} onRate={(sess, n) => setRating({ session: sess, rating: n })} />)}</div>}
       </div>
     </div>
   );
@@ -1405,6 +1402,30 @@ export default function App() {
     if (isMobile) setSidebarOpen(false);
   };
 
+  // Platform feedback — "Feedback" in the top bar, plus one prompt for people who've
+  // actually explored: 3+ different pages and 2+ minutes here, at most once a month.
+  const [platformFeedback, setPlatformFeedback] = useState(false);
+  const pagesSeenRef = useRef(new Set());
+  const arrivedAtRef = useRef(Date.now());
+  const [clock, setClock] = useState(0);   // re-checks the prompt every 20s even without navigation
+  useEffect(() => {
+    const t = setInterval(() => setClock(c => c + 1), 20000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    pagesSeenRef.current.add(activePage);
+    // Never interrupt a task in progress (interview, booking, chat) or another dialog.
+    const busyPage = ["mock-interview", "book", "chat", "upgrade"].includes(activePage);
+    if (platformFeedback || tourOpen || showAuth || onboarding || busyPage) return;
+    if (pagesSeenRef.current.size < 3 || Date.now() - arrivedAtRef.current < 120000) return;
+    if (platformAskedRecently()) return;
+    markAsked("platform");
+    setPlatformFeedback(true);
+  }, [activePage, clock, platformFeedback, tourOpen, showAuth, onboarding]);
+
+  const submitPlatformFeedback = ({ rating, tags, comment }) =>
+    reviewAPI.submit({ kind: "platform", rating, tags, comment, page: activePage });
+
   const MENTOR_PROFILE_NAV = [
     { key: 'overview', Icon: Activity, label: 'Overview' },
     { key: 'booking', Icon: CalendarClock, label: 'Availability' },
@@ -1810,6 +1831,12 @@ export default function App() {
               <span style={{ fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.01em", color: C.text, lineHeight: 1, fontFamily: "'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
             ) : <div />}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button onClick={() => setPlatformFeedback(true)} aria-label="Give feedback" title="Give feedback"
+                style={{ height: 30, display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "0 7px" : "0 10px", borderRadius: 7, border: `1px solid ${C.cardBorder}`, background: "transparent", color: C.textSub, cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, fontFamily: "inherit" }}
+                onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; }}>
+                <MessageSquare size={15} /> {!isMobile && "Feedback"}
+              </button>
               <button onClick={startTour} aria-label="Take the tour" title="Take the tour"
                 style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "transparent", color: C.textSub, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
                 onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; }}
@@ -1848,6 +1875,10 @@ export default function App() {
         </div>
 
         {tourOpen && <ProductTour onClose={closeTour} onStepChange={handleTourStep} />}
+
+        {platformFeedback && (
+          <FeedbackModal kind="platform" onSubmit={submitPlatformFeedback} onClose={() => setPlatformFeedback(false)} />
+        )}
 
         {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={handleAuthed} />}
 
