@@ -20,6 +20,34 @@
   color: #f1eefc;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
+.cep-panel-wide { width: min(1180px, 96%); max-height: 92vh; padding: 0; overflow: hidden; }
+
+.cep-split { display: flex; height: min(92vh, 780px); }
+.cep-desc {
+  flex: 1 1 46%; min-width: 320px; overflow-y: auto; padding: 22px 24px;
+  border-right: 1px solid rgba(165, 150, 224, 0.18); background: #17151f;
+}
+.cep-code-pane { flex: 1 1 54%; display: flex; flex-direction: column; padding: 18px 22px 20px; min-width: 0; }
+
+.cep-desc-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+.cep-diff-badge {
+  display: inline-block; font-size: .74rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-bottom: 16px;
+}
+.cep-diff-easy { background: rgba(61, 190, 130, 0.15); color: #7fe0ac; }
+.cep-diff-medium { background: rgba(251, 191, 36, 0.15); color: #ffcf6e; }
+.cep-diff-hard { background: rgba(248, 113, 113, 0.15); color: #ff9c9c; }
+
+.cep-example { margin-bottom: 14px; }
+.cep-example-label { font-size: .82rem; font-weight: 700; color: #d9d3f5; margin-bottom: 6px; }
+.cep-example-body {
+  margin: 0; background: #14121e; border: 1px solid rgba(165, 150, 224, 0.18); border-radius: 8px;
+  padding: 10px 12px; font-size: .8rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; color: #ded9f5;
+}
+.cep-constraints { margin: 16px 0; font-size: .82rem; color: #cfc8ec; }
+.cep-constraints ul { margin: 6px 0 0; padding-left: 18px; }
+.cep-constraints li { margin-bottom: 4px; font-family: monospace; font-size: .78rem; }
+.cep-ionote { margin-top: 16px; font-size: .78rem; line-height: 1.55; color: #a89dd6; padding-top: 12px; border-top: 1px dashed rgba(165, 150, 224, 0.2); }
 
 .cep-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .cep-title { font-weight: 700; font-size: 1.05rem; }
@@ -42,6 +70,7 @@
   padding: 12px 14px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: .84rem; line-height: 1.5; tab-size: 2;
 }
+.cep-code-pane .cep-editor { flex: 1 1 auto; min-height: 260px; }
 .cep-editor-sql { min-height: 100px; }
 
 .cep-loading { padding: 30px; text-align: center; color: #b9b0e0; font-size: .9rem; }
@@ -67,3 +96,9 @@
 .cep-btn:disabled { opacity: .55; cursor: default; }
 .cep-btn-primary { background: #7567C9; border-color: #7567C9; }
 .cep-btn-ghost { background: transparent; margin-right: auto; color: #b9b0e0; }
+
+@media (max-width: 860px) {
+  .cep-split { flex-direction: column; height: auto; max-height: 86vh; overflow-y: auto; }
+  .cep-desc { border-right: none; border-bottom: 1px solid rgba(165, 150, 224, 0.18); }
+  .cep-code-pane .cep-editor { min-height: 200px; }
+}

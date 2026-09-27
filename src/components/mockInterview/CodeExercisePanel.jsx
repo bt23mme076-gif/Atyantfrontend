@@ -13,6 +13,14 @@ import './CodeExercisePanel.css';
 
 const LANG_LABELS = { javascript: 'JavaScript', python: 'Python', cpp: 'C++', java: 'Java' };
 
+// Difficulty is stored as 1-5 internally (for picking a problem close to the
+// candidate's seniority); shown to the candidate the way LeetCode does.
+function difficultyLabel(d) {
+  if (d <= 2) return { text: 'Easy', cls: 'easy' };
+  if (d === 3) return { text: 'Medium', cls: 'medium' };
+  return { text: 'Hard', cls: 'hard' };
+}
+
 function decode(payload) {
   try { return JSON.parse(new TextDecoder().decode(payload)); } catch { return null; }
 }
@@ -45,10 +53,11 @@ export default function CodeExercisePanel({ interviewId }) {
     setDone(true);
   };
 
+  const wide = active.kind === 'coding';
   return (
     <div className="cep-overlay">
-      <div className="cep-panel">
-        {active.kind === 'coding'
+      <div className={`cep-panel${wide ? ' cep-panel-wide' : ''}`}>
+        {wide
           ? <CodingExercise interviewId={interviewId} problemId={active.problemId} onDone={report} />
           : <SqlExercise interviewId={interviewId} problemId={active.problemId} onDone={report} />}
       </div>
@@ -111,40 +120,65 @@ function CodingExercise({ interviewId, problemId, onDone }) {
   };
 
   if (!problem) return <div className="cep-loading">{error || 'Loading the problem…'}</div>;
+  const diff = difficultyLabel(problem.difficulty);
 
   return (
-    <>
-      <div className="cep-header">
-        <span className="cep-title">{problem.title}</span>
-        <select className="cep-lang" value={language} onChange={e => onLanguageChange(e.target.value)}>
-          {problem.languages.map(l => <option key={l} value={l}>{LANG_LABELS[l] || l}</option>)}
-        </select>
+    <div className="cep-split">
+      <div className="cep-desc">
+        <div className="cep-desc-title">{problem.title}</div>
+        <span className={`cep-diff-badge cep-diff-${diff.cls}`}>{diff.text}</span>
+        {problem.examples?.map((ex, i) => (
+          <div key={i} className="cep-example">
+            <div className="cep-example-label">Example {i + 1}:</div>
+            <pre className="cep-example-body">
+              <b>Input:</b> {ex.input}{'\n'}<b>Output:</b> {ex.output}
+              {ex.explanation ? `\n${'Explanation: '}${ex.explanation}` : ''}
+            </pre>
+          </div>
+        ))}
+        {!!problem.constraints?.length && (
+          <div className="cep-constraints">
+            <div className="cep-example-label">Constraints:</div>
+            <ul>{problem.constraints.map((c, i) => <li key={i}>{c}</li>)}</ul>
+          </div>
+        )}
+        {problem.ioNote && (
+          <div className="cep-ionote"><b>Input / Output for this exercise:</b> {problem.ioNote}</div>
+        )}
       </div>
-      <p className="cep-prompt">{problem.prompt}</p>
-      <textarea
-        className="cep-editor" spellCheck={false} value={code}
-        onChange={e => { touchedCode.current = true; setCode(e.target.value); }}
-      />
-      {runResults && (
-        <div className="cep-results">
-          {runResults.map((r, i) => (
-            <div key={i} className={`cep-case ${r.passed ? 'pass' : 'fail'}`}>
-              {r.hidden ? (r.passed ? 'Hidden case: passed' : 'Hidden case: failed')
-                : (<>
-                  <div>{r.passed ? '✓ Sample case passed' : '✗ Sample case failed'}</div>
-                  {!r.passed && <pre className="cep-diff">got: {r.stdout || r.stderr || '(no output)'}</pre>}
-                </>)}
-            </div>
-          ))}
+
+      <div className="cep-code-pane">
+        <div className="cep-header">
+          <span className="cep-title">Code</span>
+          <select className="cep-lang" value={language} onChange={e => onLanguageChange(e.target.value)}>
+            {problem.languages.map(l => <option key={l} value={l}>{LANG_LABELS[l] || l}</option>)}
+          </select>
         </div>
-      )}
-      {error && <div className="cep-error">{error}</div>}
-      <div className="cep-actions">
-        <MoveOnButton onDone={onDone} disabled={busy} />
-        <button className="cep-btn" disabled={busy} onClick={run}>Run sample tests</button>
-        <button className="cep-btn cep-btn-primary" disabled={busy} onClick={submit}>Submit</button>
+        <textarea
+          className="cep-editor" spellCheck={false} value={code}
+          onChange={e => { touchedCode.current = true; setCode(e.target.value); }}
+        />
+        {runResults && (
+          <div className="cep-results">
+            {runResults.map((r, i) => (
+              <div key={i} className={`cep-case ${r.passed ? 'pass' : 'fail'}`}>
+                {r.hidden ? (r.passed ? 'Hidden case: passed' : 'Hidden case: failed')
+                  : (<>
+                    <div>{r.passed ? '✓ Sample case passed' : '✗ Sample case failed'}</div>
+                    {!r.passed && <pre className="cep-diff">got: {r.stdout || r.stderr || '(no output)'}</pre>}
+                  </>)}
+              </div>
+            ))}
+          </div>
+        )}
+        {error && <div className="cep-error">{error}</div>}
+        <div className="cep-actions">
+          <MoveOnButton onDone={onDone} disabled={busy} />
+          <button className="cep-btn" disabled={busy} onClick={run}>Run sample tests</button>
+          <button className="cep-btn cep-btn-primary" disabled={busy} onClick={submit}>Submit</button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
