@@ -12,12 +12,10 @@ import MentorTrackPage from './pages/MentorTrackPage'
 
 const IS_TPO_SUBDOMAIN = window.location.hostname === 'vnit.atyant.in'
 
-// atyant.in proxies "/atyantEngine/*" and "/product-assets/*" to this product
-// app (bare "/" is the marketing site's own homepage). Within that prefix, the
-// meet is served at the proxied path with a ?meet=<sessionId> query param,
-// which keeps it on the atyant.in origin (where the auth token lives in
-// localStorage). The /session/meet path route is kept for localhost and direct
-// vercel.app access.
+// This app owns atyant.in (the marketing site is proxied under /company). The
+// meet is served at /?meet=<sessionId>, which keeps it on the atyant.in origin
+// (where the auth token lives in localStorage). The /session/meet path route is
+// kept for localhost and direct vercel.app access.
 function RootOrMeet() {
   const [params] = useSearchParams()
   const meetId = params.get('meet')
@@ -25,7 +23,7 @@ function RootOrMeet() {
   return <App />
 }
 
-// ── vnit.atyant.in → standalone TPO portal (no /atyantEngine basename) ───────
+// ── vnit.atyant.in → standalone TPO portal (own router) ───────
 if (IS_TPO_SUBDOMAIN) {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
@@ -48,7 +46,7 @@ if (IS_TPO_SUBDOMAIN) {
       <ErrorBoundary>
         <ThemeProvider>
           <AuthProvider>
-            <BrowserRouter basename={import.meta.env.MODE === 'production' ? '/atyantEngine' : ''}>
+            <BrowserRouter>
               <Routes>
                 <Route path="/session/meet/:sessionId" element={<MeetPage />} />
                 <Route

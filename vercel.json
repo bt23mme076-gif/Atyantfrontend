@@ -1,8 +1,25 @@
 {
+  "redirects": [
+    { "source": "/atyantEngine", "destination": "/", "permanent": true },
+    { "source": "/atyantEngine/:path*", "destination": "/:path*", "permanent": true },
+    { "source": "/home", "destination": "/company", "permanent": true }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "https://api.product.atyant.in/api/$1"
+    },
+    {
+      "source": "/:page(company|achievements|internships|dad|career-guides|resume-store|events|webinar|privacy|terms|login|signup|forgot-password|reset-password|auth-success|profile)",
+      "destination": "https://atyant.vercel.app/:page"
+    },
+    {
+      "source": "/:dir(achievements|campus-photos|profile|admin|assets)/:path*",
+      "destination": "https://atyant.vercel.app/:dir/:path*"
+    },
+    {
+      "source": "/:file((?:iit|iim)-intern-[^/]+|lnct.png|manit.png|vnit.png|favicon.png|manifest.json|manifest.webmanifest|registerSW.js|sw.js|workbox-[^/]+)",
+      "destination": "https://atyant.vercel.app/:file"
     },
     {
       "source": "/(.*)",
@@ -11,7 +28,7 @@
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/((?!(?:company|achievements|internships|dad|career-guides|resume-store|events|webinar|privacy|terms|login|signup|forgot-password|reset-password|auth-success|profile|admin|assets|campus-photos)(?:/|$)).*)",
       "headers": [
         {
           "key": "Content-Security-Policy",

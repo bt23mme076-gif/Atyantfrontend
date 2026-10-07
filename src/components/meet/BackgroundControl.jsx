@@ -35,12 +35,8 @@ const toOptions = (e) =>
 // this app's CSP (vercel.json only whitelists our own API + payment origins).
 // Self-hosted instead, under /product-assets/mediapipe (copied from
 // node_modules/@mediapipe/tasks-vision — see public/product-assets/mediapipe).
-// MUST live under /product-assets: atyant.in's marketing-site proxy only
-// forwards a fixed set of paths to this app (/atyantEngine/* for routes,
-// /product-assets/* for build assets) — a bare /mediapipe/* 404s into the
-// marketing site's own fallback page instead of reaching this app at all,
-// which silently broke every device (both GPU and CPU delegates alike, since
-// the failure was in fetching the runtime itself, before delegate code runs).
+// Kept under /product-assets so it never collides with the marketing site's
+// own /assets (proxied from the marketing site).
 const ASSET_PATHS = {
     tasksVisionFileSet: '/product-assets/mediapipe/wasm',
     modelAssetPath: '/product-assets/mediapipe/selfie_segmenter.tflite',

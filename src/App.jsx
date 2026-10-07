@@ -230,13 +230,11 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
   const counterpartName = s.counterpartName || s.mentorName || "Your Mentor";
   const counterpartPic = s.counterpartPicture || s.mentorProfilePicture;
   const bookingId = (s._id || "").slice(-8).toUpperCase();
-  // The meet opens at /atyantEngine/?meet=<id> on the current origin — atyant.in
-  // proxies "/atyantEngine" to this product app (bare "/" is now the marketing
-  // site's own homepage), and serving it same-origin keeps the localStorage auth
+  // The meet opens at /?meet=<id> on atyant.in — serving it same-origin keeps the localStorage auth
   // token available. The backend ensures the LiveKit room idempotently on join,
   // so we build the link from the id directly rather than relying on a saved
   // meetingLink.
-  const meetUrl = s._id ? `https://atyant.in/atyantEngine/?meet=${s._id}` : "";
+  const meetUrl = s._id ? `https://atyant.in/?meet=${s._id}` : "";
   const hasMeet = !!meetUrl;
   const now = Date.now();
   const sessionMs = date.getTime();
@@ -1603,7 +1601,7 @@ export default function App() {
         <div style={{ width: collapsed ? 72 : 254, flexShrink: 0, background: C.sidebar, borderRight: `1px solid ${C.sidebarBorder}`, display: "flex", flexDirection: "column", height: "100dvh", position: isMobile ? "fixed" : "sticky", top: 0, left: 0, zIndex: 50, transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)", transition: "transform 0.25s ease", boxShadow: isMobile && sidebarOpen ? "0 24px 60px rgba(0,0,0,0.5)" : "none" }}>
           <div style={{ height: collapsed ? "auto" : 76, minHeight: collapsed ? 76 : undefined, display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", justifyContent: collapsed ? "center" : "space-between", padding: collapsed ? "14px 0" : "0 24px", gap: collapsed ? 10 : 0, flexShrink: 0 }}>
             <div
-              onClick={() => { window.location.href = "https://atyant.in/"; }}
+              onClick={() => { window.location.href = "https://atyant.in/company"; }}
               title="Back to atyant.in"
               style={{ display: "flex", alignItems: "center", gap: 11, cursor: "pointer" }}
             >

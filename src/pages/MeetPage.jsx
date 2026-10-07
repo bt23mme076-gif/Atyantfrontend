@@ -154,7 +154,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
             {needsAuth && (
                 <button
                     className="meet-btn"
-                    onClick={() => { window.location.href = `/atyantEngine/?redirect=${encodeURIComponent(`/atyantEngine/?meet=${sessionId}`)}`; }}
+                    onClick={() => { window.location.href = `/?redirect=${encodeURIComponent(`/?meet=${sessionId}`)}`; }}
                 >
                     Sign in to join
                 </button>
@@ -221,4 +221,4 @@ export default function MeetPage({ sessionId: propSessionId }) {
             <MeetTools hasVideo={roomData.callType !== 'audio'} sessionId={sessionId} />
         </LiveKitRoom>
     );
-}
+}
