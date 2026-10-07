@@ -153,6 +153,37 @@ body {
   cursor: pointer;
 }
 
+/* Thin, minimal scrollbars globally (no arrow buttons, no track) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 148, 168, 0.28);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 148, 168, 0.5);
+}
+
+@-moz-document url-prefix() {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 148, 168, 0.28) transparent;
+  }
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .hide-scrollbar {
   scrollbar-width: none;
