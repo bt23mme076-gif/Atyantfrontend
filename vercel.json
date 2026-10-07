@@ -1,6 +1,7 @@
 {
   "redirects": [
     { "source": "/atyantEngine", "destination": "/", "permanent": true },
+    { "source": "/atyantEngine/", "destination": "/", "permanent": true },
     { "source": "/atyantEngine/:path*", "destination": "/:path*", "permanent": true },
     { "source": "/home", "destination": "/company", "permanent": true }
   ],
