@@ -15,7 +15,32 @@ const DIST = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 
 // Served from the marketing site (proxied in vercel.json) but self-canonical and
 // indexable, so it belongs in this domain's sitemap.
-const EXTERNAL_PATHS = ["/company"];
+const EXTERNAL_PATHS = ["/company", "/achievements"];
+
+// Photos on marketing pages, as image-sitemap entries so they can rank in
+// Google Images. Keep in sync with the atyant repo's
+// frontend/src/data/achievementPhotos.js.
+const EXTERNAL_IMAGES = {
+  "/achievements": [
+    "atyant-hult-prize-2026-iit-bombay-stage.jpg",
+    "atyant-founder-hult-prize-india-nationals-2026.jpg",
+    "atyant-hult-prize-pitch-how-atyant-works.jpg",
+    "atyant-pitch-wars-right-answer-right-person-right-time.jpg",
+    "atyant-pitch-wars-ai-human-engine-presentation.jpg",
+    "atyant-pitch-wars-cofounder-pitch.jpg",
+    "atyant-founders-vnit-nagpur.jpg",
+    "atyant-team-student-community.jpg",
+    "atyant-student-career-guidance-session.jpg",
+    "atyant-demo-vnit-nagpur-director.jpg",
+    "atyant-vnit-ecell-pitch-market-opportunity.jpg",
+    "atyant-campus-visit-manit.jpg",
+    "atyant-campus-outreach-pce.jpg",
+    "atyant-recognition-ghrce.jpg",
+    "atyant-student-internship-iim-mumbai.jpg",
+    "atyant-student-outcomes-iim-ahmedabad-iit-mandi.jpg",
+    "atyant-online-mentor-session.jpg",
+  ].map((f) => `${SITE}/achievements/${f}`),
+};
 
 const esc = (s) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -80,11 +105,16 @@ const urls = [
   ...[...PUBLIC_ROUTES.map((r) => r.path), ...EXTERNAL_PATHS].map((p) => [p, buildDate]),
   ...guidePaths.map((p) => [p, GUIDES_UPDATED]),
 ]
-  .map(([p, lastmod]) => `  <url>\n    <loc>${SITE}${p}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`)
+  .map(([p, lastmod]) => {
+    const images = (EXTERNAL_IMAGES[p] || [])
+      .map((src) => `\n    <image:image><image:loc>${src}</image:loc></image:image>`)
+      .join("");
+    return `  <url>\n    <loc>${SITE}${p}</loc>\n    <lastmod>${lastmod}</lastmod>${images}\n  </url>`;
+  })
   .join("\n");
 writeFileSync(
   join(DIST, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls}\n</urlset>\n`,
 );
 
 console.log(`prerender: ${PUBLIC_ROUTES.length} routes, ${guidePaths.length} guide pages, sitemap.xml`);
