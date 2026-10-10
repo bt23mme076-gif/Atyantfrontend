@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI, eventsAPI } from "../../api";
+import InviteSeniors from "../invite/InviteSeniors";
 import useIsMobile from "../../hooks/useIsMobile";
 import { VoiceOverlay } from "./VoiceOverlay";
 
@@ -721,6 +722,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       showMatch: ready,
       chips: Array.isArray(res.quickReplies) ? res.quickReplies : null,
       mentors: Array.isArray(res.matchedMentors) ? res.matchedMentors : null,
+      canInvite: !!res.canInviteSeniors,
     };
   };
 
@@ -795,6 +797,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         showMatch: reply.showMatch,
         chips: reply.chips,
         mentors: reply.mentors,
+        canInvite: reply.canInvite,
         // Freeze the trace onto the message so it survives the live indicator
         // unmounting — that's what the collapsed "Thought for Xs" stub reopens.
         trace: traceRef.current,
@@ -836,7 +839,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       const reply = await sendToEngine(userPrompt);
       setMessages(prev => {
         const next = [...prev];
-        next[index] = { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors };
+        next[index] = { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors, canInvite: reply.canInvite };
         return next;
       });
     } catch {
@@ -901,7 +904,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       }, controller.signal, text);
 
       const reply = applyEngineResult(res, "Got your résumé — tell me a bit more so I can point you the right way.");
-      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors }]);
+      setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors, canInvite: reply.canInvite }]);
       streamTextRef.current = "";
       setStreamingText("");
     } catch (e) {
@@ -1377,6 +1380,13 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                               focusMentorId: mentor.id,
                             });
                           }}
+                        />
+                      )}
+                      {!isUser && m.canInvite && !m.mentors?.length && (
+                        <InviteSeniors
+                          sessionId={sessionIdRef.current}
+                          signedIn={!!localStorage.getItem("atyant_token")}
+                          onNeedAuth={() => window.openAuth?.()}
                         />
                       )}
                       {m.showMatch && (

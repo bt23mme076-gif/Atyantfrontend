@@ -244,6 +244,15 @@ export const clarityAPI = {
     api.get(`/api/clarity/community-count?college=${encodeURIComponent(college || '')}`),
 };
 
+// Invite a senior found on the web when no mentor matches (backend routes/inviteRoutes.js).
+export const inviteAPI = {
+  seniors: (sessionId) => api.get(`/api/invites/seniors?sessionId=${encodeURIComponent(sessionId || '')}`),
+  create: (payload) => api.post('/api/invites', payload),
+  mine: () => api.get('/api/invites/mine'),
+  landing: (code) => api.get(`/api/invites/${encodeURIComponent(code)}`),
+  claim: (code) => api.post(`/api/invites/${encodeURIComponent(code)}/claim`, {}),
+};
+
 // Product funnel steps (backend utils/funnel.js). Fire-and-forget. visitorId is
 // an anonymous per-browser id so a guest's pages group together (and link to
 // their account once they sign in); the chat session id ties in the chat steps.

@@ -48,6 +48,8 @@ import {
   eventsAPI
 } from "./api";
 import BookingModal from "./components/BookingModal";
+import InviteLanding from "./components/invite/InviteLanding";
+import { inviteAPI } from "./api";
 
 
 
@@ -1262,6 +1264,16 @@ export default function App() {
   });
   const [prevPage, setPrevPage] = useState("ask");  // page to return to from Upgrade
   const [showAuth, setShowAuth] = useState(false);
+  // A senior arriving from a student's invite link (/?invite=<code>). Kept in
+  // sessionStorage so it survives the Google OAuth redirect.
+  const [inviteCode, setInviteCode] = useState(() => {
+    try {
+      const c = new URLSearchParams(window.location.search).get("invite");
+      if (c) sessionStorage.setItem("atyant_invite_code", c);
+      return sessionStorage.getItem("atyant_invite_code");
+    } catch { return null; }
+  });
+  const [inviteJoining, setInviteJoining] = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
   const [serviceCatalog, setServiceCatalog] = useState([]);
   const [hasJoinableSession, setHasJoinableSession] = useState(false);
@@ -1297,6 +1309,23 @@ export default function App() {
     const interval = setInterval(checkJoinable, 30000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // Lets deep components (invite card) open the sign-in modal.
+  useEffect(() => {
+    window.openAuth = () => setShowAuth(true);
+    return () => { delete window.openAuth; };
+  }, []);
+
+  // Invited senior is signed in and chose to join: attach the invite, then onboard as mentor.
+  useEffect(() => {
+    if (!inviteCode || !inviteJoining || !user) return;
+    inviteAPI.claim(inviteCode).catch(() => { }).finally(() => {
+      try { sessionStorage.removeItem("atyant_invite_code"); } catch { /* ignore */ }
+      setInviteCode(null);
+      setInviteJoining(false);
+      setActivePage("mentor-onboard");
+    });
+  }, [inviteCode, inviteJoining, user]);
 
   // Global trigger: any component can call window.openBooking({ mentorId, mentorName, mentorPic })
   useEffect(() => {
@@ -1898,6 +1927,15 @@ export default function App() {
         )}
 
         {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuthed={handleAuthed} />}
+
+        {inviteCode && !inviteJoining && !showAuth && (
+          <InviteLanding
+            code={inviteCode}
+            signedIn={!!user}
+            onJoin={() => { setInviteJoining(true); if (!user) setShowAuth(true); }}
+            onDismiss={() => { try { sessionStorage.removeItem("atyant_invite_code"); } catch { /* ignore */ } setInviteCode(null); }}
+          />
+        )}
 
         {/* Mandatory mobile capture for phone-less (e.g. Google) accounts */}
         <RequirePhoneGate />
