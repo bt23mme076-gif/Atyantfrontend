@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
-import { clarityAPI, aiAPI } from "../../api";
+import { clarityAPI, aiAPI, eventsAPI } from "../../api";
 import useIsMobile from "../../hooks/useIsMobile";
 import { VoiceOverlay } from "./VoiceOverlay";
 
@@ -173,10 +173,10 @@ function describeProgress(event, previous = {}) {
     case "drafting":
       return "Putting together a reply…";
     case "searching_mentors":
-      return "Searching verified seniors who match your profile…";
+      return "Searching seniors who match your profile…";
     case "mentors_found":
       return event.count > 0
-        ? `Found ${event.count} verified senior${event.count === 1 ? "" : "s"} matching your background…`
+        ? `Found ${event.count} senior${event.count === 1 ? "" : "s"} matching your background…`
         : "No exact match yet — widening the search…";
     default:
       return null;
@@ -277,11 +277,11 @@ const ThoughtStub = ({ trace, ms }) => {
 
   const secs = Math.max(1, Math.round((ms || 0) / 1000));
   const found = trace
-    .map(l => /Found (\d+) verified senior/.exec(l))
+    .map(l => /Found (\d+) senior/.exec(l))
     .filter(Boolean)
     .pop();
   const label = found
-    ? `Found ${found[1]} verified senior${found[1] === "1" ? "" : "s"} · ${secs}s`
+    ? `Found ${found[1]} senior${found[1] === "1" ? "" : "s"} · ${secs}s`
     : `Thought for ${secs}s`;
 
   return (
@@ -323,7 +323,7 @@ function mentorHue(name = "") {
 // actually matched — so a card can only claim overlap it genuinely has. A
 // fallback pick (isRelevanceMatch false) matched on nothing and says nothing;
 // it's labelled for what it is rather than dressed up with invented reasons.
-const MentorMatches = ({ mentors }) => {
+const MentorMatches = ({ mentors, onSelect }) => {
   if (!mentors?.length) return null;
 
   return (
@@ -335,6 +335,7 @@ const MentorMatches = ({ mentors }) => {
         {mentors.map((m, i) => {
           const reasons = m.matchedOn
             ? [
+                ...(m.matchedOn.background || []),
                 ...(m.matchedOn.expertise || []),
                 ...(m.matchedOn.domainExperience || []),
                 ...(m.matchedOn.interests || []),
@@ -351,7 +352,15 @@ const MentorMatches = ({ mentors }) => {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: i * 0.06 }}
-              style={{ display: "flex", gap: 11, padding: "11px 13px", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 11 }}
+              // Tapping a senior opens their profile (with booking) on the clarity page.
+              role={onSelect ? "button" : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              aria-label={onSelect ? `View ${m.name}'s profile` : undefined}
+              onClick={onSelect ? () => onSelect(m, i) : undefined}
+              onKeyDown={onSelect ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(m, i); } } : undefined}
+              onMouseEnter={onSelect ? (e) => { e.currentTarget.style.borderColor = C.accent + "88"; } : undefined}
+              onMouseLeave={onSelect ? (e) => { e.currentTarget.style.borderColor = C.cardBorder; } : undefined}
+              style={{ display: "flex", gap: 11, padding: "11px 13px", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 11, cursor: onSelect ? "pointer" : "default", alignItems: "center" }}
             >
               {m.profilePicture ? (
                 <img
@@ -387,6 +396,11 @@ const MentorMatches = ({ mentors }) => {
                   </div>
                 )}
               </div>
+              {onSelect && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: "0.72rem", fontWeight: 600, color: C.accent, flexShrink: 0 }}>
+                  View <ArrowRight size={12} />
+                </span>
+              )}
             </motion.div>
           );
         })}
@@ -617,11 +631,16 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           // Re-attach the greeting chips after a refresh (server doesn't store them).
           chips: m.role === "assistant" && m.content?.trim() === GREETING_OPENER ? GREETING_CHIPS : null,
         }));
-        // Re-show the match button on the latest Atyant message if the engine was ready.
+        // Re-show the match button — and the matched mentor cards — on the latest
+        // Atyant message if the engine was ready.
         const ready = s.phase === "engine" || s.outputMode === "MENTOR_ROUTING";
         if (ready) {
           for (let i = msgs.length - 1; i >= 0; i--) {
-            if (msgs[i].sender === "atyant") { msgs[i].showMatch = true; break; }
+            if (msgs[i].sender === "atyant") {
+              msgs[i].showMatch = true;
+              if (Array.isArray(s.matchedMentors) && s.matchedMentors.length) msgs[i].mentors = s.matchedMentors;
+              break;
+            }
           }
         }
         setMessages(msgs);
@@ -817,7 +836,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       const reply = await sendToEngine(userPrompt);
       setMessages(prev => {
         const next = [...prev];
-        next[index] = { sender: "atyant", text: reply.text, showMatch: reply.showMatch };
+        next[index] = { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors };
         return next;
       });
     } catch {
@@ -1347,10 +1366,26 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           ))}
                         </div>
                       )}
-                      {!isUser && m.mentors?.length > 0 && <MentorMatches mentors={m.mentors} />}
+                      {!isUser && m.mentors?.length > 0 && (
+                        <MentorMatches
+                          mentors={m.mentors}
+                          onSelect={(mentor, position) => {
+                            eventsAPI.track("chat_mentor_clicked", { mentorId: mentor.id, position: position + 1 });
+                            onGoToClarity(problemStatement || messages[0]?.text || "", {
+                              ...context,
+                              mentorIds: m.mentors.map(x => x.id).filter(Boolean),
+                              focusMentorId: mentor.id,
+                            });
+                          }}
+                        />
+                      )}
                       {m.showMatch && (
                         <button
-                          onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", context)}
+                          onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", {
+                            ...context,
+                            // Pinned first on the clarity page, so it shows the same seniors as here.
+                            mentorIds: (m.mentors || []).map(x => x.id).filter(Boolean),
+                          })}
                           style={{
                             marginTop: 12,
                             background: "#7567C9",

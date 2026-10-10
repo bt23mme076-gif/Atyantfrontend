@@ -43,7 +43,8 @@ import {
   savedAnswerAPI,
   roadmapAPI,
   servicesAPI,
-  authAPI
+  authAPI,
+  eventsAPI
 } from "./api";
 import BookingModal from "./components/BookingModal";
 
@@ -1269,6 +1270,12 @@ export default function App() {
     servicesAPI.catalog().then(d => setServiceCatalog(d.services || [])).catch(() => { });
   }, []);
 
+  // Journey tracking: one page_view per page the student opens. Re-firing on
+  // sign-in links their earlier guest steps to their account.
+  useEffect(() => {
+    eventsAPI.track("page_view", { page: activePage });
+  }, [activePage, user?._id || user?.id]);
+
   // Poll for a session that's live or starting soon (1hr before start to 1hr
   // after), so the "My Sessions" nav item can show a red dot alerting the user.
   useEffect(() => {
@@ -1465,6 +1472,7 @@ export default function App() {
   };
 
   const handleStartBooking = (mentor) => {
+    eventsAPI.track("booking_started", { mentorId: mentor?.id || mentor?._id || null });
     setBookingMentor(mentor);
     setActivePage("book");
   };

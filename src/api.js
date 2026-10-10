@@ -244,6 +244,28 @@ export const clarityAPI = {
     api.get(`/api/clarity/community-count?college=${encodeURIComponent(college || '')}`),
 };
 
+// Product funnel steps (backend utils/funnel.js). Fire-and-forget. visitorId is
+// an anonymous per-browser id so a guest's pages group together (and link to
+// their account once they sign in); the chat session id ties in the chat steps.
+const VISITOR_KEY = "atyant_vid";
+function getVisitorId() {
+  try {
+    let vid = localStorage.getItem(VISITOR_KEY);
+    if (!vid) {
+      vid = `v_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(VISITOR_KEY, vid);
+    }
+    return vid;
+  } catch { return null; }
+}
+export const eventsAPI = {
+  track: (event, props = {}) => {
+    let funnelId = null;
+    try { funnelId = localStorage.getItem("atyant_chat_sid"); } catch { /* ignore */ }
+    api.post('/api/events', { event, funnelId, visitorId: getVisitorId(), props }).catch(() => { });
+  },
+};
+
 // Atyant AI chat — 2-phase intake + execution engine
 export const aiAPI = {
   atyantChat: (message, sessionId) => api.post('/api/ai/atyant-chat', { message, sessionId }),

@@ -4,12 +4,27 @@ import { Send, CheckCircle, Loader2, Lightbulb, Flag, Video, ChevronLeft, Chevro
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
-import { clarityAPI, profileAPI } from "../../api";
+import { clarityAPI, profileAPI, eventsAPI } from "../../api";
 
 // Fire-and-forget — never throws, never blocks UI
 const trackView = (mentor) => {
   const id = mentor?._id || mentor?.id;
   if (id) profileAPI.trackView(id).catch(() => { });
+  if (id) eventsAPI.track("mentor_profile_opened", { mentorId: String(id) });
+};
+
+// The chat hands over its internal problem statement ("Student: … / Goal: … /
+// Confidence: Low (2/5 layers extracted)") as the query. It's the right search
+// text but not something to show a student — turn it into a plain heading.
+const displayHeading = (query) => {
+  const q = String(query || "");
+  if (!/^(Student|Goal|Confidence):/m.test(q)) return q;
+  const pick = (label) => (q.match(new RegExp(`^${label}:\\s*(.+)$`, "m")) || [])[1]?.trim();
+  const goal = pick("Goal");
+  if (!goal) return "Seniors who match your profile";
+  const companies = pick("Target companies");
+  const heading = goal.charAt(0).toUpperCase() + goal.slice(1);
+  return companies ? `${heading} · aiming for ${companies}` : heading;
 };
 
 // Cheapest tier price, shown on the answer-card CTA. Real per-mentor prices load
@@ -35,7 +50,11 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         : "How do I land a strong internship with no prior experience?";
     setActiveQuery(q);
     setSelectedMentor(null);
-    fetchMentors(q);
+    eventsAPI.track("clarity_opened", {
+      fromChat: !!initialContext?.mentorIds?.length,
+      fromMentorCard: !!initialContext?.focusMentorId,
+    });
+    fetchMentors(q, true); // first load: keep the chat's seniors on top
   }, [initialQuery]);
 
   // Always land at the top of the answer feed / detail view — never mid-scroll
@@ -44,7 +63,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0;
   }, [answerCards, selectedMentor, fetchLoading]);
 
-  const fetchMentors = async (query) => {
+  const fetchMentors = async (query, pinChatMentors = false) => {
     setFetchLoading(true);
     setFetchError("");
     try {
@@ -58,6 +77,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         year: initialContext?.year || edu.year || "",
         goal: initialContext?.goal || user?.interests?.[0] || "",
         cgpa: initialContext?.cgpa || edu.cgpa || "",
+        mentorIds: pinChatMentors ? (initialContext?.mentorIds || []) : [],
       });
       setMentors(data.mentors || []);
       // Answer-card feed (fallback to the single best card for older responses)
@@ -65,6 +85,11 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         ? data.answerCards
         : (data.answerCard ? [data.answerCard] : []);
       setAnswerCards(cards);
+      // Came from tapping a senior's card in the chat → open that senior straight away.
+      if (pinChatMentors && initialContext?.focusMentorId) {
+        const focused = (data.mentors || []).find(m => String(m.id) === String(initialContext.focusMentorId));
+        if (focused) { trackView(focused); setSelectedMentor(focused); }
+      }
     } catch (e) {
       setFetchError(e.message || "Failed to fetch mentors");
     } finally {
@@ -115,7 +140,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   const contextLine = [
     initialContext?.college || edu.institutionName || edu.institution || null,
     initialContext?.branch || edu.field || null,
-    initialContext?.year || edu.year || null,
+    (() => { const y = initialContext?.year || edu.year; return y ? (/^\d+$/.test(String(y)) ? `Year ${y}` : y) : null; })(),
     (() => { const v = initialContext?.cgpa || edu.cgpa; return v && parseFloat(v) > 0 ? `CGPA ${v}` : null; })(),
     goalText ? `Goal: ${goalText}` : null,
   ]
@@ -137,7 +162,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-snug" style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
-            {activeQuery}
+            {displayHeading(activeQuery)}
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
             Context: {contextLine}
