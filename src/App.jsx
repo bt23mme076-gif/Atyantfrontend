@@ -1824,7 +1824,10 @@ export default function App() {
         </div>
 
         {/* ── Main ── */}
-        <div style={{ position: "relative", flex: 1, overflow: activePage === "ask" ? "visible" : "hidden", height: activePage === "ask" ? "auto" : "100dvh", minHeight: activePage === "ask" ? "100dvh" : undefined, display: "flex", flexDirection: "column" }}>
+        {/* minWidth 0: a flex child defaults to its content's width, so one wide
+            row (the signed-in header on a 360px phone) pushed the whole page
+            sideways. */}
+        <div style={{ position: "relative", flex: 1, minWidth: 0, overflow: activePage === "ask" ? "visible" : "hidden", height: activePage === "ask" ? "auto" : "100dvh", minHeight: activePage === "ask" ? "100dvh" : undefined, display: "flex", flexDirection: "column" }}>
           <div style={{ position: "relative", zIndex: 1, height: 57, display: "flex", justifyContent: "space-between", alignItems: "center", padding: isMobile ? "0 16px" : "0 24px", background: "transparent", flexShrink: 0 }}>
             {isMobile ? (
               <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"
@@ -1836,7 +1839,7 @@ export default function App() {
                  place ChatGPT keeps its title when its own rail is collapsed. */
               <span style={{ fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.01em", color: C.text, lineHeight: 1, fontFamily: "'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
             ) : <div />}
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, minWidth: 0 }}>
               <button onClick={() => setPlatformFeedback(true)} aria-label="Give feedback" title="Give feedback"
                 style={{ height: 30, display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "0 7px" : "0 10px", borderRadius: 7, border: `1px solid ${C.cardBorder}`, background: "transparent", color: C.textSub, cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, fontFamily: "inherit" }}
                 onMouseEnter={e => { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; }}
@@ -1861,11 +1864,13 @@ export default function App() {
                       <PlanBadge user={user} size="md" />
                       {!isMobile && planExpiryText(user) && <span style={{ color: C.textSub, fontWeight: 500 }}>until {planExpiryText(user)}</span>}
                     </button>
-                  ) : (
+                  ) : !isMobile && (
                     <button onClick={goToFree}
                       style={{ background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: C.accentText, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Free Plan</button>
                   )}
-                  {userPlan !== "pro" && (
+                  {/* On phones the plan badge already opens the plans page, so
+                      paid users get the badge alone — two buttons didn't fit. */}
+                  {userPlan !== "pro" && !(isMobile && userPlan) && (
                     <button onClick={goToUpgrade} data-tour="upgrade"
                       style={{ background: C.accent, border: `1px solid ${C.accent}`, borderRadius: 7, padding: "5px 12px", color: "#fff", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>{userPlan ? "Go Pro" : "Upgrade"}</button>
                   )}

@@ -157,8 +157,10 @@ function CompanyMark({ name, size = 44 }) {
 
 function Tag({ children, color, bg, border }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".74rem", fontWeight: 500, color: color || C.textSub, background: bg || "transparent", border: `1px solid ${border || C.cardBorder}`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>
-      {children}
+    // maxWidth + ellipsis: a long department name ("… Support & Services - EMEA")
+    // ran out of the card on phones.
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".74rem", fontWeight: 500, color: color || C.textSub, background: bg || "transparent", border: `1px solid ${border || C.cardBorder}`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap", maxWidth: "100%", minWidth: 0 }}>
+      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{children}</span>
     </span>
   );
 }
