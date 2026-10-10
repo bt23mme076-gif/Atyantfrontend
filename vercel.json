@@ -23,6 +23,18 @@
       "destination": "https://atyant.vercel.app/:file"
     },
     {
+      "source": "/:page(jobs|mock-interview|mentor-onboard)",
+      "destination": "/:page/index.html"
+    },
+    {
+      "source": "/guides",
+      "destination": "/guides/index.html"
+    },
+    {
+      "source": "/guides/:slug",
+      "destination": "/guides/:slug/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

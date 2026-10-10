@@ -1,5 +1,5 @@
 # Atyant — https://atyant.in
-# Indexable: homepage, blog, mentor, answers, colleges, paths, guides
+# Indexable: /, /jobs, /mock-interview, /mentor-onboard (see src/seo/routes.js), /guides/*, /company
 # Blocked: app shell, auth, booking, dashboard, internal APIs
 
 User-agent: Googlebot
@@ -29,4 +29,3 @@ Disallow: /profile/edit
 Disallow: /settings
 
 Sitemap: https://atyant.in/sitemap.xml
-Sitemap: https://atyant.in/blog/sitemap.xml

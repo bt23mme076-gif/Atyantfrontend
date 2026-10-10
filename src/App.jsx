@@ -8,7 +8,7 @@ import {
   Activity, IndianRupee, CalendarClock, UserRound,
   GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, ArrowLeft,
   Eye, EyeOff, PanelLeftClose, PanelLeftOpen,
-  Headphones, FileText, CheckCircle2, AlertTriangle, Mic, ClipboardList, ChevronDown, HelpCircle, RotateCw, Lightbulb,
+  Headphones, FileText, CheckCircle2, AlertTriangle, Mic, ClipboardList, ChevronDown, HelpCircle, RotateCw, Lightbulb, BookOpen,
 } from "lucide-react";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -28,6 +28,7 @@ const JobsPage = lazy(() => import("./pages/JobsPage"));
 const MockInterviewPage = lazy(() => import("./pages/MockInterviewPage"));
 import Avatar from "./components/Avatar";
 import SEOHead, { VIEW_SEO } from "./components/SEOHead";
+import { PAGE_TO_PATH, pageForPath } from "./seo/routes";
 import PageHeader from "./components/ui/PageHeader";
 import PlanBadge from "./components/ui/PlanBadge";
 import { activePlan, PLAN_NAME, planExpiryText } from "./lib/plan";
@@ -1257,7 +1258,7 @@ export default function App() {
       const mentorIntent = sessionStorage.getItem("mentor_intent");
       if (mentorIntent) { sessionStorage.removeItem("mentor_intent"); return "mentor-onboard"; }
     }
-    return "ask";
+    return pageForPath(window.location.pathname) || "ask";
   });
   const [prevPage, setPrevPage] = useState("ask");  // page to return to from Upgrade
   const [showAuth, setShowAuth] = useState(false);
@@ -1314,7 +1315,8 @@ export default function App() {
   // ── Browser / phone back-button support ──────────────────────────────────────
   // The app navigates by `activePage` state rather than routes, so without this the
   // browser back button would exit the site. We mirror each in-app navigation into
-  // the history stack and restore the page on popstate.
+  // the history stack and restore the page on popstate. Public views also get
+  // their real URL (src/seo/routes.js); private views keep the current URL.
   const fromPopRef = useRef(false);
   useEffect(() => {
     if (!window.history.state || !window.history.state.page) {
@@ -1322,7 +1324,7 @@ export default function App() {
     }
     const onPop = (e) => {
       fromPopRef.current = true;
-      setActivePage((e.state && e.state.page) || "ask");
+      setActivePage((e.state && e.state.page) || pageForPath(window.location.pathname) || "ask");
       if (isMobile) setSidebarOpen(false);
     };
     window.addEventListener("popstate", onPop);
@@ -1332,7 +1334,7 @@ export default function App() {
   useEffect(() => {
     if (fromPopRef.current) { fromPopRef.current = false; return; }   // don't re-push on a back/forward
     if (!window.history.state || window.history.state.page !== activePage) {
-      window.history.pushState({ page: activePage }, "");
+      window.history.pushState({ page: activePage }, "", PAGE_TO_PATH[activePage]);
     }
   }, [activePage]);
   const [clarityQuery, setClarityQuery] = useState("");
@@ -1496,6 +1498,8 @@ export default function App() {
     { id: "saved", Icon: Bookmark, label: "Saved Answers" },
     ...(!isMentor ? [{ id: "jobs", Icon: Briefcase, label: "Find Jobs" }] : []),
     ...(!isMentor ? [{ id: "mock-interview", Icon: Mic, label: "Mock Interview" }] : []),
+    // Static pages outside the SPA (scripts/render-guides.js), so a real link, not a view.
+    { id: "guides", Icon: BookOpen, label: "Career Guides", href: "/guides" },
 
     ...(isMentor
       ? [{ id: "track", Icon: BarChart3, label: "Mentor Dashboard" }]
@@ -1566,11 +1570,13 @@ export default function App() {
 
   const NavItem = ({ item }) => {
     const isActive = activePage === item.id;
+    // Items with an href render as a real <a> so the link is crawlable.
+    const Tag = item.href ? "a" : "button";
     return (
-      <button onClick={() => { setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
+      <Tag href={item.href} onClick={() => { if (!item.href) setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
         data-tour={`nav-${item.id}`}
         title={collapsed ? item.label : undefined}
-        style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius: 10, border: "none", background: isActive ? C.accentSoft : "transparent", color: isActive ? C.text : C.textSub, cursor: "pointer", fontFamily: "inherit", fontSize: "0.9rem", lineHeight: 1.2, textAlign: "left", transition: "background-color 0.2s ease, color 0.2s ease", fontWeight: 500 }}
+        style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius: 10, border: "none", background: isActive ? C.accentSoft : "transparent", color: isActive ? C.text : C.textSub, cursor: "pointer", fontFamily: "inherit", fontSize: "0.9rem", lineHeight: 1.2, textAlign: "left", textDecoration: "none", boxSizing: "border-box", transition: "background-color 0.2s ease, color 0.2s ease", fontWeight: 500 }}
         onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
         onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
         {/* Left accent bar — active only */}
@@ -1585,7 +1591,7 @@ export default function App() {
         {!collapsed && item.id === "sessions" && hasJoinableSession && (
           <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#F04438", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>LIVE</span>
         )}
-      </button>
+      </Tag>
     );
   };
 
