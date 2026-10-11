@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Search, UserPlus, Copy, Check, Gift, Globe } from "lucide-react";
+import { Search, UserPlus, Copy, Check, Gift, Globe, ExternalLink } from "lucide-react";
 import { inviteAPI, eventsAPI } from "../../api";
 
 // Live "what we're doing" lines while the web search runs (~3–8s).
@@ -90,7 +90,8 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
   const [state, setState] = useState("idle"); // idle | loading | done | error
   const [seniors, setSeniors] = useState([]);
   const [invited, setInvited] = useState({}); // linkedinUrl -> { message, link }
-  const [copied, setCopied] = useState(null);
+  const [copied, setCopied] = useState(null); // `${linkedinUrl}:${variant}` currently on the clipboard
+  const [variant, setVariant] = useState({}); // linkedinUrl -> "message" | "note"
   const [error, setError] = useState("");
 
   const search = async () => {
@@ -111,15 +112,22 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
       const res = await inviteAPI.create({ sessionId, senior: s });
       setInvited(prev => ({ ...prev, [s.linkedinUrl]: res }));
       eventsAPI.track("invite_sent_click", { code: res.code });
-      try { await navigator.clipboard.writeText(res.message); setCopied(s.linkedinUrl); } catch { /* manual copy below */ }
-      window.open(res.linkedinUrl, "_blank", "noopener");
+      // Copy now, but don't jump to LinkedIn yet — the student needs to see the
+      // message is on their clipboard and what to do with it first.
+      copy(s.linkedinUrl, "message", res.message);
     } catch (e) {
       setError(e.message || "Could not create invite");
     }
   };
 
-  const copy = async (url, text) => {
-    try { await navigator.clipboard.writeText(text); setCopied(url); } catch { /* ignore */ }
+  const copy = async (url, kind, text) => {
+    try { await navigator.clipboard.writeText(text); setCopied(`${url}:${kind}`); } catch { setCopied(null); }
+  };
+
+  // Switching the tab also copies it, so the clipboard always matches what's on screen.
+  const pick = (url, kind, inv) => {
+    setVariant(prev => ({ ...prev, [url]: kind }));
+    copy(url, kind, kind === "note" ? inv.note : inv.message);
   };
 
   const card = { border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", borderRadius: 12, padding: "12px 14px" };
@@ -152,6 +160,9 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {seniors.map((s, idx) => {
           const inv = invited[s.linkedinUrl];
+          const kind = inv?.note && variant[s.linkedinUrl] === "note" ? "note" : "message";
+          const text = kind === "note" ? inv?.note : inv?.message;
+          const isCopied = copied === `${s.linkedinUrl}:${kind}`;
           return (
             <motion.div
               key={s.linkedinUrl}
@@ -176,17 +187,60 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
                   <UserPlus size={14} /> Invite
                 </button>
               ) : (
-                <div style={{ marginTop: 10 }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--c-textMuted)", marginBottom: 6 }}>
-                    LinkedIn opened — paste this message (copied) in a connection request or DM:
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.25 }}
+                  style={{ marginTop: 10, overflow: "hidden" }}
+                >
+                  {inv.note && (
+                    <div style={{ display: "flex", gap: 4, padding: 3, background: "var(--c-active)", borderRadius: 9, marginBottom: 8 }}>
+                      {[["message", "Message (DM)"], ["note", "Connection note"]].map(([k, label]) => (
+                        <button
+                          key={k}
+                          onClick={() => pick(s.linkedinUrl, k, inv)}
+                          style={{ flex: 1, border: "none", borderRadius: 7, padding: "6px 8px", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", background: kind === k ? "var(--c-card)" : "transparent", color: kind === k ? "var(--c-text)" : "var(--c-textMuted)" }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {isCopied ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 600, color: "#34D399", background: "#34D39914", borderRadius: 8, padding: "7px 10px" }}>
+                      <Check size={14} /> {kind === "note" ? "Short note" : "Invite message"} copied to your clipboard
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--c-text)" }}>
+                      Copy the {kind === "note" ? "note" : "message"} below first
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: "0.78rem", color: "var(--c-textSub)", background: "var(--c-active)", borderRadius: 8, padding: 10, lineHeight: 1.5, marginTop: 8 }}>
+                    {text}
+                    {kind === "note" && (
+                      <div style={{ fontSize: "0.68rem", color: "var(--c-textMuted)", marginTop: 6, textAlign: "right" }}>{text.length}/200</div>
+                    )}
                   </div>
-                  <div style={{ fontSize: "0.78rem", color: "var(--c-textSub)", background: "var(--c-active)", borderRadius: 8, padding: 10, lineHeight: 1.5 }}>
-                    {inv.message}
+
+                  <ol style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: "0.75rem", color: "var(--c-textSub)", lineHeight: 1.7 }}>
+                    <li>Open {s.name.split(" ")[0]}'s LinkedIn</li>
+                    {kind === "note"
+                      ? <li>Click <b>Connect → Add a note</b></li>
+                      : <li>Click <b>Message</b> — not connected? Switch to <b>Connection note</b></li>}
+                    <li>Paste with <b>Ctrl+V</b> and send</li>
+                  </ol>
+
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <button onClick={() => window.open(inv.linkedinUrl, "_blank", "noopener")} style={btn}>
+                      <ExternalLink size={14} /> Open LinkedIn
+                    </button>
+                    <button onClick={() => copy(s.linkedinUrl, kind, text)} style={{ ...btn, background: "var(--c-active)", color: "var(--c-text)" }}>
+                      {isCopied ? <Check size={14} /> : <Copy size={14} />} {isCopied ? "Copied" : `Copy ${kind === "note" ? "note" : "message"}`}
+                    </button>
                   </div>
-                  <button onClick={() => copy(s.linkedinUrl, inv.message)} style={{ ...btn, marginTop: 8, background: "var(--c-active)", color: "var(--c-text)" }}>
-                    {copied === s.linkedinUrl ? <Check size={14} /> : <Copy size={14} />} {copied === s.linkedinUrl ? "Copied" : "Copy message"}
-                  </button>
-                </div>
+                </motion.div>
               )}
             </motion.div>
           );
