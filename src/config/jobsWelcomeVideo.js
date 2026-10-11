@@ -1,8 +1,9 @@
 // First-visit welcome video on Find Jobs (see components/VideoBubble.jsx).
-// Drop the recorded clips in public/videos/jobs/ with these names. Until the
-// loop clip exists, the bubble doesn't render at all.
+// Clips live in public/videos/jobs/. If the
+// loop clip is missing, the bubble hides itself.
 export const JOBS_WELCOME_VIDEO = {
-  storageKey: "atyant_jobs_video_seen_v1",
+  storageKey: "atyant_jobs_video_dismissed", // sessionStorage: bubble ✕ hides it for this session only
+  ratio: 9 / 16, // clips are portrait; the player also reads it from the video itself
   loop: "/videos/jobs/loop.mp4",   // 3–4s muted wave, plays in the circle
   intro: "/videos/jobs/intro.mp4", // plays when the bubble is opened
   chapters: [

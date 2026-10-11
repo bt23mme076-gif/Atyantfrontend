@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Raw founder video recordings (large, local only)
+raw-videos/

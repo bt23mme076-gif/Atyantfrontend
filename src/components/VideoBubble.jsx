@@ -4,8 +4,9 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, Play, RotateCw, Volume2, VolumeX, Menu } from "lucide-react";
 import { eventsAPI } from "../api";
 
-const seen = (key) => { try { return localStorage.getItem(key) === "1"; } catch { return false; } };
-const markSeen = (key) => { try { localStorage.setItem(key, "1"); } catch { /* ignore */ } };
+// The bubble is always offered; its ✕ only hides it for the rest of this browser session.
+const dismissed = (key) => { try { return sessionStorage.getItem(key) === "1"; } catch { return false; } };
+const markDismissed = (key) => { try { sessionStorage.setItem(key, "1"); } catch { /* ignore */ } };
 const fmt = (s) => (Number.isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
 
 const SPEEDS = [1, 1.5, 2];
@@ -14,16 +15,17 @@ const IDLE_MS = 2500;
 const iconBtn = { width: 36, height: 36, borderRadius: 10, border: "none", background: "transparent", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 };
 
 // YC-style founder video: a muted looping circle in the corner that expands into
-// a player with question chips, each playing its own clip. Shown once per browser.
+// a player with question chips, each playing its own clip.
 export default function VideoBubble({ config, onAsk }) {
   const reduce = useReducedMotion();
-  const [visible, setVisible] = useState(() => !seen(config.storageKey));
+  const [visible, setVisible] = useState(() => !dismissed(config.storageKey));
   const [expanded, setExpanded] = useState(false);
   const [clip, setClip] = useState(null); // null = intro, else chapter id
   const [ended, setEnded] = useState(false);
   const [paused, setPaused] = useState(false);
   const [take, setTake] = useState(0); // bumps on every chip click so re-picking a clip replays it
   const [time, setTime] = useState({ t: 0, d: 0 });
+  const [ratio, setRatio] = useState(config.ratio || 16 / 9); // width/height of the clips; panel follows it
   const [muted, setMuted] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,6 +35,14 @@ export default function VideoBubble({ config, onAsk }) {
   const playerRef = useRef(null);
   const loopRef = useRef(null);
   const idleTimer = useRef(null);
+  // Phones: 16:9 at ~350px wide leaves no room for the chips, so crop taller (face stays centred).
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 600px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 600px)");
+    const onChange = () => setNarrow(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   // Clips not uploaded yet → hide. Checks error state too, since the load error
   // can fire before React's onError listener is attached.
@@ -53,15 +63,22 @@ export default function VideoBubble({ config, onAsk }) {
     setClip(null);
     setTake(n => n + 1);
     setEnded(false);
-    markSeen(config.storageKey);
     eventsAPI.track("jobs_video_open", {});
   };
 
-  const close = () => {
-    setVisible(false);
+  // Player ✕ / Esc: shrink back to the bubble.
+  const collapse = () => {
     setExpanded(false);
-    markSeen(config.storageKey);
-    eventsAPI.track("jobs_video_close", { clip: clip || "intro", expanded });
+    setAsking(false);
+    setMenuOpen(false);
+    eventsAPI.track("jobs_video_close", { clip: clip || "intro", expanded: true });
+  };
+
+  // Bubble ✕: hide until the tab is closed.
+  const dismiss = () => {
+    setVisible(false);
+    markDismissed(config.storageKey);
+    eventsAPI.track("jobs_video_close", { clip: "bubble", expanded: false });
   };
 
   const play = (id) => {
@@ -108,9 +125,9 @@ export default function VideoBubble({ config, onAsk }) {
     const text = question.trim();
     if (!text) return;
     eventsAPI.track("jobs_video_ask_submit", { clip: clip || "intro" });
-    setVisible(false);
     setExpanded(false);
-    markSeen(config.storageKey);
+    setAsking(false);
+    setQuestion("");
     onAsk(text);
   };
 
@@ -146,7 +163,7 @@ export default function VideoBubble({ config, onAsk }) {
   useEffect(() => {
     if (!expanded) return;
     const onKey = (e) => {
-      if (e.key === "Escape") { if (asking) setAsking(false); else close(); }
+      if (e.key === "Escape") { if (asking) setAsking(false); else collapse(); }
       if (e.key === " " && !asking) { e.preventDefault(); togglePause(); }
     };
     window.addEventListener("keydown", onKey);
@@ -166,6 +183,8 @@ export default function VideoBubble({ config, onAsk }) {
   );
 
   const showControls = !idle || paused || ended || menuOpen;
+  const portrait = ratio < 1;
+  const compact = narrow || portrait; // tighter chips when the panel is slim
   const pct = time.d ? (time.t / time.d) * 100 : 0;
 
   return createPortal(
@@ -177,14 +196,14 @@ export default function VideoBubble({ config, onAsk }) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.6 }}
           transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.6 }}
-          style={{ position: "fixed", right: 20, bottom: "calc(20px + env(safe-area-inset-bottom))", zIndex: 900, width: "min(132px, 28vw)", aspectRatio: "1" }}
+          style={{ position: "fixed", right: "clamp(12px, 2vw, 24px)", bottom: "calc(clamp(12px, 2vw, 24px) + env(safe-area-inset-bottom))", zIndex: 900, width: "min(180px, 34vw)", aspectRatio: "1" }}
         >
           <motion.button
             onClick={open}
             aria-label="Play welcome video from the founder"
             whileHover={reduce ? undefined : { scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            style={{ width: "100%", height: "100%", padding: 0, borderRadius: "50%", overflow: "hidden", border: "3px solid #7567C9", boxShadow: "0 10px 30px rgba(0,0,0,0.35)", cursor: "pointer", background: "#111", display: "block" }}
+            style={{ width: "100%", height: "100%", padding: 0, borderRadius: "50%", overflow: "hidden", border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", cursor: "pointer", background: "#111", display: "block" }}
           >
             <video
               ref={loopRef}
@@ -197,32 +216,30 @@ export default function VideoBubble({ config, onAsk }) {
               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
           </motion.button>
-          {closeBtn(close, 26, { top: 0, right: 0 })}
+          {closeBtn(dismiss, 26, { top: 0, right: 0 })}
         </motion.div>
       ) : (
         <motion.div
           key="player"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={close}
-          style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          // Grows out of the bubble's corner and floats over the page — no backdrop,
+          // so the jobs list stays visible and usable, like YC's.
+          initial={{ opacity: 0, scale: reduce ? 1 : 0.3 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: reduce ? 1 : 0.3 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          style={{ position: "fixed", right: "clamp(12px, 2vw, 24px)", bottom: "calc(clamp(12px, 2vw, 24px) + env(safe-area-inset-bottom))", zIndex: 1000, width: portrait ? `min(400px, calc((100vh - 48px) * ${ratio.toFixed(4)}), calc(100vw - 24px))` : "min(800px, calc(100vw - 24px))", transformOrigin: "bottom right" }}
         >
-          <motion.div
-            initial={{ scale: reduce ? 1 : 0.92, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.25 }}
-            onClick={(e) => e.stopPropagation()}
+          <div
             role="dialog"
             aria-label="Welcome video"
-            style={{ position: "relative", width: "100%", maxWidth: 800 }}
+            style={{ position: "relative", width: "100%" }}
           >
-            {closeBtn(close, 34, { top: -14, right: -14 })}
+            {closeBtn(collapse, 34, { top: -14, right: -14 })}
 
             <div
               onMouseMove={wake}
               onTouchStart={wake}
-              style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", maxHeight: "85vh", borderRadius: 18, overflow: "hidden", background: "#000", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: showControls ? "default" : "none" }}
+              style={{ position: "relative", width: "100%", aspectRatio: portrait ? String(ratio) : narrow ? "4 / 5" : "16 / 9", maxHeight: "calc(100vh - 48px)", borderRadius: 18, overflow: "hidden", background: "#000", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", cursor: showControls ? "default" : "none" }}
             >
               <video
                 ref={playerRef}
@@ -230,7 +247,11 @@ export default function VideoBubble({ config, onAsk }) {
                 src={src}
                 playsInline
                 onClick={togglePause}
-                onLoadedMetadata={(e) => setTime({ t: 0, d: e.currentTarget.duration })}
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget;
+                  setTime({ t: 0, d: v.duration });
+                  if (v.videoWidth && v.videoHeight) setRatio(v.videoWidth / v.videoHeight);
+                }}
                 onTimeUpdate={(e) => setTime({ t: e.currentTarget.currentTime, d: e.currentTarget.duration })}
                 onEnded={() => setEnded(true)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", cursor: "pointer" }}
@@ -373,7 +394,7 @@ export default function VideoBubble({ config, onAsk }) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 + i * 0.07 }}
                       onClick={() => play(c.id)}
-                      style={{ flex: "1 1 180px", maxWidth: 250, display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "10px 14px", borderRadius: 999, border: clip === c.id ? "1px solid #fff" : "1px solid rgba(255,255,255,0.18)", background: "rgba(20,20,24,0.72)", backdropFilter: "blur(6px)", color: "#fff", fontSize: "0.88rem", fontWeight: 600, lineHeight: 1.25, cursor: "pointer" }}
+                      style={{ flex: "1 1 180px", maxWidth: 250, display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: compact ? "7px 12px" : "10px 14px", borderRadius: 999, border: clip === c.id ? "1px solid #fff" : "1px solid rgba(255,255,255,0.18)", background: "rgba(20,20,24,0.72)", backdropFilter: "blur(6px)", color: "#fff", fontSize: compact ? "0.8rem" : "0.88rem", fontWeight: 600, lineHeight: 1.25, cursor: "pointer" }}
                     >
                       <span style={{ flexShrink: 0, width: 24, height: 24, borderRadius: "50%", background: "#fff", color: "#111", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {String.fromCharCode(65 + i)}
@@ -384,7 +405,7 @@ export default function VideoBubble({ config, onAsk }) {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>,
