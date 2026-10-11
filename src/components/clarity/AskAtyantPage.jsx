@@ -1382,7 +1382,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           }}
                         />
                       )}
-                      {!isUser && m.canInvite && !m.mentors?.length && (
+                      {!isUser && m.canInvite && (
                         <InviteSeniors
                           sessionId={sessionIdRef.current}
                           signedIn={!!localStorage.getItem("atyant_token")}
