@@ -1133,46 +1133,6 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
             </div>
           </div>
 
-          {/* Quick-action button: directly say "Hello" */}
-          {query.trim().length === 0 && (
-            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: "0.5rem" }}>
-              <button
-                type="button"
-                onClick={() => handleSend("Hello")}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  background: C.card,
-                  border: `1px solid ${C.cardBorder}`,
-                  borderRadius: 999,
-                  padding: "7px 16px",
-                  fontSize: "0.84rem",
-                  fontWeight: 500,
-                  color: C.text,
-                  cursor: "pointer",
-                  transition: "all 0.18s ease",
-                  boxShadow: "0 1px 3px rgba(20,16,40,0.04)",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = C.accent;
-                  e.currentTarget.style.background = C.cardHover;
-                  e.currentTarget.style.color = C.accentText || C.text;
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = C.cardBorder;
-                  e.currentTarget.style.background = C.card;
-                  e.currentTarget.style.color = C.text;
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                <span>👋</span>
-                <span>Click to say <strong>"Hello"</strong></span>
-              </button>
-            </div>
-          )}
-
           {/* Context Panel */}
           {showContext && (
             <div style={{
