@@ -1385,6 +1385,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                       {!isUser && m.canInvite && (
                         <InviteSeniors
                           sessionId={sessionIdRef.current}
+                          college={knownContextRef.current.college}
+                          target={knownContextRef.current.target}
                           signedIn={!!localStorage.getItem("atyant_token")}
                           onNeedAuth={() => window.openAuth?.()}
                         />
