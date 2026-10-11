@@ -1319,11 +1319,17 @@ export default function App() {
   // Invited senior is signed in and chose to join: attach the invite, then onboard as mentor.
   useEffect(() => {
     if (!inviteCode || !inviteJoining || !user) return;
-    inviteAPI.claim(inviteCode).catch(() => { }).finally(() => {
+    const finish = () => {
       try { sessionStorage.removeItem("atyant_invite_code"); } catch { /* ignore */ }
       setInviteCode(null);
       setInviteJoining(false);
       setActivePage("mentor-onboard");
+    };
+    inviteAPI.claim(inviteCode).then(finish).catch((err) => {
+      // 409 = already claimed/invalid: retrying can't help. Anything else is
+      // transient — keep the code so the landing card reappears for a retry.
+      if (err?.status === 409) return finish();
+      setInviteJoining(false);
     });
   }, [inviteCode, inviteJoining, user]);
 
