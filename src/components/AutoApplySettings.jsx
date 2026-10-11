@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { jobsAPI } from "../api";
-import { canAutoApply } from "../lib/plan";
+import { canAutoApply, activePlan, AUTO_APPLY_DAILY } from "../lib/plan";
 
 // Theme palette — maps to CSS vars defined in index.css (light + dark).
 const C = {
@@ -81,6 +81,12 @@ export default function AutoApplySettings({ onUpgrade }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+
+  const [usage, setUsage] = useState(null); // { limit, used, remaining, resetsAt }
+  useEffect(() => {
+    if (!paid) return;
+    jobsAPI.autoApplyUsage().then(setUsage).catch(() => {});
+  }, [paid, autoApply.enabled]);
 
   const [applications, setApplications] = useState(null); // null = not loaded yet
   const [loadingApps, setLoadingApps] = useState(false);
@@ -191,7 +197,7 @@ export default function AutoApplySettings({ onUpgrade }) {
         </div>
         <div style={{ fontSize: ".8rem", color: C.textSub, margin: "8px 0 12px", lineHeight: 1.5 }}>
           We fill in and submit applications for Greenhouse and Lever jobs that match your resume, so you don't have to.
-          Auto-apply comes with the Clarity and Pro plans.
+          Clarity applies to up to {AUTO_APPLY_DAILY.clarity} jobs a day; Pro to {AUTO_APPLY_DAILY.pro}.
         </div>
         <button onClick={() => onUpgrade?.()}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".8rem", fontWeight: 700, color: "#fff", background: "#B45309", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
@@ -242,6 +248,22 @@ export default function AutoApplySettings({ onUpgrade }) {
         Automatically applies to Greenhouse &amp; Lever jobs that match your profile above your score threshold.
         Forms with custom screening questions are left for you to finish — never auto-answered.
       </div>
+
+      {paid && usage?.limit > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", fontSize: ".74rem", color: C.textSub, marginBottom: 5 }}>
+            <span><b style={{ color: C.text }}>{usage.used} of {usage.limit}</b> auto-applies used today · resets at midnight</span>
+            {activePlan(user) === "clarity" && (
+              <button onClick={() => onUpgrade?.()} style={{ fontSize: ".72rem", fontWeight: 700, color: C.accentText, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
+                Need more? Pro gives {AUTO_APPLY_DAILY.pro}/day
+              </button>
+            )}
+          </div>
+          <div style={{ height: 5, borderRadius: 4, background: C.active, overflow: "hidden" }}>
+            <div style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, height: "100%", background: usage.remaining ? C.accent : C.orange }} />
+          </div>
+        </div>
+      )}
 
       {!paid && autoApply.enabled && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "rgba(217,119,6,0.10)", border: "1px solid rgba(217,119,6,0.35)", borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontSize: ".76rem", color: "#C2620A" }}>

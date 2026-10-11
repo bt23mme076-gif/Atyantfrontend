@@ -51,9 +51,8 @@ export async function purchaseSubscription({
     theme: { color: "#7567C9" },
     handler: async (resp) => {
       try {
+        // Plan + billing come from the server-side order, not from here.
         const result = await subscriptionAPI.verify({
-          plan,
-          billing,
           razorpay_order_id: resp.razorpay_order_id,
           razorpay_payment_id: resp.razorpay_payment_id,
           razorpay_signature: resp.razorpay_signature,

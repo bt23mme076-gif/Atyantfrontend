@@ -448,7 +448,8 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
     } catch (err) {
       // Plan lapsed since the page loaded — the server said no; send them to pricing.
       if (err.data?.code === "PLAN_REQUIRED") { onNavigate?.("upgrade"); return; }
-      setAutoApplyResult({ status: "failed", reason: err.message || "Auto-apply failed", unansweredQuestions: [] });
+      // Daily quota used up — show the server's message (it names Pro's higher limit for Clarity users).
+      setAutoApplyResult({ status: err.data?.code === "DAILY_LIMIT" ? "needs_manual_action" : "failed", reason: err.message || "Auto-apply failed", unansweredQuestions: [] });
     } finally {
       setAutoApplying(false);
     }

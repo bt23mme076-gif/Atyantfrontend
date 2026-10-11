@@ -330,6 +330,8 @@ export const subscriptionAPI = {
   status: () => api.get('/api/subscriptions/status'),
   // Cancels active subscription
   cancel: () => api.post('/api/subscriptions/cancel'),
+  // Public: the exact prices /create charges + per-plan auto-apply/day
+  pricing: () => api.get('/api/subscriptions/pricing'),
 };
 
 // Platform service catalog (labels + fixed prices set by Atyant)
@@ -405,6 +407,8 @@ export const jobsAPI = {
   // phone without re-triggering the consent check; { enabled: false } to
   // disable instantly, no confirm needed.
   updateAutoApplySettings: (payload) => api.put('/api/jobs/auto-apply/settings', payload),
+  // Today's quota: { limit, used, remaining, resetsAt }
+  autoApplyUsage: () => api.get('/api/jobs/auto-apply/usage'),
 };
 
 // Mock interview — JD + resume → prep (parse + plan) → interview → evaluation → report.

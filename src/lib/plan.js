@@ -24,6 +24,10 @@ export function activePlan(user) {
 
 export const PLAN_NAME = { clarity: "Clarity", pro: "Pro" };
 
+// Auto-applies per day — mirrors backend services/autoapply/limits.js (the
+// pricing endpoint returns the live values; these are the first-paint fallback).
+export const AUTO_APPLY_DAILY = { clarity: 10, pro: 25 };
+
 // "27 Oct 2026", or null when there's no expiry on record.
 export function planExpiryText(user) {
   if (!user?.subscriptionExpiry) return null;

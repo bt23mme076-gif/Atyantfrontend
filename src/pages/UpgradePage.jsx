@@ -4,6 +4,8 @@ import { purchaseSubscription } from "../lib/subscriptionCheckout";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/ui/PageHeader";
+import { subscriptionAPI } from "../api";
+import { activePlan, planExpiryText, AUTO_APPLY_DAILY } from "../lib/plan";
 
 // Theme-aware palette (maps to CSS vars in index.css for light + dark).
 const T = {
@@ -43,7 +45,7 @@ const STUDENT_PLANS = [
       { text: "Unlimited AnswerCards", green: true },
       { text: "Full senior profiles + journeys", green: true },
       { text: "1 session credit / month (₹299 value)", green: true },
-      { text: "Auto-apply to jobs that match your resume", green: true },
+      { text: "Auto-apply to {clarity} matching jobs a day", green: true },
       { text: "Journey tracker dashboard", green: true },
       { text: "Priority senior matching (4hr response)", green: true },
       { text: "Session notes & recordings", green: true },
@@ -55,6 +57,7 @@ const STUDENT_PLANS = [
     tagline: "Serious placement prep", cta: "Go Pro", ctaStyle: "green",
     features: [
       { text: "Everything in Clarity", green: true },
+      { text: "Auto-apply to {pro} jobs a day, sent first", green: true },
       { text: "3 session credits / month (₹900 value)", green: true },
       { text: "Mock interview prep cards", green: true },
       { text: "Resume review by verified senior", green: true },
@@ -125,6 +128,27 @@ function Feature({ text, green }) {
   );
 }
 
+const FAQ = [
+  {
+    q: "How does auto-apply work?",
+    a: "Turn it on in your profile, then we fill in and submit applications for Greenhouse and Lever jobs that match your resume above your chosen match score. You can also hit Auto-apply on any job card. Forms with extra questions are left for you to finish, never guessed.",
+  },
+  {
+    q: "How many jobs can it apply to?",
+    a: "Clarity: up to {clarity} a day. Pro: up to {pro} a day, and your applications go out first when it's busy. The count resets at midnight (IST). Forms left for you to finish don't use your daily count.",
+  },
+  {
+    q: "When does my plan start and end?",
+    a: "Right after payment. Monthly runs for one month, yearly for one year. Paying again while your plan is active adds the time on top, so you never lose days.",
+  },
+  {
+    q: "Will I be charged automatically?",
+    a: "No. Each payment is one-time through Razorpay (UPI, cards, netbanking). Nothing renews on its own; come back here when you want to extend.",
+  },
+];
+
+const fill = (text, daily) => text.replace("{clarity}", daily.clarity).replace("{pro}", daily.pro);
+
 function SessionPricingNote() {
   return (
     <div style={{
@@ -160,6 +184,17 @@ export default function UpgradePage({ onBack }) {
   const { user, refreshUser } = useAuth();
   const [tab, setTab] = useState("student");
   const [billing, setBilling] = useState("monthly");
+  // Live prices = exactly what /subscriptions/create charges (env-overridable on the server).
+  const [live, setLive] = useState(null);
+  useEffect(() => { subscriptionAPI.pricing().then(setLive).catch(() => {}); }, []);
+  const daily = live?.autoApplyDaily || AUTO_APPLY_DAILY;
+  const current = activePlan(user);
+  const priceFor = (plan) => {
+    const p = live?.pricing?.[plan.key];
+    return { monthly: p?.monthly ?? plan.monthly, yearlyTotal: p?.yearly ?? plan.yearly * 12 };
+  };
+  const clarityPrice = priceFor(STUDENT_PLANS[1]);
+  const yearlySavePct = Math.round((1 - clarityPrice.yearlyTotal / (clarityPrice.monthly * 12)) * 100);
   const btnMonthlyRef = useRef(null);
   const btnYearlyRef  = useRef(null);
   const [sliderStyle, setSliderStyle] = useState({ width: 0, transform: "translateX(0)" });
@@ -230,7 +265,7 @@ export default function UpgradePage({ onBack }) {
                 </button>
                 <button ref={btnYearlyRef} onClick={() => setB("yearly")} style={{ position: "relative", zIndex: 1, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 500, color: billing === "yearly" ? T.text : T.textSub, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
                   Yearly
-                  <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>save 20%</span>
+                  {yearlySavePct > 0 && <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>save {yearlySavePct}%</span>}
                 </button>
               </div>
             </div>
@@ -241,7 +276,10 @@ export default function UpgradePage({ onBack }) {
             {/* Plan cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, alignItems: "stretch" }} className="up-grid-3">
               {STUDENT_PLANS.map((plan) => {
-                const price = billing === "yearly" ? plan.yearly : plan.monthly;
+                const { monthly, yearlyTotal } = priceFor(plan);
+                const price = plan.key === "free" ? 0 : billing === "yearly" ? Math.round(yearlyTotal / 12) : monthly;
+                const isCurrent = current === plan.key;
+                const includedInPro = current === "pro" && plan.key === "clarity";
                 return (
                   <div key={plan.key} style={{
                     background: plan.featured ? T.active : T.card,
@@ -254,11 +292,15 @@ export default function UpgradePage({ onBack }) {
                         {plan.Icon && <plan.Icon size={17} color={T.accentText} strokeWidth={2} />}
                         {plan.name}
                       </div>
-                      {plan.featured && (
+                      {isCurrent ? (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: T.green, padding: "3px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>Your plan</span>
+                      ) : plan.featured && (
                         <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: T.accent, padding: "3px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>Most popular</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 13, color: T.textSub, marginBottom: 18, lineHeight: 1.5 }}>{plan.tagline}</div>
+                    <div style={{ fontSize: 13, color: T.textSub, marginBottom: 18, lineHeight: 1.5 }}>
+                      {isCurrent && planExpiryText(user) ? `Active till ${planExpiryText(user)}` : plan.tagline}
+                    </div>
 
                     {/* Price */}
                     <div style={{ marginBottom: 20 }}>
@@ -270,15 +312,15 @@ export default function UpgradePage({ onBack }) {
                             <span style={{ fontSize: 16, fontWeight: 600, color: T.textSub }}>₹</span>
                             <span style={{ fontFamily: "var(--font-display)", fontSize: 36, color: T.text, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{price}</span>
                             {billing === "yearly" && (
-                              <span style={{ fontSize: 12, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{plan.monthly}</span>
+                              <span style={{ fontSize: 12, color: T.textMuted, textDecoration: "line-through", marginLeft: 6 }}>{monthly}</span>
                             )}
                           </div>
                           <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>
-                            {billing === "yearly" ? "per month, billed yearly" : "per month"}
+                            {billing === "yearly" ? `per month · ₹${yearlyTotal.toLocaleString("en-IN")} billed once a year` : "per month · billed once, no auto-renew"}
                           </div>
-                          {billing === "yearly" && (
+                          {billing === "yearly" && monthly * 12 > yearlyTotal && (
                             <div style={{ fontSize: 11, color: T.green, marginTop: 2, fontWeight: 500 }}>
-                              Save ₹{(plan.monthly - plan.yearly) * 12}/yr
+                              Save ₹{(monthly * 12 - yearlyTotal).toLocaleString("en-IN")}/yr
                             </div>
                           )}
                         </>
@@ -289,11 +331,12 @@ export default function UpgradePage({ onBack }) {
 
                     <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", display: "flex", flexDirection: "column", gap: 9, flex: 1 }}>
                       {plan.features.map((f, i) => (
-                        <Feature key={i} text={f.text} green={f.green} />
+                        <Feature key={i} text={fill(f.text, daily)} green={f.green} />
                       ))}
                     </ul>
 
-                    <button 
+                    <button
+                      disabled={includedInPro || (plan.key === "free" && !!current)}
                       onClick={() => {
                         if (plan.key === "free") {
                           onBack?.();
@@ -311,7 +354,9 @@ export default function UpgradePage({ onBack }) {
                               contact: user?.phone || "",
                             },
                             onSuccess: (subscription) => {
-                              toast.success(`${plan.name} plan activated! ${subscription.credits} session credits added.`);
+                              const until = new Date(subscription.expiry).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                              const name = subscription.plan === "pro" ? "Pro" : "Clarity";
+                              toast.success(`${name} is active till ${until}. Auto-apply: ${daily[subscription.plan]} jobs a day · ${subscription.credits} session credit${subscription.credits === 1 ? "" : "s"} available.`);
                               refreshUser();
                               onBack?.();
                             },
@@ -321,9 +366,13 @@ export default function UpgradePage({ onBack }) {
                           });
                         }
                       }}
-                      style={{ width: "100%", padding: "11px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "filter 0.15s", ...ctaStyle(plan.ctaStyle) }}
-                    > 
-                      {plan.cta}
+                      style={{ width: "100%", padding: "11px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, fontFamily: "inherit", transition: "filter 0.15s", ...ctaStyle(plan.ctaStyle), ...((includedInPro || (plan.key === "free" && current)) ? { cursor: "default", opacity: 0.6 } : { cursor: "pointer" }) }}
+                    >
+                      {includedInPro ? "Included in Pro"
+                        : plan.key === "free" && current ? "Included"
+                        : isCurrent ? `Extend by 1 ${billing === "yearly" ? "year" : "month"}`
+                        : current === "clarity" && plan.key === "pro" ? "Upgrade to Pro"
+                        : plan.cta}
                     </button>
                     
                     </div>
@@ -356,7 +405,7 @@ export default function UpgradePage({ onBack }) {
                     { label: "Resume review",        cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
                     { section: "Reach" },
                     { label: "Senior matching SLA",  cols: ["—", "4 hrs", "Priority"],                types: ["no", "yes", "green"] },
-                    { label: "Auto-apply to jobs",   cols: ["—", "✓", "✓"],                           types: ["no", "yes", "green"] },
+                    { label: "Auto-apply to jobs",   cols: ["—", `${daily.clarity} / day`, `${daily.pro} / day, sent first`], types: ["no", "yes", "green"] },
                     { label: "WhatsApp connect",     cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
                     { label: "Placement report",     cols: ["—", "—", "✓"],                           types: ["no", "no", "green"] },
                   ].map((row, i) => {
@@ -375,6 +424,19 @@ export default function UpgradePage({ onBack }) {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* FAQ */}
+            <div style={{ marginTop: 48 }}>
+              <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "1.3rem", color: T.text, margin: "0 0 14px" }}>Before you pay</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+                {FAQ.map(({ q, a }) => (
+                  <div key={q} style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 12, padding: "16px 18px" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>{q}</div>
+                    <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.55 }}>{fill(a, daily)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
@@ -425,7 +487,7 @@ export default function UpgradePage({ onBack }) {
 
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 48, color: T.textMuted, fontSize: 12.5, lineHeight: 1.8 }}>
-          Prices in INR. Cancel anytime.<br />
+          Prices in INR, paid once through Razorpay. Nothing renews automatically.<br />
           Need help choosing? <span style={{ color: T.accentText, cursor: "pointer" }}>Chat with us</span>
         </div>
       </div>
