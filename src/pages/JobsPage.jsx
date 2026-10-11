@@ -6,6 +6,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { jobsAPI, profileAPI } from "../api";
 import { canAutoApply as planAllowsAutoApply } from "../lib/plan";
+import VideoBubble from "../components/VideoBubble";
+import { JOBS_WELCOME_VIDEO } from "../config/jobsWelcomeVideo";
 
 // Theme palette — maps to CSS vars defined in index.css (light + dark).
 const C = {
@@ -55,6 +57,7 @@ const DATE_OPTIONS = [
   { id: "7d", label: "Past week" },
 ];
 const MI_PREFILL_KEY = "atyant_mi_prefill";   // read by MockInterviewPage's new-interview form
+const ASK_PREFILL_KEY = "atyant_ask_prefill"; // read by AskAtyantPage's composer
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
@@ -986,6 +989,13 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   return (
     <div style={{ padding: "8px 16px 60px" }}>
       <PageStyles />
+      <VideoBubble
+        config={JOBS_WELCOME_VIDEO}
+        onAsk={(text) => {
+          try { sessionStorage.setItem(ASK_PREFILL_KEY, text); } catch { /* ignore */ }
+          onNavigate?.("ask");
+        }}
+      />
 
       {/* ── Hero search ── */}
       <section style={{ maxWidth: 860, margin: "0 auto", padding: narrow ? "12px 0 20px" : "28px 0 28px", textAlign: "center" }}>

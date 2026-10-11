@@ -51,6 +51,7 @@ function mapEngineContext(ec) {
 // Problem-first opener + quick-reply chips. Kept here so they can be re-shown
 // after a refresh (restored messages don't carry the chips from the server).
 const GREETING_OPENER = "What's confusing you right now?";
+const ASK_PREFILL_KEY = "atyant_ask_prefill"; // also written by JobsPage (welcome video)
 const GREETING_CHIPS = [
   { label: "🎯  I want an internship but don't know where to start", value: "I want an internship but I don't know where to start" },
   { label: "🏢  Placement season is coming and I'm not prepared", value: "Placement season is coming and I'm not prepared" },
@@ -456,7 +457,11 @@ function RotatingHeadline({ paused, style }) {
 
 export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview }) {
   const isMobile = useIsMobile();
-  const [query, setQuery] = useState("");
+  // A question typed elsewhere (e.g. the Jobs welcome video) lands in the composer, unsent.
+  const [query, setQuery] = useState(() => {
+    try { return sessionStorage.getItem(ASK_PREFILL_KEY) || ""; } catch { return ""; }
+  });
+  useEffect(() => { try { sessionStorage.removeItem(ASK_PREFILL_KEY); } catch { /* ignore */ } }, []);
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [thinkingLines, setThinkingLines] = useState([]);
