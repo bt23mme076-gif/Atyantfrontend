@@ -581,12 +581,27 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
           {autoApplyResult.unansweredQuestions.map((q) => (
             <div key={q.id || q.label} style={{ marginBottom: 8 }}>
               <label style={{ display: "block", fontSize: ".78rem", color: C.textSub, marginBottom: 4 }}>{q.label}</label>
-              <input
-                className="jb-input"
-                value={answerDrafts[q.label] || ""}
-                onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.label]: e.target.value }))}
-                placeholder="Your answer"
-              />
+              {q.options?.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {q.options.slice(0, 12).map((opt) => {
+                    const active = answerDrafts[q.label] === opt;
+                    return (
+                      <button key={opt} type="button" className="jb-btn"
+                        onClick={() => setAnswerDrafts((prev) => ({ ...prev, [q.label]: opt }))}
+                        style={{ fontSize: ".76rem", fontWeight: 600, padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${active ? C.accent : C.cardBorder}`, background: active ? C.accent : "transparent", color: active ? "#fff" : C.textSub }}>
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <input
+                  className="jb-input"
+                  value={answerDrafts[q.label] || ""}
+                  onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.label]: e.target.value }))}
+                  placeholder={q.type === "checkbox" ? "Type Yes to agree" : "Your answer"}
+                />
+              )}
             </div>
           ))}
           <button onClick={saveAnswersAndRetry} disabled={savingAnswers || autoApplying} className="jb-btn"
