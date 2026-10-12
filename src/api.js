@@ -242,6 +242,10 @@ export const clarityAPI = {
   match: (payload) => api.post('/api/clarity/match', payload),
   communityCount: (college) =>
     api.get(`/api/clarity/community-count?college=${encodeURIComponent(college || '')}`),
+  helpfulCounts: (cardIds) =>
+    api.post('/api/clarity/helpful/counts', { cardIds, visitorId: getVisitorId() }),
+  toggleHelpful: (cardId) =>
+    api.post(`/api/clarity/helpful/${encodeURIComponent(cardId)}`, { visitorId: getVisitorId() }),
 };
 
 // Invite a senior found on the web when no mentor matches (backend routes/inviteRoutes.js).

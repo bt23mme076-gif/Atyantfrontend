@@ -47,6 +47,76 @@ function companyHue(name = "") {
 
 const APPS_PREVIEW = 8;   // rows shown before "Show all"
 
+function FinishPanel({ app, onDone }) {
+  const questions = app.unansweredQuestions || [];
+  const [drafts, setDrafts] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async () => {
+    const answers = questions
+      .map((q) => ({ questionText: q.label, answerText: (drafts[q.label] || "").trim() }))
+      .filter((a) => a.questionText && a.answerText);
+    if (answers.length < questions.filter((q) => q.label).length) { setErr("Answer every question first."); return; }
+    setBusy(true); setErr("");
+    try {
+      await jobsAPI.saveApplicationAnswers(answers);
+      const res = await jobsAPI.autoApplyNow(app.job._id);
+      onDone(res.application);
+    } catch (e) {
+      setErr(e.message || "Auto-apply failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (questions.length === 0) {
+    return (
+      <div style={{ marginTop: 8, fontSize: ".76rem", color: C.textSub }}>
+        {app.reason || "This form needs a manual step."}{" "}
+        <a href={app.job.applyUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.accentText, fontWeight: 700 }}>
+          Open company site <ExternalLink size={11} />
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 10, padding: "12px 14px", borderRadius: 10, background: `${C.orange}0d`, border: `1px solid ${C.orange}44` }}>
+      <div style={{ fontSize: ".76rem", fontWeight: 700, color: C.orange, marginBottom: 8 }}>
+        Answer {questions.length === 1 ? "this question" : `these ${questions.length} questions`} once. We fill the rest and submit for you.
+      </div>
+      {questions.map((q) => (
+        <div key={q.id || q.label} style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: ".76rem", color: C.textSub, marginBottom: 4 }}>{q.label}</div>
+          {q.options?.length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {q.options.slice(0, 12).map((opt) => {
+                const active = drafts[q.label] === opt;
+                return (
+                  <button key={opt} type="button" onClick={() => setDrafts((d) => ({ ...d, [q.label]: opt }))}
+                    style={{ fontSize: ".74rem", fontWeight: 600, padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${active ? C.accent : C.cardBorder}`, background: active ? C.accent : "transparent", color: active ? "#fff" : C.textSub }}>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <input value={drafts[q.label] || ""} onChange={(e) => setDrafts((d) => ({ ...d, [q.label]: e.target.value }))}
+              placeholder={q.type === "checkbox" ? "Type Yes to agree" : "Your answer"}
+              style={{ width: "100%", boxSizing: "border-box", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: "8px 10px", color: C.text, fontSize: ".8rem", fontFamily: "inherit", outline: "none" }} />
+          )}
+        </div>
+      ))}
+      {err && <div style={{ fontSize: ".74rem", color: C.red || "#EF4444", marginBottom: 6 }}>{err}</div>}
+      <button type="button" onClick={submit} disabled={busy}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".78rem", fontWeight: 700, color: "#fff", background: C.accent, border: "none", borderRadius: 8, padding: "7px 14px", cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>
+        {busy ? <Spin size={12} /> : <Check size={12} />} {busy ? "Submitting… (takes ~1 min)" : "Save and submit"}
+      </button>
+    </div>
+  );
+}
+
 function StatusBadge({ status }) {
   const s = STATUS_STYLE[status] || { label: status, color: C.textMuted };
   return (
@@ -91,6 +161,7 @@ export default function AutoApplySettings({ onUpgrade }) {
   const [applications, setApplications] = useState(null); // null = not loaded yet
   const [loadingApps, setLoadingApps] = useState(false);
   const [showAllApps, setShowAllApps] = useState(false);
+  const [finishing, setFinishing] = useState(null); // application _id with its Finish panel open
 
   useEffect(() => {
     setMinMatchScore(autoApply.minMatchScore ?? 70);
@@ -432,7 +503,8 @@ export default function AutoApplySettings({ onUpgrade }) {
               const hue = companyHue(company);
               const needsAction = app.status === "needs_manual_action" && app.job?.applyUrl;
               return (
-                <div key={app._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", border: `1px solid ${C.cardBorder}`, borderRadius: 10, background: C.card }}>
+                <div key={app._id} style={{ padding: "10px 12px", border: `1px solid ${C.cardBorder}`, borderRadius: 10, background: C.card }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   {/* Company tile */}
                   <div aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${hue}1f`, border: `1px solid ${hue}44`, color: hue, fontWeight: 700, fontSize: ".95rem", textTransform: "uppercase" }}>
                     {company[0] || "?"}
@@ -450,12 +522,20 @@ export default function AutoApplySettings({ onUpgrade }) {
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
                     <StatusBadge status={app.status} />
                     {needsAction && (
-                      <a href={app.job.applyUrl} target="_blank" rel="noopener noreferrer" title="Finish this application on the company site"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".72rem", fontWeight: 700, color: C.accentText, textDecoration: "none" }}>
-                        Finish <ExternalLink size={12} />
-                      </a>
+                      <button type="button" onClick={() => setFinishing((id) => (id === app._id ? null : app._id))}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: ".72rem", fontWeight: 700, color: C.accentText, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
+                        {finishing === app._id ? "Close" : "Finish"}
+                      </button>
                     )}
                   </div>
+                </div>
+                {needsAction && finishing === app._id && (
+                  <FinishPanel app={app} onDone={(updated) => {
+                    if (updated) setApplications((list) => list.map((a) => (a._id === app._id ? { ...a, ...updated, job: a.job } : a)));
+                    setFinishing(null);
+                    jobsAPI.autoApplyUsage().then(setUsage).catch(() => {});
+                  }} />
+                )}
                 </div>
               );
             })}

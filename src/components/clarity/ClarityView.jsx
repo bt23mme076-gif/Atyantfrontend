@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, Loader2, Lightbulb, Flag, Video, ChevronLeft, ChevronRight, MapPin, AlertTriangle, ListChecks, Users, Trophy, BookOpen, Target, Wrench, ShieldCheck } from "lucide-react";
+import { Send, CheckCircle, Loader2, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, ShieldCheck, ArrowBigUp, MessageCircle, Share2, Pencil } from "lucide-react";
 import SeniorsPanel from "./SeniorsPanel";
 import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
@@ -31,8 +31,34 @@ const displayHeading = (query) => {
 // from the service catalog on the full Book a Session page.
 const STARTING_PRICE = 49;
 
-export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor, onOpenChat }) {
+// Example question shown when the student hasn't asked one. It models a good
+// question — year, branch, college, role, company are what the matcher uses —
+// and borrows the student's own profile values where we know them.
+const ORDINAL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
+const buildExample = (user, ctx) => {
+  const edu = user?.education?.[0] || {};
+  const y = String(ctx?.year || edu.year || "").match(/^\s*([1-5])\b/);
+  const parts = [
+    { text: "I'm a " },
+    { text: `${y ? ORDINAL[y[1]] : "2nd"}-year`, tag: "Your year" },
+    { text: " " },
+    { text: ctx?.branch || edu.field || "CSE", tag: "Your branch" },
+    { text: " student at " },
+    { text: ctx?.college || edu.institutionName || edu.institution || "VNIT Nagpur", tag: "Your college" },
+    { text: " with no internships. How do I land an " },
+    { text: "SDE internship", tag: "Target role" },
+    { text: " at " },
+    { text: "Amazon", tag: "Target company" },
+    { text: "?" },
+  ];
+  return { parts, query: parts.map((p) => p.text).join("") };
+};
+
+export default function ClarityView({ initialQuery = "", initialContext = null, user, onTalkToMentor, onOpenChat, onAskQuestion }) {
   const isMobile = useIsMobile();
+  // No question handed over → we're showing a built-in example, and must say so.
+  const isExample = !(initialQuery && initialQuery.trim().length > 2);
+  const { parts: exampleParts, query: exampleQuery } = buildExample(user, initialContext);
   const [mentors, setMentors] = useState([]);
   const [answerCards, setAnswerCards] = useState([]);   // scrollable feed
   const [selectedMentor, setSelectedMentor] = useState(null);
@@ -40,6 +66,8 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   const [fetchLoading, setFetchLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [activeQuery, setActiveQuery] = useState(initialQuery);
+  const [activeIdx, setActiveIdx] = useState(0);              // which senior's answer is on screen
+  const [helpful, setHelpful] = useState({ counts: {}, voted: [] });
   const mainScrollRef = useRef(null);
 
   // Fetch on mount / when query changes
@@ -47,7 +75,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     const q =
       initialQuery && initialQuery.trim().length > 2
         ? initialQuery.trim()
-        : "How do I land a strong internship with no prior experience?";
+        : exampleQuery;
     setActiveQuery(q);
     setSelectedMentor(null);
     eventsAPI.track("clarity_opened", {
@@ -61,7 +89,40 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   // from whatever was scrolled before (new query, new card, back to answers).
   useEffect(() => {
     if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0;
-  }, [answerCards, selectedMentor, fetchLoading]);
+  }, [answerCards, selectedMentor, fetchLoading, activeIdx]);
+
+  // Live "Helpful" counts — fetched separately because /match is cached server-side.
+  useEffect(() => {
+    const ids = answerCards.map((c) => c.id).filter(Boolean).map(String);
+    if (!ids.length) return;
+    clarityAPI.helpfulCounts(ids)
+      .then((d) => setHelpful({ counts: d.counts || {}, voted: d.voted || [] }))
+      .catch(() => { });
+  }, [answerCards]);
+
+  const handleHelpful = async (cardId) => {
+    const id = String(cardId || "");
+    if (!id) return;
+    const wasVoted = helpful.voted.includes(id);
+    // Optimistic toggle, reconciled with the server's real count.
+    setHelpful((h) => ({
+      counts: { ...h.counts, [id]: Math.max(0, (h.counts[id] || 0) + (wasVoted ? -1 : 1)) },
+      voted: wasVoted ? h.voted.filter((v) => v !== id) : [...h.voted, id],
+    }));
+    if (!wasVoted) eventsAPI.track("answer_marked_helpful", { cardId: id });
+    try {
+      const d = await clarityAPI.toggleHelpful(id);
+      setHelpful((h) => ({
+        counts: { ...h.counts, [id]: d.count },
+        voted: d.voted ? [...new Set([...h.voted, id])] : h.voted.filter((v) => v !== id),
+      }));
+    } catch {
+      setHelpful((h) => ({
+        counts: { ...h.counts, [id]: Math.max(0, (h.counts[id] || 0) + (wasVoted ? 1 : -1)) },
+        voted: wasVoted ? [...h.voted, id] : h.voted.filter((v) => v !== id),
+      }));
+    }
+  };
 
   const fetchMentors = async (query, pinChatMentors = false) => {
     setFetchLoading(true);
@@ -85,6 +146,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         ? data.answerCards
         : (data.answerCard ? [data.answerCard] : []);
       setAnswerCards(cards);
+      setActiveIdx(0);
       // Came from tapping a senior's card in the chat → open that senior straight away.
       if (pinChatMentors && initialContext?.focusMentorId) {
         const focused = (data.mentors || []).find(m => String(m.id) === String(initialContext.focusMentorId));
@@ -146,9 +208,54 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   ]
     .filter(Boolean)
     .join(" · ") || "Based on your question";
+  const userCtx = {
+    college: initialContext?.college || edu.institutionName || edu.institution || "",
+    branch: initialContext?.branch || edu.field || "",
+  };
 
   // Shared question header (compact on mobile)
-  const header = (
+  const askOwn = () => { eventsAPI.track("clarity_ask_own_clicked", { isExample }); onAskQuestion?.(); };
+  const header = isExample ? (
+    // Example mode: the question is drawn as a tappable input, with the parts a
+    // good question needs highlighted — it shows *where* to ask and *how*.
+    <div className="px-4 sm:px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", fontFamily: "var(--font-body)" }}>
+      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--c-textMuted)", margin: "0 0 8px" }}>
+        EXAMPLE QUESTION · SEE HOW SENIORS ANSWER
+      </p>
+      <button
+        onClick={askOwn}
+        className="ask-example w-full text-left flex items-start gap-3"
+        style={{ padding: "12px 14px", borderRadius: 14, background: "var(--c-card)", border: "1.5px solid var(--c-cardBorder)", cursor: "pointer", transition: "border-color 0.15s, box-shadow 0.15s" }}
+      >
+        <Pencil size={16} style={{ color: "var(--c-accentText)", flexShrink: 0, marginTop: 3 }} />
+        <span className="flex-1 min-w-0" style={{ fontSize: 15, lineHeight: 1.65, color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
+          {exampleParts.map((part, k) =>
+            part.tag ? (
+              <span
+                key={k}
+                title={part.tag}
+                style={{ background: "rgba(117,103,201,0.12)", color: "var(--c-accentText)", borderRadius: 6, padding: "1px 5px", fontWeight: 600, whiteSpace: "nowrap" }}
+              >
+                {part.text}
+              </span>
+            ) : (
+              <span key={k}>{part.text}</span>
+            )
+          )}
+        </span>
+        <span className="hidden sm:flex items-center gap-1 flex-shrink-0" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-accentText)", marginTop: 3, whiteSpace: "nowrap" }}>
+          Ask yours <ChevronRight size={14} />
+        </span>
+      </button>
+      <p style={{ fontSize: 12, color: "var(--c-textMuted)", margin: "8px 2px 0", lineHeight: 1.5 }}>
+        Mention your <b style={{ color: "var(--c-textSub)" }}>year, branch, college, target role &amp; company</b>. Seniors are matched on exactly these.
+        <button onClick={askOwn} className="sm:hidden" style={{ marginLeft: 6, fontWeight: 600, color: "var(--c-accentText)", background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 12 }}>
+          Ask yours →
+        </button>
+      </p>
+      <style>{`.ask-example:hover { border-color: #7567C9 !important; box-shadow: 0 0 0 3px rgba(117,103,201,0.12); }`}</style>
+    </div>
+  ) : (
     <div
       className="px-4 sm:px-6 pt-5 pb-4 flex-shrink-0"
       style={{ borderBottom: "1px solid var(--c-sidebarBorder)" }}
@@ -160,7 +267,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
         >
           <span className="text-xs font-bold" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>A</span>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-snug" style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
             {displayHeading(activeQuery)}
           </p>
@@ -168,26 +275,33 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
             Context: {contextLine}
           </p>
         </div>
+        {onAskQuestion && (
+          <button
+            onClick={askOwn}
+            className="flex items-center gap-1 flex-shrink-0"
+            style={{ fontSize: 12.5, fontWeight: 600, color: "var(--c-accentText)", background: "none", border: "none", padding: "4px 0", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "var(--font-body)" }}
+          >
+            <Pencil size={13} /> New question
+          </button>
+        )}
       </div>
     </div>
   );
 
-  // Scrollable feed of Answer Cards — how seniors solved a similar problem.
-  // Each card has a "Talk to <senior>" CTA as the secondary step.
+  // One senior's answer at a time — swipe / arrows to the next senior.
   const answerFeed = answerCards.length > 0 ? (
-    <div>
-      {answerCards.map((card, i) => (
-        <div key={card.id || i} style={{ borderTop: i > 0 ? "8px solid var(--c-sidebar)" : "none" }}>
-          <MentorJourneyFlow card={card} />
-          <InstantAnswerCard
-            card={card}
-            profile={resolveMentor(card.mentor)}
-            onProfile={() => { const m = resolveMentor(card.mentor); trackView(m); setSelectedMentor(m); }}
-            onBook={() => onTalkToMentor?.(resolveMentor(card.mentor))}
-          />
-        </div>
-      ))}
-    </div>
+    <AnswerSlider
+      cards={answerCards}
+      index={activeIdx}
+      onIndex={setActiveIdx}
+      question={displayHeading(activeQuery)}
+      helpful={helpful}
+      onHelpful={handleHelpful}
+      resolveMentor={resolveMentor}
+      userCtx={userCtx}
+      onProfile={(m) => { trackView(m); setSelectedMentor(m); }}
+      onBook={(m) => onTalkToMentor?.(m)}
+    />
   ) : null;
 
   // ── MOBILE: single column, one view at a time ──
@@ -224,80 +338,8 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
               </div>
             </div>
           ) : (
-            // Mobile: interleaved — mentor profile then their answer card, one pair at a time
             <div ref={mainScrollRef} className="h-full overflow-y-auto hide-scrollbar">
-              {answerCards.length > 0 ? (
-                [...answerCards]
-                  .sort((a, b) => (resolveMentor(b.mentor)?.matchPct || 0) - (resolveMentor(a.mentor)?.matchPct || 0))
-                  .map((card, i) => {
-                    const mentor = resolveMentor(card.mentor);
-                    const isTop = i === 0;
-                    const rankLabel = i === 0 ? "★ Best Match" : i === 1 ? "2nd Best" : i === 2 ? "3rd Best" : null;
-                    return (
-                      <div
-                        key={card.id || i}
-                        style={{
-                          margin: "0 4px 16px",
-                          border: `1px solid ${isTop ? "rgba(117,103,201,0.45)" : "var(--c-cardBorder)"}`,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                          background: "var(--c-card)",
-                          boxShadow: isTop ? "0 6px 24px rgba(117,103,201,0.18)" : "0 1px 5px rgba(0,0,0,0.04)",
-                        }}
-                      >
-                        {/* Mentor profile pill — tappable to open detail */}
-                        {mentor && (
-                          <button
-                            onClick={() => { trackView(mentor); setSelectedMentor(mentor); }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                            style={{ background: isTop ? "rgba(117,103,201,0.06)" : "var(--c-sidebar)", borderBottom: "1px solid var(--c-sidebarBorder)" }}
-                          >
-                            {mentor.profilePicture ? (
-                              <img src={mentor.profilePicture} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                            ) : (
-                              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "1.5px solid rgba(117,103,201,0.35)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--c-accentText)", flexShrink: 0 }}>
-                                {mentor.initials}
-                              </div>
-                            )}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", fontFamily: "var(--font-display)" }}>{mentor.name}</span>
-                                {rankLabel && (
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: isTop ? "#fff" : "var(--c-accentText)", background: isTop ? "#7567C9" : "var(--c-accentSoft)", borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{rankLabel}</span>
-                                )}
-                              </div>
-                              <div style={{ fontSize: 12, color: "var(--c-textSub)", fontFamily: "var(--font-body)", marginTop: 2, fontWeight: 600 }}>
-                                {[mentor.college, mentor.branch].filter(Boolean).join(" · ")}
-                              </div>
-                              {(mentor.primaryDomain || mentor.companyDomain) && (
-                                <div style={{ display: "flex", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
-                                  {mentor.primaryDomain && (
-                                    <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "rgba(117,103,201,0.14)", color: "var(--c-accentText)", border: "1px solid rgba(117,103,201,0.3)" }}>
-                                      {{ internship: "Internship", placement: "Placement", both: "Intern+Placement" }[mentor.primaryDomain]}
-                                    </span>
-                                  )}
-                                  {mentor.companyDomain && (
-                                    <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "rgba(61,190,130,0.12)", color: "#3DBE82", border: "1px solid rgba(61,190,130,0.3)" }}>
-                                      {mentor.companyDomain}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <span style={{ fontSize: 12, color: "var(--c-accentText)", marginLeft: 6, fontWeight: 600 }}>→</span>
-                          </button>
-                        )}
-                        {/* Journey flow + answer card */}
-                        <MentorJourneyFlow card={card} />
-                        <InstantAnswerCard
-                          card={card}
-                          onProfile={() => { trackView(mentor); setSelectedMentor(mentor); }}
-                          onBook={() => onTalkToMentor?.(mentor)}
-                        />
-                      </div>
-                    );
-                  })
-              ) : mentors.length > 0 ? (
+              {answerFeed ? answerFeed : mentors.length > 0 ? (
                 <SeniorsPanel
                   mentors={mentors}
                   selectedId={selectedMentor?.id}
@@ -479,426 +521,395 @@ function AnswerSection({ label, children }) {
   );
 }
 
-// Short flowchart-node text — the caption under each node. Full text is always
-// recoverable in the detail card, so this truncation never hides content.
-const truncateNodeText = (text, max = 42) => {
-  if (!text) return "";
-  const clean = String(text).trim();
-  return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean;
-};
+const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "This senior";
+const norm = (s) => String(s || "").toLowerCase().trim();
+const mistakeText = (m) => (typeof m === "string" ? m : m?.description || m?.mistake || "");
+// Sentences of a paragraph — fallback checklist when a card has no actionableSteps.
+const sentencesOf = (text) =>
+  String(text || "").split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 8);
 
-/**
- * @typedef {Object} JourneyStep
- * @property {"start"|"mistake"|"step"|"turning"|"outcome"} type
- * @property {string} label  — short milestone title shown under the node
- * @property {string} text   — full milestone story, shown in the detail card
- */
+const rankLabelOf = (i) => (i === 0 ? "Best match" : `#${i + 1} match`);
 
-// Meaningful icon per milestone — keyword matching for generic action steps.
-const nodeIconFor = (type, label = "") => {
-  if (type === "start") return MapPin;
-  if (type === "mistake") return AlertTriangle;
-  if (type === "turning") return Flag;
-  if (type === "outcome") return Trophy;
-  const l = label.toLowerCase();
-  if (/senior|alumni|mentor|people|talk|network|connect/.test(l)) return Users;
-  if (/plan|schedule|prep|routine|timeline/.test(l)) return ListChecks;
-  if (/subject|study|learn|read|course|book|fundament/.test(l)) return BookOpen;
-  if (/goal|target|focus/.test(l)) return Target;
-  return Wrench;
-};
-
-// ── Mentor's journey as an interactive milestone timeline ──
-// Nodes have three states: COMPLETED (filled accent), ACTIVE (glowing ring),
-// UPCOMING (muted outline). The connecting line fills up to the active node.
-// Clicking a node (or the ‹ › arrows) opens its full story in a detail card —
-// nothing is permanently truncated.
-function MentorJourneyFlow({ card }) {
-  const c = card?.content || {};
-  const mentor = card?.mentor || {};
-  const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
-  const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
-
-  // The final node should read as "what this mentor became", not the raw
-  // timeline paragraph — prefer their actual placement, then the result half
-  // of mainAnswer ("X → Y"), and only fall back to timeline if nothing else exists.
-  const outcomeText =
-    (mentor.topCompanies?.[0] && `${mentor.expertise?.[0] || "Placed"} @ ${mentor.topCompanies[0]}`) ||
-    (c.mainAnswer?.includes("→") ? c.mainAnswer.split("→").pop().trim() : null) ||
-    c.timeline;
-
-  /** @type {JourneyStep[]} */
-  const nodes = [];
-  if (c.situation) nodes.push({ type: "start", label: "Starting point", text: c.situation });
-  if (mistakes.length) {
-    nodes.push({
-      type: "mistake",
-      label: "Mistakes made",
-      text: mistakes.map((m) => (typeof m === "string" ? m : m?.description || m?.mistake)).join(" · "),
-    });
-  }
-  steps.forEach((s, i) => {
-    nodes.push({ type: "step", label: s.step || `Step ${i + 1}`, text: s.description || "" });
-  });
-  if (c.whatWorked) nodes.push({ type: "turning", label: "Turning point", text: c.whatWorked });
-  if (outcomeText) nodes.push({ type: "outcome", label: "Outcome", text: outcomeText });
-
-  const [active, setActive] = useState(0);
-  const scrollRef = useRef(null);
-  const nodeRefs = useRef([]);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateHints = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+// ── Answer slider: one senior's answer at a time ──
+// Swipe (mobile) or arrows / ← → keys (desktop) move between seniors. Each answer
+// stays a normal vertical read — only *between* seniors is horizontal.
+function AnswerSlider({ cards, index, onIndex, question, helpful, onHelpful, resolveMentor, userCtx, onProfile, onBook }) {
+  const [dir, setDir] = useState(1);
+  const count = cards.length;
+  const i = Math.min(index, count - 1);
+  const go = (next) => {
+    if (next < 0 || next >= count || next === i) return;
+    setDir(next > i ? 1 : -1);
+    onIndex(next);
+    eventsAPI.track("answer_slide", { to: next });
   };
 
   useEffect(() => {
-    updateHints();
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateHints, { passive: true });
-    window.addEventListener("resize", updateHints);
-    return () => {
-      el.removeEventListener("scroll", updateHints);
-      window.removeEventListener("resize", updateHints);
+    const onKey = (e) => {
+      if (/input|textarea/i.test(e.target?.tagName || "") || e.target?.isContentEditable) return;
+      if (e.key === "ArrowRight") go(i + 1);
+      if (e.key === "ArrowLeft") go(i - 1);
     };
-  }, [nodes.length]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
-  // Keep the active node centered — matters most on mobile snap-scroll.
-  // Scroll only this row's own container directly (never scrollIntoView —
-  // that bubbles to ancestor scroll containers and drags the whole page/feed
-  // down to reveal cards further down the list, which is what made the
-  // Clarity feed appear to open mid-scroll instead of at the top).
-  useEffect(() => {
-    const node = nodeRefs.current[active];
-    const container = scrollRef.current;
-    if (!node || !container) return;
-    const target = active === 0
-      ? 0
-      : node.offsetLeft + node.offsetWidth / 2 - container.clientWidth / 2;
-    container.scrollTo({ left: target, behavior: active === 0 ? "auto" : "smooth" });
-  }, [active]);
+  const card = cards[i];
+  const mentor = resolveMentor(card.mentor);
+  const nextMentor = i < count - 1 ? resolveMentor(cards[i + 1].mentor) : null;
+  const id = String(card.id || "");
 
-  if (nodes.length < 2) return null;
-
-  const journeyPct = Math.round((active / (nodes.length - 1)) * 100);
+  const arrow = (disabled, onClick, Icon, label) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className="flex items-center justify-center"
+      style={{ width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", color: disabled ? "var(--c-textMuted)" : "var(--c-accentText)", opacity: disabled ? 0.4 : 1, cursor: disabled ? "default" : "pointer" }}
+    >
+      <Icon size={16} />
+    </button>
+  );
 
   return (
-    <div className="px-4 sm:px-6 pt-5 pb-2 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
-      <div className="flex items-center justify-between mb-1">
+    <div className="px-3 sm:px-6 py-4" style={{ fontFamily: "var(--font-body)" }}>
+      {/* Pager: which senior, how many */}
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--c-accentText)", fontFamily: "var(--font-body)" }}>
-            The journey
-          </p>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ color: journeyPct === 100 ? "#3DBE82" : "var(--c-accentText)", background: journeyPct === 100 ? "rgba(61,190,130,0.12)" : "rgba(117,103,201,0.12)" }}>
-            {journeyPct === 100 ? "🏆 100%" : `${journeyPct}%`}
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--c-text)" }}>
+            {count} senior{count > 1 ? "s" : ""} answered this
           </span>
+          <span style={{ fontSize: 12, color: "var(--c-textMuted)" }}>· {i + 1} / {count}</span>
         </div>
-        {canScrollRight && (
-          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
-            Swipe <ChevronRight size={11} />
-          </span>
-        )}
-      </div>
-
-      {/* Timeline row — generous vertical padding gives the active node's glow/lift
-          room, so it isn't clipped by overflow-x-auto (which also clips the y-axis). */}
-      <div className="relative">
-        <div
-          ref={scrollRef}
-          className="flex items-start overflow-x-auto hide-scrollbar pt-5 pb-3"
-          style={{ WebkitOverflowScrolling: "touch", scrollSnapType: "x proximity" }}
-        >
-          {nodes.map((n, i) => {
-            const Icon = nodeIconFor(n.type, n.label);
-            const isCompleted = i < active;
-            const isActive = i === active;
-            // Connector halves: left half belongs to segment (i-1→i), right to (i→i+1).
-            const leftFilled = i > 0 && i <= active;
-            const rightFilled = i < nodes.length - 1 && i < active;
-            return (
-              <motion.button
-                key={i}
-                ref={(el) => { nodeRefs.current[i] = el; }}
-                onClick={() => setActive(i)}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.05 }}
-                whileHover={{ y: -2 }}
-                className="flex flex-col items-center flex-shrink-0 cursor-pointer"
-                style={{ width: "clamp(112px, 33vw, 152px)", background: "transparent", border: "none", padding: 0, scrollSnapAlign: "center" }}
-              >
-                <div className="flex items-center w-full">
-                  {/* Left connector half — every node keeps the circle centred so the
-                      line rhythm stays even; the first node just hides its line. */}
-                  <div style={{ flex: 1, height: 2, background: i === 0 ? "transparent" : "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
-                    <div
-                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${leftFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "#7567C9" }}
-                    />
-                  </div>
-                  <motion.div
-                    animate={{
-                      scale: isActive ? 1.08 : 1,
-                      boxShadow: isActive ? "0 0 0 4px rgba(117,103,201,0.16)" : "0 0 0 0px rgba(117,103,201,0)",
-                    }}
-                    transition={{ duration: 0.25 }}
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: "50%",
-                      background: isCompleted ? "#7567C9" : "var(--c-card)",
-                      border: isCompleted ? "2px solid transparent" : `2px solid ${isActive ? "#7567C9" : "var(--c-sidebarBorder)"}`,
-                    }}
-                  >
-                    <Icon size={16} style={{ color: isCompleted ? "#fff" : isActive ? "var(--c-accentText)" : "var(--c-textMuted)" }} />
-                  </motion.div>
-                  {/* Right connector half — hidden on the last node so the line
-                      doesn't trail past the final milestone. */}
-                  <div style={{ flex: 1, height: 2, background: i === nodes.length - 1 ? "transparent" : "var(--c-sidebarBorder)", position: "relative", overflow: "hidden" }}>
-                    <div
-                      style={{ position: "absolute", inset: 0, transformOrigin: "left", transform: `scaleX(${rightFilled ? 1 : 0})`, transition: "transform 0.3s ease-out", background: "#7567C9" }}
-                    />
-                  </div>
-                </div>
-                <p
-                  className="text-[11px] font-bold text-center mt-2 px-1"
-                  style={{ color: isActive || isCompleted ? "var(--c-text)" : "var(--c-textMuted)", fontFamily: "var(--font-body)" }}
-                >
-                  {n.label}
-                </p>
-                <p
-                  className="text-[11px] text-center mt-1 px-1.5 leading-snug"
-                  style={{
-                    color: "var(--c-textMuted)",
-                    fontFamily: "var(--font-body)",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {truncateNodeText(n.text)}
-                </p>
-              </motion.button>
-            );
-          })}
-        </div>
-        {canScrollLeft && (
-          <div
-            className="pointer-events-none absolute left-0 top-0 flex items-center justify-start"
-            style={{ bottom: 8, width: 32, background: "linear-gradient(90deg, var(--c-sidebar), rgba(0,0,0,0))" }}
-          >
-            <ChevronLeft size={16} style={{ color: "var(--c-accentText)" }} />
-          </div>
-        )}
-        {canScrollRight && (
-          <div
-            className="pointer-events-none absolute right-0 top-0 flex items-center justify-end"
-            style={{ bottom: 8, width: 32, background: "linear-gradient(270deg, var(--c-sidebar), rgba(0,0,0,0))" }}
-          >
-            <ChevronRight size={16} style={{ color: "var(--c-accentText)" }} />
+        {count > 1 && (
+          <div className="flex items-center gap-2">
+            {arrow(i === 0, () => go(i - 1), ChevronLeft, "Previous senior")}
+            {arrow(i === count - 1, () => go(i + 1), ChevronRight, "Next senior")}
           </div>
         )}
       </div>
 
-    </div>
-  );
-}
+      <div style={{ position: "relative", overflow: "hidden" }}>
+          <motion.div
+            key={id || i}
+            initial={{ x: dir * 60, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            drag={count > 1 ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.25}
+            dragDirectionLock
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -70 || info.velocity.x < -400) go(i + 1);
+              else if (info.offset.x > 70 || info.velocity.x > 400) go(i - 1);
+            }}
+            style={{ touchAction: "pan-y" }}
+          >
+            <AnswerPost
+              card={card}
+              profile={mentor}
+              rankLabel={count > 1 ? rankLabelOf(i) : null}
+              question={question}
+              userCtx={userCtx}
+              helpfulCount={helpful.counts[id] || 0}
+              voted={helpful.voted.includes(id)}
+              onHelpful={() => onHelpful(id)}
+              onProfile={() => onProfile(mentor)}
+              onBook={() => onBook(mentor)}
+            />
+          </motion.div>
+      </div>
 
-// Desktop header for an answer card: who this senior is, then the story's headline.
-const DOMAIN_LABEL = { internship: "Internship", placement: "Placement", both: "Intern + Placement" };
-
-function MentorHeader({ profile, fallbackName, onProfile, headline }) {
-  const name = profile.name || fallbackName;
-  const subtitle = [profile.college, profile.branch].filter(Boolean).join(" · ");
-  // "Active mentor on Atyant" is a placeholder for mentors without an outcome, so it isn't shown.
-  const outcome = /@/.test(profile.outcome || "") ? profile.outcome : "";
-  const chip = (text, color, key) => (
-    <span key={key} style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, color, background: `${color}1f`, border: `1px solid ${color}40`, whiteSpace: "nowrap" }}>
-      {text}
-    </span>
-  );
-
-  return (
-    <div className="mb-6">
-      <div
-        className="flex items-center gap-4 flex-wrap"
-        style={{ padding: "16px 18px", borderRadius: 16, background: "var(--c-card)", border: "1px solid var(--c-cardBorder)", boxShadow: "none" }}
-      >
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          {profile.profilePicture ? (
-            <img src={profile.profilePicture} alt="" style={{ width: 68, height: 68, borderRadius: "50%", objectFit: "cover", border: "2px solid #7567C9", padding: 2, background: "var(--c-card)" }} />
-          ) : (
-            <div style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "2px solid #7567C9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700, color: "var(--c-accentText)" }}>
-              {profile.initials}
-            </div>
+      {/* Dots + a nudge toward the next senior */}
+      {count > 1 && (
+        <div className="flex flex-col items-center gap-3 mt-4">
+          <div className="flex items-center gap-1.5">
+            {cards.map((c, d) => (
+              <button
+                key={c.id || d}
+                onClick={() => go(d)}
+                aria-label={`Answer ${d + 1}`}
+                style={{ width: d === i ? 18 : 7, height: 7, borderRadius: 99, border: "none", padding: 0, cursor: "pointer", background: d === i ? "#7567C9" : "var(--c-sidebarBorder)", transition: "width 0.2s" }}
+              />
+            ))}
+          </div>
+          {nextMentor && (
+            <button
+              onClick={() => go(i + 1)}
+              className="flex items-center gap-1.5"
+              style={{ fontSize: 13, fontWeight: 600, color: "var(--c-accentText)", background: "none", border: "none", cursor: "pointer" }}
+            >
+              See how {firstName(nextMentor.name)} did it <ChevronRight size={14} />
+            </button>
           )}
-          <span style={{ position: "absolute", right: -2, bottom: 0, width: 22, height: 22, borderRadius: "50%", background: "#3DBE82", border: "2px solid var(--c-card)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <CheckCircle size={12} style={{ color: "#fff" }} />
-          </span>
-        </div>
-
-        <div className="flex-1 min-w-0" style={{ fontFamily: "var(--font-body)" }}>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{name}</span>
-            <span className="flex items-center gap-1" style={{ fontSize: 11, fontWeight: 700, color: "#3DBE82", background: "rgba(61,190,130,0.12)", border: "1px solid rgba(61,190,130,0.3)", borderRadius: 999, padding: "2px 9px" }}>
-              <ShieldCheck size={11} /> Verified senior
-            </span>
-          </div>
-          {subtitle && <div style={{ fontSize: 13, color: "var(--c-textSub)", marginTop: 4, fontWeight: 500 }}>{subtitle}</div>}
-          {outcome && <div style={{ fontSize: 13, color: "var(--c-text)", marginTop: 3, fontWeight: 600 }}>{outcome}</div>}
-          {(profile.primaryDomain || profile.companyDomain) && (
-            <div className="flex gap-1.5 flex-wrap" style={{ marginTop: 8 }}>
-              {profile.primaryDomain && DOMAIN_LABEL[profile.primaryDomain] && chip(DOMAIN_LABEL[profile.primaryDomain], "#7567C9", "domain")}
-              {profile.companyDomain && chip(profile.companyDomain, "#3DBE82", "company")}
-            </div>
-          )}
-        </div>
-
-        {onProfile && (
-          <button
-            onClick={onProfile}
-            className="flex-shrink-0"
-            style={{ fontSize: 13, fontWeight: 600, color: "var(--c-accentText)", background: "rgba(117,103,201,0.08)", border: "1px solid rgba(117,103,201,0.3)", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontFamily: "var(--font-body)" }}
-          >
-            View profile →
-          </button>
-        )}
-      </div>
-
-      {headline && (
-        <div style={{ marginTop: 22 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--c-accentText)", fontFamily: "var(--font-body)", marginBottom: 6 }}>
-            Their story
-          </div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, color: "var(--c-text)", fontFamily: "var(--font-display)", margin: 0 }}>
-            {headline}
-          </h2>
         </div>
       )}
     </div>
   );
 }
 
-// ── Instant verified answer, built from a real mentor's experience ──
-// `profile` is only passed by the desktop feed; the mobile layout shows the mentor's photo in its
-// own header row above this card, so it isn't repeated here.
-function InstantAnswerCard({ card, onBook, onProfile, profile }) {
+// ── One senior's answer, styled like a top community reply ──
+// First person, TL;DR first, then a short "what I did" list. Long-form story is
+// collapsed. The action bar mirrors a forum reply: Helpful · Ask follow-up · Share.
+function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulCount, voted, onHelpful, onProfile, onBook }) {
   const c = card?.content || {};
-  const mentor = card?.mentor || {};
-  const mentorName = mentor.username || mentor.name || "Atyant Mentor";
-  const edu = mentor.education || {};
-  const steps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
-  const mistakes = Array.isArray(c.keyMistakes) ? c.keyMistakes : [];
+  const raw = card?.mentor || {};
+  const p = profile || {};
+  const name = p.name || raw.username || raw.name || "Atyant Mentor";
+  const first = firstName(name);
+  const college = p.college || raw.education?.institutionName || raw.education?.institution || "";
+  const branch = p.branch || raw.education?.field || "";
+  const initials = p.initials || name.split(" ").map((s) => s[0]).join("").toUpperCase().slice(0, 2);
+
+  const outcome =
+    (/@/.test(p.outcome || "") && p.outcome) ||
+    (raw.topCompanies?.[0] && `${raw.expertise?.[0] || "Placed"} @ ${raw.topCompanies[0]}`) ||
+    (c.mainAnswer?.includes("→") ? c.mainAnswer.split("→").pop().trim() : "");
+  const flair = [outcome, [college, branch].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
+
+  const rawSteps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
+  // A "before → after" mainAnswer is a summary of the journey, not an answer — prefer
+  // the first line of what actually worked as the TL;DR in that case.
+  const tldr = c.mainAnswer && !c.mainAnswer.includes("→")
+    ? c.mainAnswer
+    : sentencesOf(c.whatWorked)[0] || c.mainAnswer || "";
+  const allSteps = rawSteps.length
+    ? rawSteps.map((s) => ({ title: s.step || s.description || "", detail: s.step ? s.description || "" : "" }))
+    : sentencesOf(c.whatWorked).filter((t) => t !== tldr).map((t) => ({ title: t, detail: "" }));
+  const steps = allSteps.slice(0, 3);
+  const mistakes = (Array.isArray(c.keyMistakes) ? c.keyMistakes : []).map(mistakeText).filter(Boolean);
+
+  // Why this senior was matched — the engine's honest label first.
+  let matchLabel = card?.matchLabel && card.matchLabel !== "Closest match" ? card.matchLabel : "";
+  if (!matchLabel) {
+    const sameCollege = userCtx.college && college && norm(userCtx.college) === norm(college);
+    const sameBranch = userCtx.branch && branch && norm(userCtx.branch) === norm(branch);
+    matchLabel = sameCollege && sameBranch ? "Same college & branch" : sameBranch ? "Same branch" : sameCollege ? "Same college" : "";
+  }
+
+  const storeKey = `atyant_playbook_${card?.id || name}`;
+  const [done, setDone] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storeKey)) || []; } catch { return []; }
+  });
+  const [openStep, setOpenStep] = useState(null);
+  const [showStory, setShowStory] = useState(false);
+  const [shareNote, setShareNote] = useState("");
+
+  const toggleDone = (i) => {
+    setDone((prev) => {
+      const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i];
+      try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* storage unavailable */ }
+      if (!prev.includes(i)) eventsAPI.track("playbook_step_checked", { cardId: String(card?.id || ""), step: i });
+      return next;
+    });
+  };
+  const toggleStory = () => {
+    if (!showStory) eventsAPI.track("playbook_story_opened", { cardId: String(card?.id || "") });
+    setShowStory((v) => !v);
+  };
+  const share = async () => {
+    const lines = [question && `Q: ${question}`, `${name}${outcome ? ` (${outcome})` : ""}:`, tldr && `"${tldr}"`, ...steps.map((s, k) => `${k + 1}. ${s.title}`)];
+    const text = `${lines.filter(Boolean).join("\n")}\n\nAsk seniors from colleges like yours on Atyant:`;
+    const url = window.location.origin;
+    eventsAPI.track("answer_shared", { cardId: String(card?.id || "") });
+    try {
+      if (navigator.share) { await navigator.share({ title: "Answer on Atyant", text, url }); return; }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShareNote("Copied!");
+    } catch {
+      setShareNote("");
+      return;
+    }
+    setTimeout(() => setShareNote(""), 1800);
+  };
+
+  const doneCount = steps.filter((_, i) => done.includes(i)).length;
+  const sectionLabel = (text) => (
+    <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--c-textMuted)", margin: 0 }}>{text}</p>
+  );
+  const barBtn = { display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: "7px 12px", cursor: "pointer", border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", color: "var(--c-textSub)", whiteSpace: "nowrap" };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Instant Answer banner */}
-      <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-2.5 flex-shrink-0"
-        style={{ borderBottom: "1px solid var(--c-sidebarBorder)", background: "rgba(117,103,201,0.06)" }}>
-        <div className="flex items-center gap-2 min-w-0">
-          <Lightbulb size={13} style={{ color: "var(--c-accentText)", flexShrink: 0 }} />
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest truncate"
-            style={{ color: "var(--c-accentText)", fontFamily: "var(--font-body)" }}>
-            Instant Clarity · from {mentorName}'s journey
-          </span>
+    <article style={{ borderRadius: 16, border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+      <div className="px-4 sm:px-5 pt-4 pb-3">
+        {/* Author row — who's answering, with their "flair" */}
+        <div className="flex items-start gap-3">
+          <button onClick={onProfile} style={{ position: "relative", flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer" }} aria-label={`View ${name}'s profile`}>
+            {p.profilePicture ? (
+              <img src={p.profilePicture} alt="" style={{ width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: "2px solid #7567C9", padding: 1.5, background: "var(--c-card)" }} />
+            ) : (
+              <div style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(117,103,201,0.18)", border: "2px solid #7567C9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "var(--c-accentText)" }}>
+                {initials}
+              </div>
+            )}
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button onClick={onProfile} style={{ fontSize: 15, fontWeight: 700, color: "var(--c-text)", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "var(--font-display)" }}>
+                {name}
+              </button>
+              <ShieldCheck size={14} style={{ color: "#3DBE82" }} aria-label="Verified senior" />
+              {rankLabel && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#7567C9", borderRadius: 999, padding: "2px 8px" }}>{rankLabel}</span>
+              )}
+            </div>
+            {flair && <div style={{ fontSize: 12.5, color: "var(--c-textSub)", marginTop: 2, lineHeight: 1.35 }}>{flair}</div>}
+            {matchLabel && (
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#3DBE82", marginTop: 3 }}>✓ {matchLabel} as you</div>
+            )}
+          </div>
         </div>
-        {card?.matchScore ? (
-          <span className="text-xs font-bold" style={{ color: "#7567C9", fontFamily: "var(--font-display)" }}>
-            {card.matchScore}% match
-          </span>
-        ) : null}
-      </div>
 
-      {/* Answer body */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
-        {profile ? (
-          <MentorHeader profile={profile} fallbackName={mentorName} onProfile={onProfile} headline={c.mainAnswer} />
-        ) : (
-          <>
-            {/* Mentor identity line (mobile: the photo is in the header row above this card) */}
-            <div className="flex items-center gap-2 mb-4 text-xs" style={{ color: "var(--c-textMuted)", fontFamily: "var(--font-body)" }}>
-              <CheckCircle size={12} style={{ color: "#3DBE82", flexShrink: 0 }} />
-              <span>
-                {mentorName}
-                {edu.institutionName ? ` · ${edu.institutionName}` : ""}
-                {edu.field ? ` · ${edu.field}` : ""}
+        {/* TL;DR — the answer in one line */}
+        {tldr && (
+          <p style={{ fontSize: 16, lineHeight: 1.45, color: "var(--c-text)", margin: "14px 0 0", fontWeight: 600 }}>
+            <span style={{ fontWeight: 800, color: "var(--c-accentText)" }}>TL;DR </span>{tldr}
+          </p>
+        )}
+
+        {/* What I did — checkable */}
+        {steps.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              {sectionLabel("What I did")}
+              <span style={{ fontSize: 11, fontWeight: 700, color: doneCount === steps.length ? "#3DBE82" : "var(--c-textMuted)" }}>
+                {doneCount === 0 ? "Tick what you've done" : doneCount === steps.length ? "All done 🎉" : `${doneCount}/${steps.length} done`}
               </span>
             </div>
-
-            {c.mainAnswer && (
-              <p className="text-base font-semibold leading-snug mb-5"
-                style={{ color: "var(--c-text)", fontFamily: "var(--font-display)" }}>
-                {c.mainAnswer}
-              </p>
-            )}
-          </>
-        )}
-
-        <AnswerSection label="The situation">{c.situation}</AnswerSection>
-        <AnswerSection label="What worked">{c.whatWorked}</AnswerSection>
-
-        {steps.length > 0 && (
-          <AnswerSection label="Action plan">
-            <ol className="flex flex-col gap-2 mt-1">
-              {steps.map((s, i) => (
-                <li key={i} className="flex gap-2.5">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ background: "rgba(117,103,201,0.22)", color: "var(--c-accentText)" }}>
-                    {i + 1}
-                  </span>
-                  <span>
-                    {s.step && <strong style={{ color: "var(--c-text)" }}>{s.step}: </strong>}
-                    {s.description}
-                  </span>
-                </li>
-              ))}
+            <ol className="flex flex-col gap-1.5" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {steps.map((s, k) => {
+                const isDone = done.includes(k);
+                const isOpen = openStep === k;
+                return (
+                  <li key={k} style={{ borderRadius: 12, background: isDone ? "rgba(61,190,130,0.08)" : "var(--c-sidebar)" }}>
+                    <div className="flex items-start gap-3" style={{ padding: "10px 12px" }}>
+                      <button
+                        onClick={() => toggleDone(k)}
+                        aria-label={isDone ? "Mark as not done" : "Mark as done"}
+                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", flexShrink: 0, marginTop: 1 }}
+                      >
+                        {isDone ? (
+                          <CheckCircle size={20} style={{ color: "#3DBE82" }} />
+                        ) : (
+                          <span style={{ display: "flex", width: 20, height: 20, borderRadius: "50%", border: "2px solid #7567C9", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "var(--c-accentText)" }}>{k + 1}</span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => s.detail && setOpenStep(isOpen ? null : k)}
+                        className="flex-1 flex items-start justify-between gap-2 text-left"
+                        style={{ background: "none", border: "none", padding: 0, cursor: s.detail ? "pointer" : "default" }}
+                      >
+                        <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4, color: isDone ? "var(--c-textMuted)" : "var(--c-text)", textDecoration: isDone ? "line-through" : "none" }}>
+                          {s.title}
+                        </span>
+                        {s.detail && (
+                          <ChevronDown size={16} style={{ color: "var(--c-textMuted)", flexShrink: 0, marginTop: 2, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                        )}
+                      </button>
+                    </div>
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <p style={{ fontSize: 13, lineHeight: 1.55, color: "var(--c-textSub)", margin: 0, padding: "0 12px 11px 44px" }}>{s.detail}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </li>
+                );
+              })}
             </ol>
-          </AnswerSection>
+          </div>
         )}
 
-        {mistakes.length > 0 && (
-          <AnswerSection label="Mistakes to avoid">
-            <ul className="flex flex-col gap-1.5 mt-1">
-              {mistakes.map((m, i) => (
-                <li key={i} className="flex gap-2">
-                  <span style={{ color: "#f87171" }}>✕</span>
-                  <span>{typeof m === "string" ? m : m?.description || m?.mistake}</span>
-                </li>
-              ))}
-            </ul>
-          </AnswerSection>
+        {/* My mistake */}
+        {mistakes[0] && (
+          <div className="mt-3 flex items-start gap-2.5" style={{ padding: "9px 12px", borderRadius: 12, background: "rgba(248,113,113,0.08)" }}>
+            <AlertTriangle size={15} style={{ color: "#f87171", flexShrink: 0, marginTop: 2 }} />
+            <p style={{ fontSize: 13, lineHeight: 1.45, color: "var(--c-textSub)", margin: 0 }}>
+              <strong style={{ color: "var(--c-text)" }}>My mistake: </strong>{mistakes[0]}
+            </p>
+          </div>
         )}
 
-        <AnswerSection label="Timeline">{c.timeline}</AnswerSection>
-        <AnswerSection label="If I did it today">{c.differentApproach}</AnswerSection>
-
-        {/* Primary step: go straight to the full Book a Session page for this senior */}
-        {onBook && (
-          <button
-            onClick={onBook}
-            className="mt-2 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-base font-semibold"
-            style={{ background: "#7567C9", color: "#fff", fontFamily: "var(--font-body)" }}
-          >
-            <Video size={16} /> Book 1:1 session — starting ₹{STARTING_PRICE}
-          </button>
-        )}
-        {/* Secondary: read this senior's full profile first */}
-        {onProfile && (
-          <button
-            onClick={onProfile}
-            className="mt-2 ml-0 sm:ml-3 text-sm font-semibold"
-            style={{ background: "transparent", border: "none", color: "var(--c-accentText)", fontFamily: "var(--font-body)", cursor: "pointer", padding: "6px 0" }}
-          >
-            View {mentorName}'s profile
-          </button>
-        )}
+        {/* Full story — only for those who want it */}
+        <button
+          onClick={toggleStory}
+          className="mt-3 flex items-center gap-1"
+          style={{ fontSize: 13, fontWeight: 600, color: "var(--c-accentText)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          {showStory ? "Hide full story" : "Read my full story"}
+          <ChevronDown size={14} style={{ transform: showStory ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+        </button>
+        <AnimatePresence initial={false}>
+          {showStory && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="mt-3 pl-4" style={{ borderLeft: "2px solid var(--c-sidebarBorder)" }}>
+                {c.mainAnswer && c.mainAnswer !== tldr && <AnswerSection label="In short">{c.mainAnswer}</AnswerSection>}
+                <AnswerSection label="Where I started">{c.situation}</AnswerSection>
+                <AnswerSection label="What worked">{rawSteps.length ? c.whatWorked : null}</AnswerSection>
+                {allSteps.length > steps.length && (
+                  <AnswerSection label="More of what I did">
+                    <ul className="flex flex-col gap-1.5">
+                      {allSteps.slice(steps.length).map((s, k) => (
+                        <li key={k}><strong style={{ color: "var(--c-text)" }}>{s.title}</strong>{s.detail ? ` — ${s.detail}` : ""}</li>
+                      ))}
+                    </ul>
+                  </AnswerSection>
+                )}
+                {mistakes.length > 1 && (
+                  <AnswerSection label="Other mistakes">
+                    <ul className="flex flex-col gap-1.5">
+                      {mistakes.slice(1).map((m, k) => (
+                        <li key={k} className="flex gap-2"><span style={{ color: "#f87171" }}>✕</span><span>{m}</span></li>
+                      ))}
+                    </ul>
+                  </AnswerSection>
+                )}
+                <AnswerSection label="How long it took">{c.timeline}</AnswerSection>
+                <AnswerSection label="If I did it today">{c.differentApproach}</AnswerSection>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+
+      {/* Action bar — Helpful · Ask follow-up · Share */}
+      <div className="flex items-center gap-2 flex-wrap px-4 sm:px-5 py-3" style={{ borderTop: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={onHelpful}
+          aria-pressed={voted}
+          style={{ ...barBtn, color: voted ? "#fff" : "var(--c-textSub)", background: voted ? "#7567C9" : "var(--c-card)", borderColor: voted ? "#7567C9" : "var(--c-cardBorder)" }}
+        >
+          <ArrowBigUp size={17} fill={voted ? "#fff" : "none"} />
+          Helpful{helpfulCount > 0 ? ` · ${helpfulCount}` : ""}
+        </motion.button>
+        {onBook && (
+          <button onClick={onBook} style={{ ...barBtn, color: "#fff", background: "#7567C9", borderColor: "#7567C9" }}>
+            <MessageCircle size={15} /> Ask {first} a follow-up
+          </button>
+        )}
+        <button onClick={share} style={barBtn} aria-label="Share this answer">
+          <Share2 size={15} /> {shareNote || "Share"}
+        </button>
+      </div>
+      {onBook && (
+        <p style={{ fontSize: 11.5, color: "var(--c-textMuted)", margin: 0, padding: "0 20px 12px", background: "var(--c-sidebar)" }}>
+          Your situation isn't identical. Get {first}'s advice for <em>your</em> case, 1:1 from ₹{STARTING_PRICE}.
+        </p>
+      )}
+    </article>
   );
 }

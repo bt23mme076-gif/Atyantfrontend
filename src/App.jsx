@@ -1549,7 +1549,7 @@ export default function App() {
     // "upgrade" goes through goToUpgrade so the pricing page's Back returns here.
     jobs: <JobsPage onNavigate={(p) => (p === "upgrade" ? goToUpgrade() : setActivePage(p))} onAuthRequired={() => setShowAuth(true)} />,
     "mock-interview": <MockInterviewPage onAuthRequired={() => setShowAuth(true)} onNavigate={setActivePage} />,
-    clarity: <ClarityView key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} onOpenChat={handleOpenChat} />,
+    clarity: <ClarityView key={clarityQuery || "empty"} initialQuery={clarityQuery} initialContext={clarityContext} user={user} onTalkToMentor={handleStartBooking} onOpenChat={handleOpenChat} onAskQuestion={() => setActivePage("ask")} />,
     chat: <ChatPage key={chatMentor?.id || chatMentor?._id || "chat"} mentor={chatMentor} />,
     "mentor-onboard": <MentorOnboard onDone={() => setActivePage("profile")} />,
     book: <BookingPage mentor={bookingMentor} user={user} onAuthRequired={() => setShowAuth(true)} onFindMentor={() => setActivePage("clarity")} onOpenChat={() => { setChatMentor(bookingMentor); setActivePage("chat"); }} onViewSessions={() => setActivePage("sessions")} />,
