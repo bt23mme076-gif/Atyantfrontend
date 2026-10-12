@@ -461,7 +461,17 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const [query, setQuery] = useState(() => {
     try { return sessionStorage.getItem(ASK_PREFILL_KEY) || ""; } catch { return ""; }
   });
-  useEffect(() => { try { sessionStorage.removeItem(ASK_PREFILL_KEY); } catch { /* ignore */ } }, []);
+  useEffect(() => {
+    try { sessionStorage.removeItem(ASK_PREFILL_KEY); } catch { /* ignore */ }
+    // A prefilled question is usually multi-line: grow the box to fit it and put
+    // the cursor at the end so the student can edit straight away.
+    const el = heroInputRef.current;
+    if (el && el.value) {
+      autoGrow(el);
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only: consume the prefill once
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [thinkingLines, setThinkingLines] = useState([]);

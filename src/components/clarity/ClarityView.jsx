@@ -30,6 +30,7 @@ const displayHeading = (query) => {
 // Cheapest tier price, shown on the answer-card CTA. Real per-mentor prices load
 // from the service catalog on the full Book a Session page.
 const STARTING_PRICE = 49;
+const ASK_PREFILL_KEY = "atyant_ask_prefill"; // read by AskAtyantPage's composer
 
 // Example question shown when the student hasn't asked one. It models a good
 // question — year, branch, college, role, company are what the matcher uses —
@@ -214,7 +215,13 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   };
 
   // Shared question header (compact on mobile)
-  const askOwn = () => { eventsAPI.track("clarity_ask_own_clicked", { isExample }); onAskQuestion?.(); };
+  const askOwn = () => {
+    eventsAPI.track("clarity_ask_own_clicked", { isExample });
+    // Example → hand the sentence to the Ask composer so the student only swaps
+    // in their own college / company instead of starting from a blank box.
+    if (isExample) { try { sessionStorage.setItem(ASK_PREFILL_KEY, exampleQuery); } catch { /* ignore */ } }
+    onAskQuestion?.();
+  };
   const header = isExample ? (
     // Example mode: the question is drawn as a tappable input, with the parts a
     // good question needs highlighted — it shows *where* to ask and *how*.
@@ -589,7 +596,7 @@ function AnswerSlider({ cards, index, onIndex, question, helpful, onHelpful, res
         )}
       </div>
 
-      <div style={{ position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "relative", overflowX: "clip" }}>
           <motion.div
             key={id || i}
             initial={{ x: dir * 60, opacity: 0 }}
@@ -730,7 +737,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
   const barBtn = { display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: "7px 12px", cursor: "pointer", border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", color: "var(--c-textSub)", whiteSpace: "nowrap" };
 
   return (
-    <article style={{ borderRadius: 16, border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+    <article style={{ borderRadius: 16, border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
       <div className="px-4 sm:px-5 pt-4 pb-3">
         {/* Author row — who's answering, with their "flair" */}
         <div className="flex items-start gap-3">
@@ -885,31 +892,35 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
         </AnimatePresence>
       </div>
 
-      {/* Action bar — Helpful · Ask follow-up · Share */}
-      <div className="flex items-center gap-2 flex-wrap px-4 sm:px-5 py-3" style={{ borderTop: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)" }}>
-        <motion.button
-          whileTap={{ scale: 0.92 }}
-          onClick={onHelpful}
-          aria-pressed={voted}
-          style={{ ...barBtn, color: voted ? "#fff" : "var(--c-textSub)", background: voted ? "#7567C9" : "var(--c-card)", borderColor: voted ? "#7567C9" : "var(--c-cardBorder)" }}
-        >
-          <ArrowBigUp size={17} fill={voted ? "#fff" : "none"} />
-          Helpful{helpfulCount > 0 ? ` · ${helpfulCount}` : ""}
-        </motion.button>
-        {onBook && (
-          <button onClick={onBook} style={{ ...barBtn, color: "#fff", background: "#7567C9", borderColor: "#7567C9" }}>
-            <MessageCircle size={15} /> Ask {first} a follow-up
+      {/* Action bar — Helpful · Ask follow-up · Share. Sticky, so it's always on
+          screen while the answer is, no matter how long the answer gets. */}
+      <div style={{ position: "sticky", bottom: 0, zIndex: 2, borderTop: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)", borderRadius: "0 0 16px 16px", boxShadow: "0 -6px 16px -10px rgba(20,16,40,0.18)" }}>
+        <div className="flex items-center gap-2 px-3 sm:px-5 pt-2.5 pb-1.5">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={onHelpful}
+            aria-pressed={voted}
+            style={{ ...barBtn, color: voted ? "#fff" : "var(--c-textSub)", background: voted ? "#7567C9" : "var(--c-card)", borderColor: voted ? "#7567C9" : "var(--c-cardBorder)" }}
+          >
+            <ArrowBigUp size={17} fill={voted ? "#fff" : "none"} />
+            Helpful{helpfulCount > 0 ? ` · ${helpfulCount}` : ""}
+          </motion.button>
+          {onBook && (
+            <button onClick={onBook} style={{ ...barBtn, flex: 1, minWidth: 0, justifyContent: "center", color: "#fff", background: "#7567C9", borderColor: "#7567C9" }}>
+              <MessageCircle size={15} style={{ flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>Ask {first} a follow-up</span>
+            </button>
+          )}
+          <button onClick={share} style={{ ...barBtn, padding: "7px 10px" }} aria-label="Share this answer" title="Share">
+            <Share2 size={15} />{shareNote && <span>{shareNote}</span>}
           </button>
+        </div>
+        {onBook && (
+          <p style={{ fontSize: 11, color: "var(--c-textMuted)", margin: 0, padding: "0 16px 9px", textAlign: "center" }}>
+            Advice for <em>your</em> case, 1:1 with {first} · from ₹{STARTING_PRICE}
+          </p>
         )}
-        <button onClick={share} style={barBtn} aria-label="Share this answer">
-          <Share2 size={15} /> {shareNote || "Share"}
-        </button>
       </div>
-      {onBook && (
-        <p style={{ fontSize: 11.5, color: "var(--c-textMuted)", margin: 0, padding: "0 20px 12px", background: "var(--c-sidebar)" }}>
-          Your situation isn't identical. Get {first}'s advice for <em>your</em> case, 1:1 from ₹{STARTING_PRICE}.
-        </p>
-      )}
     </article>
   );
 }
