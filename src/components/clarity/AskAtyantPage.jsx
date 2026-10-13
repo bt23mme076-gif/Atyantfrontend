@@ -455,7 +455,7 @@ function RotatingHeadline({ paused, style }) {
   );
 }
 
-export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview }) {
+export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview, onGoToUpgrade }) {
   const isMobile = useIsMobile();
   // A question typed elsewhere (e.g. the Jobs welcome video) lands in the composer, unsent.
   const [query, setQuery] = useState(() => {
@@ -518,6 +518,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   // Staged file — picked but not yet sent. Shown as a preview chip in the
   // input (ChatGPT-style) so the student can back out before anything uploads.
   const [pendingFile, setPendingFile] = useState(null);
+  // Daily AI messages left (from the backend's `done` event); null = unknown/unlimited.
+  const [remaining, setRemaining] = useState(null);
   const docInputRef = useRef(null);
   const photoInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -719,6 +721,14 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   // Shared by both the text-chat flow and the résumé-upload flow: apply the
   // engine's result to page state (context badge, problem statement) and
   // shape it into what the message bubble needs.
+  // Daily-limit 429s (backend middleware/aiQuota.js) → a message with a login / upgrade button.
+  const limitMessage = (e) => {
+    const code = e?.data?.code;
+    if (code !== "GUEST_LIMIT" && code !== "USER_LIMIT") return null;
+    setRemaining(0);
+    return { sender: "atyant", text: e.message, showMatch: false, limit: code === "GUEST_LIMIT" ? "guest" : "user" };
+  };
+
   const applyEngineResult = (res, fallbackText) => {
     // Engine is "ready" once it routes to a mentor or has mapped enough context.
     const ready = res.outputMode === "MENTOR_ROUTING" || res.phase === "engine";
@@ -732,6 +742,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       goal: mapped.goal || prev.goal,
     }));
     if (res.problemStatement) setProblemStatement(res.problemStatement);
+    if (typeof res.remaining === "number") setRemaining(res.remaining);
     return {
       text: res.reply || fallbackText,
       showMatch: ready,
@@ -824,6 +835,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       streamTextRef.current = "";
       setStreamingText("");
       if (e.name === "AbortError") return;  // page unmounted — nothing to show
+      const limitMsg = limitMessage(e);
+      if (limitMsg) { setMessages(prev => [...prev, limitMsg]); return; }
       setMessages(prev => [...prev, {
         sender: "atyant",
         text: e?.status === 429
@@ -926,6 +939,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       streamTextRef.current = "";
       setStreamingText("");
       if (e.name === "AbortError") return;  // page unmounted — nothing to show
+      const limitMsg = limitMessage(e);
+      if (limitMsg) { setMessages(prev => [...prev, limitMsg]); return; }
       setMessages(prev => [...prev, {
         sender: "atyant",
         text: e?.status === 429
@@ -1406,6 +1421,14 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           onNeedAuth={() => window.openAuth?.()}
                         />
                       )}
+                      {!isUser && m.limit && (
+                        <button
+                          onClick={() => (m.limit === "guest" ? window.openAuth?.() : onGoToUpgrade?.())}
+                          style={{ marginTop: 12, background: "#7567C9", border: "none", borderRadius: 8, color: "#fff", padding: "8px 16px", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}
+                        >
+                          {m.limit === "guest" ? "Log in to continue" : "Upgrade for more messages"}
+                        </button>
+                      )}
                       {m.showMatch && (
                         <button
                           onClick={() => onGoToClarity(problemStatement || messages[0]?.text || "", {
@@ -1530,6 +1553,13 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                 </div>
               </div>
             </div>
+            {remaining !== null && remaining <= 3 && (
+              <div style={{ maxWidth: 780, margin: "6px auto 0", fontSize: "0.75rem", color: C.textMuted, textAlign: "center" }}>
+                {remaining === 0
+                  ? (user ? "Daily limit reached — upgrade or come back tomorrow." : "Free messages used up — log in to keep chatting.")
+                  : `${remaining} message${remaining === 1 ? "" : "s"} left today${user ? "" : " — log in for more"}`}
+              </div>
+            )}
           </div>
         </div>
       )}

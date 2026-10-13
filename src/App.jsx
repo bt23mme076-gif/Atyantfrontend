@@ -1545,7 +1545,7 @@ export default function App() {
   ];
 
   const pages = {
-    ask: <AskAtyantPage key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} onGoToMockInterview={() => setActivePage("mock-interview")} />,
+    ask: <AskAtyantPage key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} onGoToMockInterview={() => setActivePage("mock-interview")} onGoToUpgrade={goToUpgrade} />,
     // "upgrade" goes through goToUpgrade so the pricing page's Back returns here.
     jobs: <JobsPage onNavigate={(p) => (p === "upgrade" ? goToUpgrade() : setActivePage(p))} onAuthRequired={() => setShowAuth(true)} />,
     "mock-interview": <MockInterviewPage onAuthRequired={() => setShowAuth(true)} onNavigate={setActivePage} />,
