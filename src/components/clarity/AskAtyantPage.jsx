@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap } from "lucide-react";
+import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap, Lock } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI, eventsAPI } from "../../api";
 import InviteSeniors from "../invite/InviteSeniors";
@@ -455,6 +455,46 @@ function RotatingHeadline({ paused, style }) {
   );
 }
 
+// Shown when a guest runs out of free messages: the seniors we'd matched,
+// blurred, with a login hook. Real matched mentors when we have them; otherwise
+// anonymous skeleton cards — never invented names.
+const LockedMentors = ({ mentors, college, goal, onLogin }) => {
+  const rows = mentors?.length ? mentors.slice(0, 3) : [null, null, null];
+  return (
+    <div style={{ marginTop: 14, maxWidth: 520, width: "100%", position: "relative" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, filter: "blur(5px)", opacity: 0.85, pointerEvents: "none", userSelect: "none" }} aria-hidden="true">
+        {rows.map((m, i) => (
+          <div key={m?.id || i} style={{ display: "flex", gap: 11, padding: "11px 13px", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 11, alignItems: "center" }}>
+            {m?.profilePicture ? (
+              <img src={m.profilePicture} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: `${C.accent}33` }} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "0.85rem", fontWeight: 600, color: C.text }}>{m?.name || "Senior Mentor"}</div>
+              <div style={{ fontSize: "0.74rem", color: C.textMuted, marginTop: 1 }}>
+                {[m?.college || college, m?.topCompanies?.[0] || m?.companyDomain || "Top company"].filter(Boolean).join(" · ")}
+              </div>
+              <div style={{ display: "flex", gap: 5, marginTop: 7 }}>
+                <span style={{ fontSize: "0.7rem", color: C.green, background: `${C.green}14`, borderRadius: 999, padding: "2px 8px" }}>Same college</span>
+                <span style={{ fontSize: "0.7rem", color: C.green, background: `${C.green}14`, borderRadius: 999, padding: "2px 8px" }}>{goal || "Your goal"}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <button
+          onClick={onLogin}
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#7567C9", color: "#fff", border: "none", borderRadius: 999, padding: "10px 20px", fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", boxShadow: "0 6px 20px rgba(117,103,201,0.45)" }}
+        >
+          <Lock size={14} /> Log in to unlock your seniors
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview, onGoToUpgrade }) {
   const isMobile = useIsMobile();
   // A question typed elsewhere (e.g. the Jobs welcome video) lands in the composer, unsent.
@@ -726,7 +766,19 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     const code = e?.data?.code;
     if (code !== "GUEST_LIMIT" && code !== "USER_LIMIT") return null;
     setRemaining(0);
-    return { sender: "atyant", text: e.message, showMatch: false, limit: code === "GUEST_LIMIT" ? "guest" : "user" };
+    if (code === "USER_LIMIT") return { sender: "atyant", text: e.message, showMatch: false, limit: "user" };
+    const college = context.college || knownContextRef.current.college || "";
+    const goal = context.goal || knownContextRef.current.target || "";
+    const lastMatched = [...messages].reverse().find(x => x.mentors?.length)?.mentors || null;
+    return {
+      sender: "atyant",
+      text: `We found the best seniors from ${college || "your college"}${goal ? ` who've already cracked ${goal}` : " who've been exactly where you are"}. Log in free to unlock them, keep chatting and get a clear plan for your target.`,
+      showMatch: false,
+      limit: "guest",
+      lockedMentors: lastMatched,
+      lockedCollege: college,
+      lockedGoal: goal,
+    };
   };
 
   const applyEngineResult = (res, fallbackText) => {
@@ -1421,12 +1473,20 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           onNeedAuth={() => window.openAuth?.()}
                         />
                       )}
-                      {!isUser && m.limit && (
+                      {!isUser && m.limit === "guest" && (
+                        <LockedMentors
+                          mentors={m.lockedMentors}
+                          college={m.lockedCollege}
+                          goal={m.lockedGoal}
+                          onLogin={() => window.openAuth?.()}
+                        />
+                      )}
+                      {!isUser && m.limit === "user" && (
                         <button
-                          onClick={() => (m.limit === "guest" ? window.openAuth?.() : onGoToUpgrade?.())}
+                          onClick={() => onGoToUpgrade?.()}
                           style={{ marginTop: 12, background: "#7567C9", border: "none", borderRadius: 8, color: "#fff", padding: "8px 16px", fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}
                         >
-                          {m.limit === "guest" ? "Log in to continue" : "Upgrade for more messages"}
+                          Upgrade for more messages
                         </button>
                       )}
                       {m.showMatch && (
