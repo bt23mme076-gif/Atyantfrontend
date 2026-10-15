@@ -23,7 +23,7 @@ const ERASER_W = 44;
  * in sync while it's up. Drawing is broadcast stroke-segment by stroke-segment
  * over the LiveKit data channel (reliable, so nothing is dropped).
  *
- * Note: strokes drawn before a peer opens the board are not back-filled — the
+ * Note: strokes drawn before a peer opens the board are not back-filled - the
  * board syncs from the moment both sides have it open (which the auto-open on
  * first stroke guarantees for the normal flow).
  */
@@ -79,7 +79,7 @@ export default function Whiteboard({ top = 66, right = 14 }) {
         if (ctx) ctx.clearRect(0, 0, BW, BH);
     }, []);
 
-    // Incoming messages from the peer. Stable — reads refs, not state.
+    // Incoming messages from the peer. Stable - reads refs, not state.
     const onMessage = useCallback((msg) => {
         let d;
         try {

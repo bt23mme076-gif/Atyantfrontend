@@ -162,7 +162,7 @@ export default function ShareProfile({ publicUrl }) {
         Share profile
       </button>
 
-      {/* Overlay + panel — portaled to <body> so it centers on the viewport
+      {/* Overlay + panel - portaled to <body> so it centers on the viewport
           instead of getting clipped by an ancestor's containing block
           (e.g. the profile hero's fade-in animation leaves a non-"none"
           transform behind, which makes position:fixed relative to it). */}
@@ -179,7 +179,7 @@ export default function ShareProfile({ publicUrl }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
               <div>
                 <h3 style={{ fontSize: "1rem", fontWeight: 700, color: T.text, margin: 0 }}>Share your Atyant profile</h3>
-                <p style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>Every share is tracked — see who found you through your link.</p>
+                <p style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>Every share is tracked - see who found you through your link.</p>
               </div>
               <button onClick={() => setOpen(false)}
                 style={{ background: T.active, border: `1px solid ${T.cardBorder}`, borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.textSub, flexShrink: 0 }}>

@@ -41,11 +41,11 @@ async function request(method, path, body) {
 }
 
 // Shared SSE reader used by both requestStream (JSON body) and
-// requestFormStream (multipart body) below — everything past "make the fetch
+// requestFormStream (multipart body) below - everything past "make the fetch
 // call" (parsing frames, timeout, abort wiring) is identical either way.
 async function streamRequest(path, fetchInit, onProgress, signal, timeoutMs) {
   // Own AbortController so a timeout can cancel the fetch even if the caller
-  // never aborts — a hung connection would otherwise leave the UI "thinking"
+  // never aborts - a hung connection would otherwise leave the UI "thinking"
   // forever, the exact failure mode this streaming path exists to avoid.
   const controller = new AbortController();
   const forwardAbort = () => controller.abort();
@@ -95,8 +95,8 @@ async function streamRequest(path, fetchInit, onProgress, signal, timeoutMs) {
     }
     throw new Error('Stream ended without a response');
   } catch (err) {
-    // Distinguish "we gave up waiting" (timeout — a real, user-facing failure)
-    // from "the caller cancelled us" (unmount abort — silent, not an error the
+    // Distinguish "we gave up waiting" (timeout - a real, user-facing failure)
+    // from "the caller cancelled us" (unmount abort - silent, not an error the
     // user needs to see). Both surface as AbortError from fetch otherwise.
     if (timedOut && err.name === 'AbortError') {
       const timeoutErr = new Error('That took too long. Try again?');
@@ -110,7 +110,7 @@ async function streamRequest(path, fetchInit, onProgress, signal, timeoutMs) {
   }
 }
 
-// JSON-body SSE request — used by the Atyant chat endpoint so the "thinking"
+// JSON-body SSE request - used by the Atyant chat endpoint so the "thinking"
 // UI can reflect real backend state instead of a guess.
 function requestStream(path, body, onProgress, signal, timeoutMs = 45000) {
   const headers = { 'Content-Type': 'application/json' };
@@ -119,13 +119,13 @@ function requestStream(path, body, onProgress, signal, timeoutMs = 45000) {
   return streamRequest(path, { method: 'POST', headers, credentials: 'include', body: JSON.stringify(body) }, onProgress, signal, timeoutMs);
 }
 
-// Multipart SSE request — for the résumé-upload endpoint. Longer default
+// Multipart SSE request - for the résumé-upload endpoint. Longer default
 // timeout: PDF/vision extraction is real extra work on top of the normal turn.
 function requestFormStream(path, formData, onProgress, signal, timeoutMs = 60000) {
   const headers = {};
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  // No Content-Type here — the browser sets multipart/form-data with the boundary.
+  // No Content-Type here - the browser sets multipart/form-data with the boundary.
   return streamRequest(path, { method: 'POST', headers, credentials: 'include', body: formData }, onProgress, signal, timeoutMs);
 }
 
@@ -192,7 +192,7 @@ export const profileAPI = {
   update: (data)  => api.put('/api/profile/me', data),
   // Fire-and-forget: count a profile view from answer cards / match results
   trackView: (mentorId) => api.post(`/api/profile/${mentorId}/view`, {}),
-  // Upload a profile picture (multipart) — returns { profilePicture }.
+  // Upload a profile picture (multipart) - returns { profilePicture }.
   uploadPicture: async (file) => uploadFile('/api/profile/upload-picture', 'profilePicture', file),
   // Parse a LinkedIn/résumé PDF → { success, data:{ name, bio, topCompanies, expertise, education, ... } }
   parseLinkedin: async (file) => uploadFile('/api/profile/parse-linkedin', 'resumePdf', file),
@@ -201,11 +201,11 @@ export const profileAPI = {
   // Remove stored resume
   deleteResume: () => api.delete('/api/profile/upload-resume'),
   // Parse a résumé PDF → { success, data:{ skills, projects, education, workExperience, yearsOfExperience, preferredRoles } }
-  // Job-matching shaped, distinct from parseLinkedin's mentor-shaped output. Review-before-save — call update() after.
+  // Job-matching shaped, distinct from parseLinkedin's mentor-shaped output. Review-before-save - call update() after.
   extractSkills: async (file) => uploadFile('/api/profile/extract-skills', 'resumePdf', file),
 };
 
-// Shared multipart uploader (FormData — no JSON Content-Type so the browser sets the boundary).
+// Shared multipart uploader (FormData - no JSON Content-Type so the browser sets the boundary).
 async function uploadFile(path, field, file) {
   const form = new FormData();
   form.append(field, file);
@@ -229,9 +229,9 @@ export const mentorAPI = {
   answerCards: ()           => api.get('/api/mentor/answer-cards'),
   // AI-draft a full card from one paragraph (returns a draft, does not save).
   generateAnswerCard: (story) => api.post('/api/mentor/answer-cards/generate', { story }),
-  // Write a brand-new answer card from scratch — the server embeds it.
+  // Write a brand-new answer card from scratch - the server embeds it.
   createAnswerCard: (content) => api.post('/api/mentor/answer-cards', content),
-  // Edit one card's content — the server re-embeds it for matching.
+  // Edit one card's content - the server re-embeds it for matching.
   updateAnswerCard: (id, content) => api.put(`/api/mentor/answer-cards/${id}`, content),
   // Update mentor's public profile slug
   updateSlug: (slug) => api.put('/api/mentor/slug', { slug }),
@@ -279,14 +279,14 @@ export const eventsAPI = {
   },
 };
 
-// Atyant AI chat — 2-phase intake + execution engine
+// Atyant AI chat - 2-phase intake + execution engine
 export const aiAPI = {
   atyantChat: (message, sessionId) => api.post('/api/ai/atyant-chat', { message, sessionId }),
-  // Same endpoint, but reads it as a live progress stream — resolves with the
+  // Same endpoint, but reads it as a live progress stream - resolves with the
   // same shape as atyantChat once the `done` event arrives.
   atyantChatStream: (message, sessionId, onProgress, signal) =>
     requestStream('/api/ai/atyant-chat', { message, sessionId }, onProgress, signal),
-  // Upload a résumé (PDF or a photo) — same progress-stream shape as atyantChatStream.
+  // Upload a résumé (PDF or a photo) - same progress-stream shape as atyantChatStream.
   atyantResumeStream: (file, sessionId, onProgress, signal, message) => {
     const form = new FormData();
     form.append('resume', file);
@@ -296,7 +296,7 @@ export const aiAPI = {
   },
   // Restore an existing conversation (messages + context) so chat survives refresh.
   getSession: (sessionId) => api.get(`/api/ai/atyant-chat/${sessionId}`),
-  // Thumbs up/down on a bot reply — value: 'up' | 'down' | null (null = un-vote).
+  // Thumbs up/down on a bot reply - value: 'up' | 'down' | null (null = un-vote).
   chatFeedback: (sessionId, message, value) =>
     api.post(`/api/ai/atyant-chat/${sessionId}/feedback`, { message, value }),
 };
@@ -315,7 +315,7 @@ export const livekitAPI = {
   resume: (sessionId) => api.get(`/api/livekit/session/${sessionId}/resume`),
 };
 
-// Payments (Razorpay) — book a paid session + auto Meet link
+// Payments (Razorpay) - book a paid session + auto Meet link
 export const paymentAPI = {
   // Returns { free, keyId, orderId, amount, currency, sessionId, mentorName, topic } | { free:true, session }
   createOrder: ({ mentorId, date, time, topic, durationMin, serviceId }) =>
@@ -324,7 +324,7 @@ export const paymentAPI = {
   verify: (payload) => api.post('/api/payments/verify', payload),
 };
 
-// Subscriptions (Razorpay) — Clarity/Pro plan purchases
+// Subscriptions (Razorpay) - Clarity/Pro plan purchases
 export const subscriptionAPI = {
   // Returns { keyId, orderId, amount, currency, plan, billing }
   create: (plan, billing) => api.post('/api/subscriptions/create', { plan, billing }),
@@ -367,9 +367,9 @@ export const roadmapAPI = {
   setStep:  (idx, status) => api.patch(`/api/roadmap/step/${idx}/status`, { status }),
 };
 
-// Jobs — Greenhouse/Lever aggregation, matching, auto-apply
+// Jobs - Greenhouse/Lever aggregation, matching, auto-apply
 export const jobsAPI = {
-  // Plain filtered job list — no resume/skills required. { jobs, total, page, limit }.
+  // Plain filtered job list - no resume/skills required. { jobs, total, page, limit }.
   list: ({ q, location, company, source, remote, page, limit } = {}) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
@@ -382,9 +382,9 @@ export const jobsAPI = {
     const qs = params.toString();
     return api.get(`/api/jobs${qs ? `?${qs}` : ''}`);
   },
-  // Distinct companies with open postings, for the filter dropdown — { companies: [{company, count}] }.
+  // Distinct companies with open postings, for the filter dropdown - { companies: [{company, count}] }.
   companies: () => api.get('/api/jobs/companies'),
-  // Open jobs scored against the current user's profile — { matches, total, page, limit }.
+  // Open jobs scored against the current user's profile - { matches, total, page, limit }.
   matches: ({ minScore, page, limit } = {}) => {
     const params = new URLSearchParams();
     if (minScore !== undefined) params.set('minScore', minScore);
@@ -393,20 +393,20 @@ export const jobsAPI = {
     const qs = params.toString();
     return api.get(`/api/jobs/matches${qs ? `?${qs}` : ''}`);
   },
-  // Generate a tailored cover letter for one job — { coverLetter }.
+  // Generate a tailored cover letter for one job - { coverLetter }.
   coverLetter: (jobId) => api.post(`/api/jobs/${jobId}/cover-letter`, {}),
   // Self-report a manual (assisted) application after the student applies on the real site.
   markApplied: (jobId) => api.post(`/api/jobs/${jobId}/mark-applied`, {}),
   // Runs the real Playwright auto-apply engine on one job immediately (requires autoApply.enabled).
   autoApplyNow: (jobId) => api.post(`/api/jobs/${jobId}/auto-apply-now`, {}),
-  // Saved answer bank for application questions that blocked auto-apply — { answers }.
+  // Saved answer bank for application questions that blocked auto-apply - { answers }.
   getApplicationAnswers: () => api.get('/api/jobs/application-answers'),
   // Save one or more { questionText, answerText } pairs. Same answer reused across every job asking a similar question.
   saveApplicationAnswers: (answers) => api.post('/api/jobs/application-answers', { answers }),
   // Opted-in student's own application audit trail (auto-apply + manual results).
   applications: () => api.get('/api/jobs/applications'),
   // Update auto-apply settings. Pass { enabled: true, confirm: true, ... } to
-  // turn it on (confirm is the explicit consent flag — required by the
+  // turn it on (confirm is the explicit consent flag - required by the
   // backend); omit `enabled` entirely to update minMatchScore/excludedCompanies/
   // phone without re-triggering the consent check; { enabled: false } to
   // disable instantly, no confirm needed.
@@ -415,7 +415,7 @@ export const jobsAPI = {
   autoApplyUsage: () => api.get('/api/jobs/auto-apply/usage'),
 };
 
-// Mock interview — JD + resume → prep (parse + plan) → interview → evaluation → report.
+// Mock interview - JD + resume → prep (parse + plan) → interview → evaluation → report.
 // Backend: Atyantbackend routes/mockInterviewRoutes.js
 //   POST /api/mock-interviews            multipart { company, role, jdText | jdFile, resume (PDF) | resumeText }
 //                                         → { id, status }  (prep runs in the background; poll get)
@@ -430,7 +430,7 @@ export const jobsAPI = {
 //   POST /api/mock-interviews/:id/unlock/verify { razorpay_order_id, razorpay_payment_id, razorpay_signature }
 //   POST /api/mock-interviews/:id/retake → { id, attempt }
 
-// Reviews — platform feedback (signed in or not) and per-service ratings.
+// Reviews - platform feedback (signed in or not) and per-service ratings.
 //   POST /api/reviews { kind: "platform"|"mock_interview"|"session", target?, rating, tags?, comment?, page? }
 //   GET  /api/reviews/mine?kind=&target=  → { review | null }
 export const reviewAPI = {
@@ -485,7 +485,7 @@ export const mockInterviewAPI = {
   retake:       (id) => api.post(`/api/mock-interviews/${id}/retake`, {}),
 };
 
-// TPO (Training & Placement) — VNIT dashboard
+// TPO (Training & Placement) - VNIT dashboard
 // Backend contract:
 //   GET  /api/tpo/students  → { students: [{ _id, name, email, branch, year, cgpa, targetCompany }] }
 //   GET  /api/tpo/mentors   → { mentors:  [{ _id, name, currentRole, currentCompany }] }

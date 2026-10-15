@@ -16,7 +16,7 @@ export function loadRazorpay() {
  * The ONE real checkout used everywhere money is collected (booking page AND the
  * inline Clarity sheet). Money lands in the company Razorpay account; the server
  * verifies the signature, confirms the session, and records the mentor's payout
- * share. Price is fixed server-side from `serviceId` — never trusted from the client.
+ * share. Price is fixed server-side from `serviceId` - never trusted from the client.
  *
  * @param {object}   p
  * @param {string}   p.mentorId        real User _id of the mentor
@@ -34,7 +34,7 @@ export async function payForSession({
   mentorId, date, time, serviceId, topic, durationMin,
   prefill = {}, onSuccess, onError = () => {}, onClose = () => {},
 }) {
-  if (!mentorId) return onError("Missing mentor — please reopen and try again.");
+  if (!mentorId) return onError("Missing mentor - please reopen and try again.");
   if (!date || !time) return onError("Pick a date and time first.");
 
   let order;

@@ -1,5 +1,5 @@
 // Feedback / review setup shared by the FeedbackModal and the places that open it.
-// Tags must match the backend's REVIEW_TAGS (models/Review.js) — unknown tags are dropped there.
+// Tags must match the backend's REVIEW_TAGS (models/Review.js) - unknown tags are dropped there.
 
 export const FEEDBACK_PRESETS = {
   platform: {

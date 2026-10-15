@@ -112,7 +112,7 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
       const res = await inviteAPI.create({ sessionId, senior: s });
       setInvited(prev => ({ ...prev, [s.linkedinUrl]: res }));
       eventsAPI.track("invite_sent_click", { code: res.code });
-      // Copy now, but don't jump to LinkedIn yet — the student needs to see the
+      // Copy now, but don't jump to LinkedIn yet - the student needs to see the
       // message is on their clipboard and what to do with it first.
       copy(s.linkedinUrl, "message", res.message);
     } catch (e) {
@@ -137,10 +137,10 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
     <div style={{ marginTop: 14, maxWidth: 520, width: "100%" }}>
       <div style={{ ...card, background: "var(--c-accentSoft)" }}>
         <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--c-text)" }}>
-          No senior from {college || "your college"} on Atyant yet — bring one in
+          No senior from {college || "your college"} on Atyant yet - bring one in
         </div>
         <div style={{ fontSize: "0.8rem", color: "var(--c-textSub)", marginTop: 4, lineHeight: 1.5 }}>
-          We'll search LinkedIn for seniors from your college on your target path. Invite one — when they join and answer, you earn a reward.
+          We'll search LinkedIn for seniors from your college on your target path. Invite one - when they join and answer, you earn a reward.
         </div>
         {(state === "idle" || state === "error") && (
           <button onClick={search} style={{ ...btn, marginTop: 10 }}>
@@ -228,7 +228,7 @@ export default function InviteSeniors({ sessionId, onNeedAuth, signedIn, college
                     <li>Open {s.name.split(" ")[0]}'s LinkedIn</li>
                     {kind === "note"
                       ? <li>Click <b>Connect → Add a note</b></li>
-                      : <li>Click <b>Message</b> — not connected? Switch to <b>Connection note</b></li>}
+                      : <li>Click <b>Message</b> - not connected? Switch to <b>Connection note</b></li>}
                     <li>Paste with <b>Ctrl+V</b> and send</li>
                   </ol>
 

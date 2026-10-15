@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 // Returns true when the viewport is narrower than `breakpoint` (default 768px).
-// Used purely to add mobile behaviour — desktop rendering stays unchanged.
+// Used purely to add mobile behaviour - desktop rendering stays unchanged.
 export default function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < breakpoint : false

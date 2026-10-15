@@ -96,7 +96,7 @@ export default function FeedbackModal({ kind, initialRating = 0, subtitle, onSub
               </div>
             </div>
 
-            {/* Quick tags — appear once there's a rating */}
+            {/* Quick tags - appear once there's a rating */}
             {rating > 0 && (
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: ".84rem", fontWeight: 700, marginBottom: 8 }}>{rating >= 4 ? "What went well?" : "What could be better?"} <span style={{ fontWeight: 500, color: "var(--c-textMuted)" }}>(pick any)</span></div>

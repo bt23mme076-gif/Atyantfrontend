@@ -31,10 +31,10 @@ const toOptions = (e) =>
         : { mode: 'virtual-background', imagePath: e.imagePath };
 
 // The segmenter (WASM runtime + selfie-segmentation model) is fetched by
-// default from cdn.jsdelivr.net and storage.googleapis.com — both blocked by
+// default from cdn.jsdelivr.net and storage.googleapis.com - both blocked by
 // this app's CSP (vercel.json only whitelists our own API + payment origins).
 // Self-hosted instead, under /product-assets/mediapipe (copied from
-// node_modules/@mediapipe/tasks-vision — see public/product-assets/mediapipe).
+// node_modules/@mediapipe/tasks-vision - see public/product-assets/mediapipe).
 // Kept under /product-assets so it never collides with the marketing site's
 // own /assets (proxied from the marketing site).
 const ASSET_PATHS = {
@@ -47,7 +47,7 @@ const BLUR = { mode: 'background-blur', blurRadius: 14 };
 /**
  * Floating control that lets a participant blur or replace their own camera
  * background. The effect is applied to the LOCAL camera track, so the other
- * side sees it automatically — no data channel needed. Persists across camera
+ * side sees it automatically - no data channel needed. Persists across camera
  * on/off (re-applies whenever a new camera track is published).
  */
 export default function BackgroundControl({ top = 14, right = 14 }) {
@@ -103,7 +103,7 @@ export default function BackgroundControl({ top = 14, right = 14 }) {
                 // in toOptions (which also feeds switchTo on an already-attached track).
                 if (attachedTrackRef.current !== track || !procRef.current) {
                     // GPU decoding isn't available/stable on every device (integrated
-                    // graphics, some VMs, GPU sandboxing) — when it fails, the whole
+                    // graphics, some VMs, GPU sandboxing) - when it fails, the whole
                     // segmenter init throws and the effect must fall back to CPU
                     // instead of leaving the camera feed silently unprocessed.
                     try {

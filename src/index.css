@@ -56,11 +56,11 @@
    The brand accent (#7567C9) is intentionally identical in both themes.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  /* Type — one body face and one display face for page titles, everywhere. */
+  /* Type - one body face and one display face for page titles, everywhere. */
   --font-body: 'Satoshi', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: Georgia, 'Times New Roman', serif;
 
-  /* App shell palette — light */
+  /* App shell palette - light */
   --c-bg: #F6F6FB;
   --c-sidebar: #FFFFFF;
   --c-sidebarBorder: #E7E5EE;
@@ -98,7 +98,7 @@
 }
 
 .dark {
-  /* App shell palette — dark. Surfaces and borders lifted a step so cards,
+  /* App shell palette - dark. Surfaces and borders lifted a step so cards,
      service rows and booking slots read lighter/clearer; page bg stays dark
      for contrast. */
   --c-bg: #15141D;
@@ -347,14 +347,14 @@ body {
   }
 }
 
-/* Ambient room background — replaces LiveKit's flat #111 with a subtle brand
+/* Ambient room background - replaces LiveKit's flat #111 with a subtle brand
    glow so the call surface doesn't look like a stock video widget. */
 .atyant-meet.lk-room-container,
 .atyant-meet .lk-room-container {
   background: #0f0e14;
 }
 
-/* Participant tiles — soft elevation + a brand-tinted speaking ring instead of
+/* Participant tiles - soft elevation + a brand-tinted speaking ring instead of
    the default flat blue, so active speakers read as "on brand" not "on Zoom". */
 .atyant-meet .lk-participant-tile {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);

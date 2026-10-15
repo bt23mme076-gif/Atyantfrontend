@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
   }, [loadFullUser]);
 
   // ── OTP-based signup (2-step) ─────────────────────────────────────────────
-  // Step 1: send OTP — returns { message }. Does NOT log the user in.
+  // Step 1: send OTP - returns { message }. Does NOT log the user in.
   const signupInitiate = useCallback(async (username, email, password, phone, role) => {
     return await authAPI.signupInitiate(username, email, password, phone, role);
   }, []);
@@ -90,9 +90,9 @@ export function AuthProvider({ children }) {
       user, loading,
       login,
       signup,             // legacy
-      signupInitiate,     // NEW — step 1
-      signupVerify,       // NEW — step 2
-      signupResendOtp,    // NEW — resend
+      signupInitiate,     // NEW - step 1
+      signupVerify,       // NEW - step 2
+      signupResendOtp,    // NEW - resend
       logout,
       refreshUser,
       setUser,

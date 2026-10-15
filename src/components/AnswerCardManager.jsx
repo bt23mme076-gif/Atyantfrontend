@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Loader2, Sparkles, FileText, Plus as PlusIcon, Trash2, Check, Pencil, Eye, EyeOff } from "lucide-react";
 import { mentorAPI } from "../api";
 
-// Theme palette — maps to CSS vars defined in index.css (light + dark).
+// Theme palette - maps to CSS vars defined in index.css (light + dark).
 const C = {
   bg:           "var(--c-bg)",
   card:         "var(--c-card)",
@@ -24,7 +24,7 @@ function Spin({ size = 18 }) {
 }
 
 // ─── Answer Card Manager ──────────────────────────────────────────────────────
-// Modal where a mentor reviews and edits their own answer cards — the same cards
+// Modal where a mentor reviews and edits their own answer cards - the same cards
 // students see on the Clarity page. Saving re-embeds the card on the server.
 function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false, onConfirm, onClose, onSaved }) {
   const [c, setC] = useState(() => {
@@ -64,20 +64,20 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
         actionableSteps:   Array.isArray(ac.actionableSteps) ? ac.actionableSteps : [],
       });
     } catch (e) {
-      setError(e.message || "Couldn't auto-fill — just type the sections below.");
+      setError(e.message || "Couldn't auto-fill - just type the sections below.");
     } finally {
       setGenerating(false);
     }
   };
 
-  // Manual button — needs a bit of text to work from.
+  // Manual button - needs a bit of text to work from.
   const generate = () => {
     if (story.trim().length < 20) { setError("Write a few sentences about your journey first (min ~20 chars)."); return; }
     runGenerate(story);
   };
 
   // 🔥 Auto-draft on open: a new card immediately gets filled from the mentor's
-  // profile/story — so they review, not write from scratch.
+  // profile/story - so they review, not write from scratch.
   useEffect(() => {
     if (isNew && !autoRan.current) {
       autoRan.current = true;
@@ -213,40 +213,40 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
             )}
 
             {!c.mainAnswer && !c.situation && (
-              <p style={{ fontSize:"0.82rem", color:C.textMuted, textAlign:"center", padding:"1rem 0" }}>Fill some sections in the editor — they'll appear here.</p>
+              <p style={{ fontSize:"0.82rem", color:C.textMuted, textAlign:"center", padding:"1rem 0" }}>Fill some sections in the editor - they'll appear here.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Honest-intent note — reminds mentors this is real, matched & tracked */}
+      {/* Honest-intent note - reminds mentors this is real, matched & tracked */}
       <div style={{ display:"flex", alignItems:"flex-start", gap:9, background:C.active, border:`1px solid ${C.cardBorder}`, borderRadius:10, padding:"11px 13px", marginBottom:"1.25rem" }}>
         <span style={{ fontSize:"1rem", lineHeight:1, marginTop:1 }}>✍️</span>
         <div style={{ fontSize:"0.8rem", color:C.textSub, lineHeight:1.6 }}>
-          This is <strong style={{ color:C.text }}>your journey</strong> — students read it, connect with your background, and book a session with you. The more real it is, the more they trust you. <strong style={{ color:C.text }}>Your struggles, your path, your wins</strong> — that's what makes someone say "this senior gets me." We also use it to track how your guidance actually helps students over time. 💛
+          This is <strong style={{ color:C.text }}>your journey</strong> - students read it, connect with your background, and book a session with you. The more real it is, the more they trust you. <strong style={{ color:C.text }}>Your struggles, your path, your wins</strong> - that's what makes someone say "this senior gets me." We also use it to track how your guidance actually helps students over time. 💛
         </div>
       </div>
 
-      {/* Heads-up banner — shown on the freshly AI-drafted card after onboarding */}
+      {/* Heads-up banner - shown on the freshly AI-drafted card after onboarding */}
       {reviewBanner && (
         <div style={{ background:"rgba(61,190,130,0.1)", border:`1px solid ${C.green}55`, borderRadius:10, padding:"11px 13px", marginBottom:"1.25rem" }}>
           <div style={{ display:"flex", alignItems:"flex-start", gap:9 }}>
             <Sparkles size={15} style={{ color:C.green, flexShrink:0, marginTop:1 }} />
             <div style={{ fontSize:"0.8rem", color:C.text, lineHeight:1.5 }}>
-              <strong>We've drafted your journey card — review before students see it.</strong>
+              <strong>We've drafted your journey card - review before students see it.</strong>
               <span style={{ color:C.textMuted }}> Students will read this to decide if they want to book a session with you. Edit any section, or keep it as-is.</span>
             </div>
           </div>
           {onConfirm && (
             <button type="button" onClick={onConfirm}
               style={{ marginTop:9, marginLeft:24, display:"inline-flex", alignItems:"center", gap:6, background:C.green, border:`1px solid ${C.green}`, borderRadius:8, padding:"7px 14px", color:"#fff", fontSize:"0.8rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-              <Check size={13} /> Looks good — keep it live
+              <Check size={13} /> Looks good - keep it live
             </button>
           )}
         </div>
       )}
 
-      {/* ✨ AI draft — write one paragraph, get the whole card filled in */}
+      {/* ✨ AI draft - write one paragraph, get the whole card filled in */}
       <div style={{ background:C.accentSoft, border:`1px solid ${C.accent}44`, borderRadius:12, padding:"1rem", marginBottom:"1.25rem" }}>
         <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:7 }}>
           <Sparkles size={14} style={{ color:C.accent }} />
@@ -256,7 +256,7 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
         </div>
         <p style={{ fontSize:"0.76rem", color:C.textMuted, margin:"0 0 8px", lineHeight:1.5 }}>
           {generating
-            ? "Writing your journey card — one sec."
+            ? "Writing your journey card - one sec."
             : "Your journey card is what students read before booking a session with you. Add more to your story below and regenerate, or just edit the sections directly and publish."}
         </p>
         <textarea rows={3} value={story} onChange={e => setStory(e.target.value)} style={ta}
@@ -269,7 +269,7 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
 
       <div style={{ background:"#f871711a", border:"1px solid #f8717144", borderRadius:10, padding:"10px 13px", marginBottom:10 }}>
         <div style={{ fontSize:"0.72rem", fontWeight:800, color:"#f87171", letterSpacing:"0.08em", marginBottom:5 }}>
-          ⚡ HEADLINE — what students see first · most important field
+          ⚡ HEADLINE - what students see first · most important field
         </div>
         <div style={{ fontSize:"0.72rem", lineHeight:1.6 }}>
           <span style={{ color:C.textMuted }}>Write it as your transformation: </span>
@@ -285,7 +285,7 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
       <label style={lbl}>WHAT WORKED</label>
       <textarea rows={2} value={c.whatWorked} onChange={e => set("whatWorked", e.target.value)} style={ta} placeholder="What actually moved the needle" />
 
-      {/* Action plan — editable list of steps */}
+      {/* Action plan - editable list of steps */}
       <label style={lbl}>ACTION PLAN</label>
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {c.actionableSteps.map((s, i) => (
@@ -309,7 +309,7 @@ function AnswerCardEditor({ card, isNew, initialStory = "", reviewBanner = false
         </button>
       </div>
 
-      {/* Mistakes to avoid — editable list */}
+      {/* Mistakes to avoid - editable list */}
       <label style={lbl}>MISTAKES TO AVOID</label>
       <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
         {c.keyMistakes.map((m, i) => (
@@ -403,12 +403,12 @@ export default function AnswerCardManager({ onClose, initialStory = "", autoOpen
         {loading && <div style={{ display:"flex", alignItems:"center", gap:8, color:C.textSub, fontSize:"0.86rem", padding:"1rem 0" }}><Spin size={15}/> Loading…</div>}
         {!loading && error && <p style={{ color:"#f87171", fontSize:"0.85rem" }}>{error}</p>}
 
-        {/* List / empty state — hidden while editing or creating */}
+        {/* List / empty state - hidden while editing or creating */}
         {!loading && !error && !active && !creating && (
           cards.length === 0
             ? <div style={{ padding:"0.5rem 0" }}>
                 <p style={{ color:C.textMuted, fontSize:"0.86rem", lineHeight:1.6, marginTop:0 }}>
-                  You don't have an answer card yet. Write one now — it's exactly what students see when they're matched to you.
+                  You don't have an answer card yet. Write one now - it's exactly what students see when they're matched to you.
                 </p>
                 <button onClick={() => setCreating(true)}
                   style={{ display:"flex", alignItems:"center", gap:7, background:C.accent, border:`1px solid ${C.accent}`, borderRadius:9, padding:"10px 18px", color:"#fff", fontSize:"0.86rem", fontWeight:600, cursor:"pointer", fontFamily:"inherit", marginTop:"0.5rem" }}>
@@ -417,7 +417,7 @@ export default function AnswerCardManager({ onClose, initialStory = "", autoOpen
               </div>
             : <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 <p style={{ color:C.textMuted, fontSize:"0.8rem", margin:"0 0 0.25rem", lineHeight:1.6 }}>
-                  This is what students see when they're matched to you. Edit anything — saving re-publishes it instantly.
+                  This is what students see when they're matched to you. Edit anything - saving re-publishes it instantly.
                 </p>
                 {cards.map(card => (
                   <button key={card.id} onClick={() => setActiveId(card.id)}

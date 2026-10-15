@@ -221,7 +221,7 @@ export default function VideoBubble({ config, onAsk }) {
       ) : (
         <motion.div
           key="player"
-          // Grows out of the bubble's corner and floats over the page — no backdrop,
+          // Grows out of the bubble's corner and floats over the page - no backdrop,
           // so the jobs list stays visible and usable, like YC's.
           initial={{ opacity: 0, scale: reduce ? 1 : 0.3 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -351,7 +351,7 @@ export default function VideoBubble({ config, onAsk }) {
                     >
                       <div style={{ fontWeight: 700, fontSize: "0.98rem" }}>Ask your question</div>
                       <div style={{ fontSize: "0.8rem", color: "var(--c-textSub, #555)", marginTop: 4, lineHeight: 1.45 }}>
-                        Ask Atyant about jobs, prep or your next step — answers come from seniors who've been where you are.
+                        Ask Atyant about jobs, prep or your next step - answers come from seniors who've been where you are.
                       </div>
                       <textarea
                         autoFocus

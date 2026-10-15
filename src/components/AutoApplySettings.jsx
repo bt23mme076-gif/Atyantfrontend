@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { jobsAPI } from "../api";
 import { canAutoApply, activePlan, AUTO_APPLY_DAILY } from "../lib/plan";
 
-// Theme palette — maps to CSS vars defined in index.css (light + dark).
+// Theme palette - maps to CSS vars defined in index.css (light + dark).
 const C = {
   bg:           "var(--c-bg)",
   card:         "var(--c-card)",
@@ -132,7 +132,7 @@ function StatusBadge({ status }) {
 
 // ─── Auto-Apply Settings ──────────────────────────────────────────────────────
 // Opt-in Greenhouse/Lever auto-apply. Enabling requires an explicit consent
-// checkbox (mirrors the backend's confirm:true gate) — this is never a
+// checkbox (mirrors the backend's confirm:true gate) - this is never a
 // silent default-on toggle. Disabling is instant, no friction (kill switch).
 export default function AutoApplySettings({ onUpgrade }) {
   const { user, setUser } = useAuth();
@@ -295,9 +295,9 @@ export default function AutoApplySettings({ onUpgrade }) {
               color: C.green, background: `${C.green}18`, border: `1px solid ${C.green}44`,
               borderRadius: 999, padding: "4px 11px", cursor: saving ? "default" : "pointer",
             }}
-            title="Turn off — takes effect immediately"
+            title="Turn off - takes effect immediately"
           >
-            {saving ? <Spin size={12} /> : <Power size={12} />} On — tap to turn off
+            {saving ? <Spin size={12} /> : <Power size={12} />} On - tap to turn off
           </button>
         ) : (
           <button
@@ -310,14 +310,14 @@ export default function AutoApplySettings({ onUpgrade }) {
               borderRadius: 999, padding: "4px 11px", cursor: hasResume ? "pointer" : "not-allowed",
             }}
           >
-            <Power size={12} /> Off — tap to enable
+            <Power size={12} /> Off - tap to enable
           </button>
         )}
       </div>
 
       <div style={{ fontSize: ".72rem", color: C.textMuted, marginBottom: 14 }}>
         Automatically applies to Greenhouse &amp; Lever jobs that match your profile above your score threshold.
-        Forms with custom screening questions are left for you to finish — never auto-answered.
+        Forms with custom screening questions are left for you to finish - never auto-answered.
       </div>
 
       {paid && usage?.limit > 0 && (
@@ -351,7 +351,7 @@ export default function AutoApplySettings({ onUpgrade }) {
         </div>
       )}
 
-      {/* ── Consent panel — shown only when turning ON ── */}
+      {/* ── Consent panel - shown only when turning ON ── */}
       {showConsent && !autoApply.enabled && (
         <div style={{ background: C.active, border: `1px solid ${C.accent}55`, borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -360,9 +360,9 @@ export default function AutoApplySettings({ onUpgrade }) {
           </div>
           <ul style={{ margin: "0 0 12px", padding: "0 0 0 18px", fontSize: ".76rem", color: C.textSub, lineHeight: 1.6 }}>
             <li>Atyant will submit applications to Greenhouse and Lever job postings on your behalf, using your resume and profile data.</li>
-            <li>If a form has questions beyond name/email/phone/resume/links, it's left as "Needs your action" for you to finish — never guessed.</li>
+            <li>If a form has questions beyond name/email/phone/resume/links, it's left as "Needs your action" for you to finish - never guessed.</li>
             <li>If a form shows a CAPTCHA, it's skipped for manual completion.</li>
-            <li>You can turn this off anytime — it takes effect immediately.</li>
+            <li>You can turn this off anytime - it takes effect immediately.</li>
           </ul>
 
           <label style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: ".78rem", color: C.text, cursor: "pointer", marginBottom: 12 }}>

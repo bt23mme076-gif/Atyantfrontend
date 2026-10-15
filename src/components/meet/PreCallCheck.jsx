@@ -3,16 +3,16 @@ import { useEffect, useState, useCallback } from 'react';
 // Pre-call network check. Runs BEFORE the LiveKit room connects and measures
 // the user's real connection quality on two levels:
 //
-// 1. HTTPS latency/jitter/loss (pinging /api/health) — cheap signal, catches
+// 1. HTTPS latency/jitter/loss (pinging /api/health) - cheap signal, catches
 //    generally bad networks.
 // 2. A REAL WebRTC/UDP reachability probe against the actual LiveKit media
 //    server (187.127.133.111:3478, STUN). This is the one that matters: on
 //    2026-07-11 a mobile-data (CGNAT) user's HTTPS ping graded "great" (76ms,
-//    0% loss) yet the call never connected — the server sent 8 ICE checks and
+//    0% loss) yet the call never connected - the server sent 8 ICE checks and
 //    got 0 responses back, because CGNAT blocks the exact UDP path video
 //    needs, which an HTTPS ping can't see at all (HTTPS is TCP, video is UDP).
 //    This probe opens a real RTCPeerConnection and checks whether ANY
-//    server-reflexive (srflx) UDP candidate comes back — if not, this network
+//    server-reflexive (srflx) UDP candidate comes back - if not, this network
 //    cannot carry video no matter how good the HTTPS ping looked, so we grade
 //    it "weak" regardless of latency numbers.
 //
@@ -34,7 +34,7 @@ const STUN_URL = 'stun:187.127.133.111:3478';
 // Real UDP/WebRTC reachability check. Resolves true if the browser manages to
 // gather a server-reflexive candidate (proof this network can get UDP packets
 // to and from your media server) or false if gathering finishes/times out
-// with none — the exact signature of the CGNAT/mobile-data failure.
+// with none - the exact signature of the CGNAT/mobile-data failure.
 function checkUdpReachability() {
     return new Promise((resolve) => {
         let settled = false;
@@ -50,7 +50,7 @@ function checkUdpReachability() {
         try {
             pc = new RTCPeerConnection({ iceServers: [{ urls: STUN_URL }] });
         } catch {
-            resolve(false); // WebRTC unavailable — treat as unable to verify
+            resolve(false); // WebRTC unavailable - treat as unable to verify
             return;
         }
 
@@ -72,7 +72,7 @@ function checkUdpReachability() {
 
 // Thresholds tuned for a video call. avgRtt = latency, jitter = spread between
 // probes (instability), loss = probes that timed out. udpOk = false means the
-// real media path is blocked — that overrides everything else to "weak",
+// real media path is blocked - that overrides everything else to "weak",
 // since a great ping means nothing if the video transport can't connect.
 function classify({ avgRtt, jitter, loss, effectiveType, udpOk }) {
     if (!udpOk) return 'udpBlocked';
@@ -110,7 +110,7 @@ async function runNetworkTest(apiBase) {
     await probeOnce(url);
 
     // Run the HTTPS probes and the real UDP/media reachability check in
-    // parallel — they measure independent things and neither should wait on
+    // parallel - they measure independent things and neither should wait on
     // the other.
     const udpPromise = checkUdpReachability();
 
@@ -155,7 +155,7 @@ const GRADE_UI = {
     udpBlocked: {
         color: '#f87171',
         title: 'This network won’t connect for video calls',
-        sub: 'Your network is blocking the connection video calls need — this is common on mobile data. Please switch to WiFi before joining; the call will not connect otherwise.',
+        sub: 'Your network is blocking the connection video calls need - this is common on mobile data. Please switch to WiFi before joining; the call will not connect otherwise.',
     },
 };
 
@@ -169,7 +169,7 @@ export default function PreCallCheck({ apiBase, onProceed }) {
         runNetworkTest(apiBase)
             .then((r) => { setResult(r); setTesting(false); })
             .catch(() => {
-                // If the test itself errors, don't block the user — let them join.
+                // If the test itself errors, don't block the user - let them join.
                 setResult({ grade: 'fair', avgRtt: 0, jitter: 0, loss: 0 });
                 setTesting(false);
             });
@@ -213,7 +213,7 @@ export default function PreCallCheck({ apiBase, onProceed }) {
                     display: 'flex', gap: 18, justifyContent: 'center',
                     margin: '14px 0 4px', fontSize: 13, opacity: 0.75,
                 }}>
-                    <span>Latency: {result.avgRtt || '—'} ms</span>
+                    <span>Latency: {result.avgRtt || '-'} ms</span>
                     <span>Jitter: {result.jitter} ms</span>
                     <span>Loss: {Math.round((result.loss / PROBE_COUNT) * 100)}%</span>
                     <span>Video path: {result.udpOk ? 'reachable' : 'blocked'}</span>

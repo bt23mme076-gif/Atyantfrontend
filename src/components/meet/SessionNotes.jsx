@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDataChannel } from '@livekit/components-react';
 
-// Shared notes both sides can read and write during the call — same
+// Shared notes both sides can read and write during the call - same
 // data-channel approach as Whiteboard.jsx, just a synced textarea instead of
 // canvas strokes. Broadcasts are debounced (not sent per keystroke) so a fast
 // typist doesn't flood the data channel or add any overhead to the call.
 //
 // Conflict handling is intentionally simple (last-write-wins by timestamp),
 // and an incoming update never overwrites text while the local side is
-// actively focused/typing — matching the whiteboard's "good enough for two
+// actively focused/typing - matching the whiteboard's "good enough for two
 // people on a call" level of sophistication rather than building a real CRDT.
 const TOPIC = 'atyant-notes';
 const enc = new TextEncoder();
@@ -32,7 +32,7 @@ export default function SessionNotes({ top = 14, right = 14 }) {
         }
         if (d.t !== 'notes' || d.ts <= lastTsRef.current) return;
         lastTsRef.current = d.ts;
-        // Don't rip text out from under someone mid-sentence — the next
+        // Don't rip text out from under someone mid-sentence - the next
         // broadcast after they blur/pause will reconcile both sides anyway.
         if (focusedRef.current) return;
         setText(d.text);

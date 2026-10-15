@@ -112,7 +112,7 @@ function ServiceStep({ services, selected, onSelect, onNext }) {
       </div>
       <button className="bk-btn-primary" onClick={onNext} disabled={!selected}
         style={{ marginTop: 20, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: selected ? C.accent : C.active, border: "none", borderRadius: 12, padding: "12px 20px", color: selected ? "#fff" : C.textMuted, fontWeight: 700, fontSize: ".88rem", cursor: selected ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
-        Next — Pick a time <ArrowRight size={15} />
+        Next - Pick a time <ArrowRight size={15} />
       </button>
     </div>
   );
@@ -486,7 +486,7 @@ export default function BookingModal({ mentorId, mentorName, mentorPic, services
     if (!service || !date || !slot) return;
     setBooking(true); setError('');
     try {
-      // Send raw "YYYY-MM-DD" + "HH:MM" — backend anchors them to IST explicitly,
+      // Send raw "YYYY-MM-DD" + "HH:MM" - backend anchors them to IST explicitly,
       // so the stored time no longer depends on the server's local timezone.
       const order = await paymentAPI.createOrder({
         mentorId, date, time: slot,
@@ -523,7 +523,7 @@ export default function BookingModal({ mentorId, mentorName, mentorPic, services
         rzp.open();
       }
     } catch (e) {
-      setError(e.message || 'Booking failed — please try again.');
+      setError(e.message || 'Booking failed - please try again.');
       setBooking(false);
     }
   };

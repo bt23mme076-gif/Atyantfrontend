@@ -1,5 +1,5 @@
 // visualize-booking.tsx
-// Minimal availability calendar — click a date, see it highlight, see which
+// Minimal availability calendar - click a date, see it highlight, see which
 // days are already recurring-available. No booking history, no meeting info,
 // no view toggles. Just enough to place a date in context.
 import React, { useMemo } from 'react';

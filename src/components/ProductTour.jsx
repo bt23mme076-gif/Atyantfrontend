@@ -27,7 +27,7 @@ const MARGIN = 12;      // min distance from viewport edge
 
 const findTarget = (t) => (t ? document.querySelector(`[data-tour="${t}"]`) : null);
 
-// Mount only while the tour is running — the step list is resolved against the DOM on mount.
+// Mount only while the tour is running - the step list is resolved against the DOM on mount.
 export default function ProductTour({ onClose, onStepChange }) {
   const [steps] = useState(() => TOUR_STEPS.filter(s => !s.target || findTarget(s.target)));
   const [index, setIndex] = useState(0);
@@ -41,7 +41,7 @@ export default function ProductTour({ onClose, onStepChange }) {
     if (step) onStepChange?.(step);
   }, [step, onStepChange]);
 
-  // Track the target's rect every frame — cheap, and survives sidebar slide-in,
+  // Track the target's rect every frame - cheap, and survives sidebar slide-in,
   // scroll, resize and layout shifts without wiring up a dozen observers.
   useEffect(() => {
     if (!step) return;
@@ -116,7 +116,7 @@ export default function ProductTour({ onClose, onStepChange }) {
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="atyant-tour-title"
       style={{ position: "fixed", inset: 0, zIndex: 10000, fontFamily: "var(--font-body)" }}>
-      {/* Click shield — the page is inert while the tour runs */}
+      {/* Click shield - the page is inert while the tour runs */}
       <div style={{ position: "absolute", inset: 0, background: rect ? "transparent" : "rgba(8,6,20,0.62)" }} />
 
       {/* Spotlight: a hole punched by a giant box-shadow */}

@@ -122,12 +122,12 @@ function fmtSessionDate(iso) {
     + ", " + d.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
 }
 
-// Merge backend sessions onto student rows — latest session per student wins.
+// Merge backend sessions onto student rows - latest session per student wins.
 // Without this every student stays "pending" no matter what's in the DB.
 //
 // A session's student may not be in `students` at all (e.g. they signed up
 // with a personal Gmail instead of their @vnit.ac.in address, so /students'
-// VNIT-domain filter excluded them) — that used to make the session vanish
+// VNIT-domain filter excluded them) - that used to make the session vanish
 // silently even though the mentor genuinely held it. Those are synthesized
 // into their own row instead of being dropped, flagged `unverified: true`.
 function applySessions(students, sessions) {
@@ -162,7 +162,7 @@ function applySessions(students, sessions) {
     return sess ? applyFields(s, sess) : s;
   });
 
-  // Sessions whose student never appeared in /students — add them as their
+  // Sessions whose student never appeared in /students - add them as their
   // own row so the mentor's work is never invisible to the TPO.
   const orphanRows = [];
   byStudent.forEach((sess, uid) => {
@@ -288,7 +288,7 @@ function SessionCard({ s, accent, dateLabel, onViewSummary }) {
           <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
             <span style={{ fontWeight:700, color:C.text, fontSize:"0.95rem" }}>{s.name}</span>
             {s.unverified && (
-              <span title="Not in the VNIT-verified roster — email/college didn't match, but a real session exists for them"
+              <span title="Not in the VNIT-verified roster - email/college didn't match, but a real session exists for them"
                 style={{ fontSize:"0.6rem", fontWeight:700, color:C.orange, background:"rgba(245,158,11,0.12)", border:"1px solid rgba(245,158,11,0.3)", borderRadius:999, padding:"1px 7px", letterSpacing:"0.03em" }}>
                 UNVERIFIED
               </span>
@@ -325,7 +325,7 @@ function SessionCard({ s, accent, dateLabel, onViewSummary }) {
         ].map(({ label, value }) => (
           <div key={label} style={{ minWidth:0 }}>
             <div style={{ fontSize:"0.64rem", fontWeight:700, color:C.textMuted, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:2 }}>{label}</div>
-            <div style={{ fontSize:"0.82rem", color:C.text, wordBreak:"break-word" }}>{value || "—"}</div>
+            <div style={{ fontSize:"0.82rem", color:C.text, wordBreak:"break-word" }}>{value || "-"}</div>
           </div>
         ))}
       </div>
@@ -333,7 +333,7 @@ function SessionCard({ s, accent, dateLabel, onViewSummary }) {
   );
 }
 
-// ── Session Summary Modal — what actually happened in the interview ───────────
+// ── Session Summary Modal - what actually happened in the interview ───────────
 function SummaryModal({ student, onClose }) {
   const [state, setState] = useState({ loading:true, error:"", session:null, insight:null });
 
@@ -560,7 +560,7 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
   const noBranchMatch = branchMentors.length === 0;
 
   const q = mentorQuery.trim().toLowerCase();
-  // Typing a name must always be able to find ANY mentor — branch is a
+  // Typing a name must always be able to find ANY mentor - branch is a
   // suggestion, not a hard filter, otherwise a mentor with missing/mismatched
   // branch data becomes permanently unfindable by search.
   const pool = q ? mentors : (branchMentors.length ? branchMentors : mentors);
@@ -595,7 +595,7 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
         durationMin: 30,
       });
       // Only mark it "booked" once the backend confirms a session was actually
-      // created — a 404 here means "student/mentor not found", a real failure,
+      // created - a 404 here means "student/mentor not found", a real failure,
       // not "route missing". Pretending it succeeded hid sessions that were
       // never saved and vanished after the next refresh.
       onScheduled({
@@ -669,9 +669,9 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
                 <div style={{ fontWeight:700, color:C.text, fontSize:"0.9rem" }}>{selected.name}</div>
                 {selected.email && <div style={{ fontSize:"0.74rem", color:C.textMuted, marginTop:2, wordBreak:"break-all" }}>{selected.email}</div>}
                 <div style={{ display:"flex", gap:"1.25rem", flexWrap:"wrap", marginTop:8, fontSize:"0.78rem", color:C.textSub }}>
-                  <span>Year: <strong style={{ color:C.text }}>{selected.year || "—"}</strong></span>
-                  <span>CGPA: <strong style={{ color:C.text }}>{selected.cgpa || "—"}</strong></span>
-                  <span>Branch: <strong style={{ color:C.text }}>{studentBranch || "—"}</strong></span>
+                  <span>Year: <strong style={{ color:C.text }}>{selected.year || "-"}</strong></span>
+                  <span>CGPA: <strong style={{ color:C.text }}>{selected.cgpa || "-"}</strong></span>
+                  <span>Branch: <strong style={{ color:C.text }}>{studentBranch || "-"}</strong></span>
                   {selected.company && <span>Target: <strong style={{ color:C.text }}>{selected.company}</strong></span>}
                 </div>
               </div>
@@ -701,7 +701,7 @@ function ScheduleModal({ students, mentors, preselectId, onClose, onScheduled })
                 <div style={{ position:"absolute", top:"100%", left:0, right:0, marginTop:4, zIndex:20, background:"var(--c-sidebar)", border:`1px solid ${C.cardBorder}`, borderRadius:10, boxShadow:"0 10px 30px rgba(0,0,0,0.35)", maxHeight:220, overflowY:"auto" }}>
                   {noBranchMatch && (
                     <div style={{ padding:"7px 12px", fontSize:"0.68rem", color:C.textMuted, borderBottom:`1px solid ${C.cardBorder}`, background:C.active }}>
-                      No {studentBranch || "branch"} mentor found — showing all mentors
+                      No {studentBranch || "branch"} mentor found - showing all mentors
                     </div>
                   )}
                   {mentorMatches.length === 0 ? (
@@ -864,7 +864,7 @@ export default function TPODashboard() {
   const pending       = students.filter(s => s.status === "pending");
   const avgRating     = completed.length
     ? (completed.reduce((a, s) => a + s.rating, 0) / completed.length).toFixed(1)
-    : "—";
+    : "-";
   const completionPct = Math.round((completed.length / students.length) * 100);
 
   const handleScheduled = ({ studentId, mentor, mentorId, date, scheduledAt, sessionId, type }) => {
@@ -876,7 +876,7 @@ export default function TPODashboard() {
   const exportCSV = () => {
     const rows = [
       ["Name","Email","Branch","Year","CGPA","Target Company","Status","Mentor","Session Date","Session Type","Rating"],
-      ...students.map(s => [s.name, s.email, s.branch, s.year, s.cgpa, s.company, s.status, s.mentor||"Not assigned", s.date||"Not scheduled", s.type||"—", s.rating||"—"]),
+      ...students.map(s => [s.name, s.email, s.branch, s.year, s.cgpa, s.company, s.status, s.mentor||"Not assigned", s.date||"Not scheduled", s.type||"-", s.rating||"-"]),
     ];
     const csv  = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type:"text/csv" });
@@ -1074,7 +1074,7 @@ export default function TPODashboard() {
                     <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
                       <span style={{ fontWeight:600, color:C.text, fontSize:"0.88rem" }}>{s.name}</span>
                       {s.unverified && (
-                        <span title="Not in the VNIT-verified roster — email/college didn't match, but a real session exists for them"
+                        <span title="Not in the VNIT-verified roster - email/college didn't match, but a real session exists for them"
                           style={{ fontSize:"0.6rem", fontWeight:700, color:C.orange, background:"rgba(245,158,11,0.12)", border:"1px solid rgba(245,158,11,0.3)", borderRadius:999, padding:"1px 7px", letterSpacing:"0.03em" }}>
                           UNVERIFIED
                         </span>
@@ -1082,17 +1082,17 @@ export default function TPODashboard() {
                     </div>
                     <div style={{ fontSize:"0.71rem", color:C.textMuted, marginTop:1, wordBreak:"break-word" }}>Year {s.year}{s.email ? ` · ${s.email}` : ""}</div>
                   </div>
-                  <div className="tpo-cell" data-label="Branch" style={{ fontSize:"0.83rem", color:C.textSub }}>{shortBranch(s.branch) || <span style={{ color:C.textMuted }}>—</span>}</div>
-                  <div className="tpo-cell" data-label="CGPA" style={{ fontSize:"0.83rem", color:C.textSub, fontWeight:600 }}>{s.cgpa || <span style={{ color:C.textMuted }}>—</span>}</div>
-                  <div className="tpo-cell" data-label="Target Co." style={{ fontSize:"0.82rem", color:C.text }}>{s.company || <span style={{ color:C.textMuted }}>—</span>}</div>
+                  <div className="tpo-cell" data-label="Branch" style={{ fontSize:"0.83rem", color:C.textSub }}>{shortBranch(s.branch) || <span style={{ color:C.textMuted }}>-</span>}</div>
+                  <div className="tpo-cell" data-label="CGPA" style={{ fontSize:"0.83rem", color:C.textSub, fontWeight:600 }}>{s.cgpa || <span style={{ color:C.textMuted }}>-</span>}</div>
+                  <div className="tpo-cell" data-label="Target Co." style={{ fontSize:"0.82rem", color:C.text }}>{s.company || <span style={{ color:C.textMuted }}>-</span>}</div>
                   <div className="tpo-cell" data-label="Status"><StatusBadge status={s.status} /></div>
                   <div className="tpo-cell tpo-cell-mentor" data-label="Mentor" style={{ fontSize:"0.76rem", color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                    {s.mentor ? s.mentor.split("·")[0].trim() : <span style={{ color:C.textMuted }}>—</span>}
+                    {s.mentor ? s.mentor.split("·")[0].trim() : <span style={{ color:C.textMuted }}>-</span>}
                   </div>
                   <div className="tpo-cell" data-label="Rating" style={{ display:"flex", alignItems:"center", gap:3 }}>
                     {s.rating > 0 ? (
                       <><Star size={12} fill="#F59E0B" stroke="#F59E0B" /><span style={{ fontSize:"0.82rem", fontWeight:600, color:C.text }}>{s.rating}</span></>
-                    ) : <span style={{ color:C.textMuted, fontSize:"0.78rem" }}>—</span>}
+                    ) : <span style={{ color:C.textMuted, fontSize:"0.78rem" }}>-</span>}
                   </div>
                 </div>
 
@@ -1198,7 +1198,7 @@ export default function TPODashboard() {
       {tab === "analytics" && (
         <div style={{ display:"grid", gap:"1.5rem" }}>
 
-          {/* Session status overview — donut + legend */}
+          {/* Session status overview - donut + legend */}
           <div className="tpo-analytics-top" style={{ display:"grid", gridTemplateColumns:"auto 1fr", gap:"1.75rem", alignItems:"center", background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:14, padding:"1.5rem" }}>
             <Donut
               total={students.length}

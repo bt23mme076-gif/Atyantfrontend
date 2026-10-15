@@ -2,21 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDataChannel } from '@livekit/components-react';
 import { livekitAPI } from '../../api';
 
-// Shows the STUDENT's resume during the call — for both the student and the
+// Shows the STUDENT's resume during the call - for both the student and the
 // mentor of that session, via GET /api/livekit/session/:sessionId/resume
 // (backend checks the requester is one of the two session participants).
 //
-// The iframe points straight at the Cloudinary URL — allowed because
+// The iframe points straight at the Cloudinary URL - allowed because
 // vercel.json's CSP frame-src explicitly whitelists res.cloudinary.com.
 //
 // Opening/closing is synced to the other participant over the LiveKit data
-// channel (same approach as the whiteboard) — so when the mentor pulls up the
+// channel (same approach as the whiteboard) - so when the mentor pulls up the
 // resume, it opens on the student's side too, and vice-versa.
 const TOPIC = 'atyant-resume';
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// Zoom widens the iframe so the browser's own PDF renderer redraws sharp —
+// Zoom widens the iframe so the browser's own PDF renderer redraws sharp -
 // no PDF library, no extra load.
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3;
@@ -31,7 +31,7 @@ export default function ResumePanel({ top = 14, left = 14, sessionId }) {
     const scrollRef = useRef(null);
     const loading = open && !checked;
 
-    // Fetch lazily — only once the panel is opened the first time.
+    // Fetch lazily - only once the panel is opened the first time.
     useEffect(() => {
         if (!open || checked || !sessionId) return;
         livekitAPI.resume(sessionId)

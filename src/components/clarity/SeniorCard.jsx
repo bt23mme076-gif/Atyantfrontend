@@ -67,7 +67,7 @@ export default function SeniorCard({ mentor, isSelected, onClick }) {
 
       {/* Top row: avatar + name + match% */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 11, marginBottom: 10 }}>
-        {/* Avatar with ring — accent when selected */}
+        {/* Avatar with ring - accent when selected */}
         <div style={{
           width: 42, height: 42, borderRadius: 12, flexShrink: 0, padding: 2,
           background: isSelected ? T.accent : "var(--c-cardBorder)",

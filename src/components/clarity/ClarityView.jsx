@@ -6,7 +6,7 @@ import SeniorDetail from "./SeniorDetail";
 import useIsMobile from "../../hooks/useIsMobile";
 import { clarityAPI, profileAPI, eventsAPI } from "../../api";
 
-// Fire-and-forget — never throws, never blocks UI
+// Fire-and-forget - never throws, never blocks UI
 const trackView = (mentor) => {
   const id = mentor?._id || mentor?.id;
   if (id) profileAPI.trackView(id).catch(() => { });
@@ -15,7 +15,7 @@ const trackView = (mentor) => {
 
 // The chat hands over its internal problem statement ("Student: … / Goal: … /
 // Confidence: Low (2/5 layers extracted)") as the query. It's the right search
-// text but not something to show a student — turn it into a plain heading.
+// text but not something to show a student - turn it into a plain heading.
 const displayHeading = (query) => {
   const q = String(query || "");
   if (!/^(Student|Goal|Confidence):/m.test(q)) return q;
@@ -33,7 +33,7 @@ const STARTING_PRICE = 49;
 const ASK_PREFILL_KEY = "atyant_ask_prefill"; // read by AskAtyantPage's composer
 
 // Example question shown when the student hasn't asked one. It models a good
-// question — year, branch, college, role, company are what the matcher uses —
+// question - year, branch, college, role, company are what the matcher uses -
 // and borrows the student's own profile values where we know them.
 const ORDINAL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
 const buildExample = (user, ctx) => {
@@ -86,13 +86,13 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     fetchMentors(q, true); // first load: keep the chat's seniors on top
   }, [initialQuery]);
 
-  // Always land at the top of the answer feed / detail view — never mid-scroll
+  // Always land at the top of the answer feed / detail view - never mid-scroll
   // from whatever was scrolled before (new query, new card, back to answers).
   useEffect(() => {
     if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0;
   }, [answerCards, selectedMentor, fetchLoading, activeIdx]);
 
-  // Live "Helpful" counts — fetched separately because /match is cached server-side.
+  // Live "Helpful" counts - fetched separately because /match is cached server-side.
   useEffect(() => {
     const ids = answerCards.map((c) => c.id).filter(Boolean).map(String);
     if (!ids.length) return;
@@ -130,7 +130,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     setFetchError("");
     try {
       const edu = user?.education?.[0] || {};
-      // Send only what we actually know. No fake defaults — an unknown college must
+      // Send only what we actually know. No fake defaults - an unknown college must
       // stay empty so the engine matches on the query, not on a wrong college.
       const data = await clarityAPI.match({
         query,
@@ -198,7 +198,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   };
 
   const edu = user?.education?.[0] || {};
-  // Show only what we actually know — no fabricated college/branch/CGPA.
+  // Show only what we actually know - no fabricated college/branch/CGPA.
   const goalText = initialContext?.goal || user?.interests?.[0] || null;
   const contextLine = [
     initialContext?.college || edu.institutionName || edu.institution || null,
@@ -224,7 +224,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
   };
   const header = isExample ? (
     // Example mode: the question is drawn as a tappable input, with the parts a
-    // good question needs highlighted — it shows *where* to ask and *how*.
+    // good question needs highlighted - it shows *where* to ask and *how*.
     <div className="px-4 sm:px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--c-sidebarBorder)", fontFamily: "var(--font-body)" }}>
       <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "var(--c-textMuted)", margin: "0 0 8px" }}>
         EXAMPLE QUESTION · SEE HOW SENIORS ANSWER
@@ -295,7 +295,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
     </div>
   );
 
-  // One senior's answer at a time — swipe / arrows to the next senior.
+  // One senior's answer at a time - swipe / arrows to the next senior.
   const answerFeed = answerCards.length > 0 ? (
     <AnswerSlider
       cards={answerCards}
@@ -425,7 +425,7 @@ export default function ClarityView({ initialQuery = "", initialContext = null, 
                   </span>
                 </button>
 
-                {/* Senior detail fills the rest — it manages its own header/scroll/footer.
+                {/* Senior detail fills the rest - it manages its own header/scroll/footer.
                     Use min-h-0 (not an extra overflow wrapper) so its top isn't clipped. */}
                 <div className="flex-1 min-h-0">
                   <SeniorDetail
@@ -531,7 +531,7 @@ function AnswerSection({ label, children }) {
 const firstName = (n) => String(n || "").trim().split(/\s+/)[0] || "This senior";
 const norm = (s) => String(s || "").toLowerCase().trim();
 const mistakeText = (m) => (typeof m === "string" ? m : m?.description || m?.mistake || "");
-// Sentences of a paragraph — fallback checklist when a card has no actionableSteps.
+// Sentences of a paragraph - fallback checklist when a card has no actionableSteps.
 const sentencesOf = (text) =>
   String(text || "").split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 8);
 
@@ -539,7 +539,7 @@ const rankLabelOf = (i) => (i === 0 ? "Best match" : `#${i + 1} match`);
 
 // ── Answer slider: one senior's answer at a time ──
 // Swipe (mobile) or arrows / ← → keys (desktop) move between seniors. Each answer
-// stays a normal vertical read — only *between* seniors is horizontal.
+// stays a normal vertical read - only *between* seniors is horizontal.
 function AnswerSlider({ cards, index, onIndex, question, helpful, onHelpful, resolveMentor, userCtx, onProfile, onBook }) {
   const [dir, setDir] = useState(1);
   const count = cards.length;
@@ -675,7 +675,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
   const flair = [outcome, [college, branch].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
 
   const rawSteps = Array.isArray(c.actionableSteps) ? c.actionableSteps : [];
-  // A "before → after" mainAnswer is a summary of the journey, not an answer — prefer
+  // A "before → after" mainAnswer is a summary of the journey, not an answer - prefer
   // the first line of what actually worked as the TL;DR in that case.
   const tldr = c.mainAnswer && !c.mainAnswer.includes("→")
     ? c.mainAnswer
@@ -686,7 +686,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
   const steps = allSteps.slice(0, 3);
   const mistakes = (Array.isArray(c.keyMistakes) ? c.keyMistakes : []).map(mistakeText).filter(Boolean);
 
-  // Why this senior was matched — the engine's honest label first.
+  // Why this senior was matched - the engine's honest label first.
   let matchLabel = card?.matchLabel && card.matchLabel !== "Closest match" ? card.matchLabel : "";
   if (!matchLabel) {
     const sameCollege = userCtx.college && college && norm(userCtx.college) === norm(college);
@@ -739,7 +739,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
   return (
     <article style={{ borderRadius: 16, border: "1px solid var(--c-cardBorder)", background: "var(--c-card)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
       <div className="px-4 sm:px-5 pt-4 pb-3">
-        {/* Author row — who's answering, with their "flair" */}
+        {/* Author row - who's answering, with their "flair" */}
         <div className="flex items-start gap-3">
           <button onClick={onProfile} style={{ position: "relative", flexShrink: 0, background: "none", border: "none", padding: 0, cursor: "pointer" }} aria-label={`View ${name}'s profile`}>
             {p.profilePicture ? (
@@ -767,14 +767,14 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
           </div>
         </div>
 
-        {/* TL;DR — the answer in one line */}
+        {/* TL;DR - the answer in one line */}
         {tldr && (
           <p style={{ fontSize: 16, lineHeight: 1.45, color: "var(--c-text)", margin: "14px 0 0", fontWeight: 600 }}>
             <span style={{ fontWeight: 800, color: "var(--c-accentText)" }}>TL;DR </span>{tldr}
           </p>
         )}
 
-        {/* What I did — checkable */}
+        {/* What I did - checkable */}
         {steps.length > 0 && (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -844,7 +844,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
           </div>
         )}
 
-        {/* Full story — only for those who want it */}
+        {/* Full story - only for those who want it */}
         <button
           onClick={toggleStory}
           className="mt-3 flex items-center gap-1"
@@ -870,7 +870,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
                   <AnswerSection label="More of what I did">
                     <ul className="flex flex-col gap-1.5">
                       {allSteps.slice(steps.length).map((s, k) => (
-                        <li key={k}><strong style={{ color: "var(--c-text)" }}>{s.title}</strong>{s.detail ? ` — ${s.detail}` : ""}</li>
+                        <li key={k}><strong style={{ color: "var(--c-text)" }}>{s.title}</strong>{s.detail ? ` - ${s.detail}` : ""}</li>
                       ))}
                     </ul>
                   </AnswerSection>
@@ -892,7 +892,7 @@ function AnswerPost({ card, profile, rankLabel, question, userCtx = {}, helpfulC
         </AnimatePresence>
       </div>
 
-      {/* Action bar — Helpful · Ask follow-up · Share. Sticky, so it's always on
+      {/* Action bar - Helpful · Ask follow-up · Share. Sticky, so it's always on
           screen while the answer is, no matter how long the answer gets. */}
       <div style={{ position: "sticky", bottom: 0, zIndex: 2, borderTop: "1px solid var(--c-sidebarBorder)", background: "var(--c-sidebar)", borderRadius: "0 0 16px 16px", boxShadow: "0 -6px 16px -10px rgba(20,16,40,0.18)" }}>
         <div className="flex items-center gap-2 px-3 sm:px-5 pt-2.5 pb-1.5">

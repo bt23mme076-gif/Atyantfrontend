@@ -18,7 +18,7 @@ import AutoApplySettings from "../components/AutoApplySettings";
 import PlanBadge from "../components/ui/PlanBadge";
 import { activePlan, PLAN_NAME, planExpiryText } from "../lib/plan";
 
-// Chip color palette — cycles so each tag has a distinct hue
+// Chip color palette - cycles so each tag has a distinct hue
 const CHIP_PALETTE = [
   { bg: "rgba(117,103,201,0.13)", border: "rgba(117,103,201,0.38)", text: "#9B8FD4" },
   { bg: "rgba(61,190,130,0.12)", border: "rgba(61,190,130,0.38)", text: "#3DBE82" },
@@ -27,7 +27,7 @@ const CHIP_PALETTE = [
   { bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.35)", text: "#F472B6" },
 ];
 
-// Theme palette — every value maps to a CSS variable (light + dark in index.css).
+// Theme palette - every value maps to a CSS variable (light + dark in index.css).
 const C = {
   bg: "var(--c-bg)",
   card: "var(--c-card)",
@@ -134,7 +134,7 @@ const PageStyles = () => (
 /* ─── Section card shell ────────────────────────────────────────────────────── */
 function Section({ Icon, title, subtitle, children, onEdit, editing, delay = 2, id }) {
   const tapToEdit = !!onEdit && !editing;
-  // Tapping anywhere on a read-only card starts editing — on mobile the tiny
+  // Tapping anywhere on a read-only card starts editing - on mobile the tiny
   // pencil is an awkward target. Real controls inside keep their own behaviour.
   const handleCardClick = (e) => {
     if (!tapToEdit) return;
@@ -281,7 +281,7 @@ function SelectRow({ label, value, onChange, editing, options }) {
       <label style={{ fontSize: ".64rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 6, textTransform: "uppercase" }}>{label}</label>
       {editing
         ? <select className="pf-select" value={value || ""} onChange={e => onChange(e.target.value)} aria-label={label}>
-          <option value="">— Select —</option>
+          <option value="">- Select -</option>
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         : current
@@ -352,7 +352,7 @@ function ChipEditor({ items, editing, onChange, placeholder, emptyText, highligh
   );
 }
 
-/* ─── Work Experience Editor — company + duration (months), multiple entries ───── */
+/* ─── Work Experience Editor - company + duration (months), multiple entries ───── */
 function WorkExperienceEditor({ items, editing, onChange, placeholder, emptyText }) {
   const [company, setCompany] = useState("");
   const [months, setMonths] = useState("");
@@ -429,7 +429,7 @@ function WorkExperienceEditor({ items, editing, onChange, placeholder, emptyText
   );
 }
 
-/* ─── Availability Editor — Topmate-style weekly list (day toggle + time ranges) ───── */
+/* ─── Availability Editor - Topmate-style weekly list (day toggle + time ranges) ───── */
 const DOW_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const SLOT_INTERVAL_MIN = 30; // a saved range expands into discrete bookable slots on this grid
 
@@ -465,12 +465,12 @@ function collapseToRanges(slots, stepMin = SLOT_INTERVAL_MIN) {
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 // A mentor picks a date, taps the services they offer, adds one or more time
-// ranges, and picks how it repeats — then hits Save once. "Every Monday" keeps
+// ranges, and picks how it repeats - then hits Save once. "Every Monday" keeps
 // applying to every future Monday on its own; nothing is ever re-entered.
 function AvailabilityEditor({ userId, serviceCatalog, servicesOffered, toggleService, customService = { enabled: false, label: "", description: "", price: "", durationMin: "30" }, setCustomService, anySvcDirty, saveServices }) {
   const [weekly, setWeekly] = useState(null); // [{ day, slots: ["HH:MM",...] }]
   const [exceptions, setExceptions] = useState([]); // kept as-is, not editable from this screen
-  const [dateOverrides, setDateOverrides] = useState([]); // [{ date, slots }] — "only this day"
+  const [dateOverrides, setDateOverrides] = useState([]); // [{ date, slots }] - "only this day"
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [monthDate, setMonthDate] = useState(() => new Date());
@@ -499,7 +499,7 @@ function AvailabilityEditor({ userId, serviceCatalog, servicesOffered, toggleSer
   const selectedDow = new Date(selectedDate + 'T00:00:00').getDay();
   const selectedWeekdayName = DOW_LABELS[selectedDow];
 
-  // Populate the editor from whatever's already saved for the selected date —
+  // Populate the editor from whatever's already saved for the selected date -
   // a one-off override takes precedence over the weekday's recurring schedule.
   useEffect(() => {
     if (weekly === null) return;
@@ -695,7 +695,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   const activeSection = sectionProp ?? _activeSection;
   const setActiveSection = setSectionProp ?? _setActiveSection;
 
-  // Just onboarded? The onboarding flow set this flag — open the new card on arrival.
+  // Just onboarded? The onboarding flow set this flag - open the new card on arrival.
   const justOnboarded = (() => {
     try { return sessionStorage.getItem("atyant_open_answercard") === "1"; } catch { return false; }
   })();
@@ -964,7 +964,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
   // tags are merged. After a successful save the answer-card section opens.
   const handleLinkedinImport = async (file) => {
     if (!file) return;
-    if (file.type !== "application/pdf") { setImportMsg("Please upload a PDF — on LinkedIn: Profile → More → Save to PDF."); return; }
+    if (file.type !== "application/pdf") { setImportMsg("Please upload a PDF - on LinkedIn: Profile → More → Save to PDF."); return; }
     setImportMsg(""); setImporting(true);
     try {
       const res = await profileAPI.parseLinkedin(file);
@@ -999,7 +999,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       setShowAnswerCards(true);
       setAutoOpenCard(true);
     } catch (e) {
-      setImportMsg(e.message || "Couldn't read that PDF — you can still edit your profile manually.");
+      setImportMsg(e.message || "Couldn't read that PDF - you can still edit your profile manually.");
     } finally {
       setImporting(false);
     }
@@ -1038,7 +1038,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       await profileAPI.update(payload);
       setImportDone(true);
     } catch (e) {
-      setImportMsg(e.message || "Couldn't fetch LinkedIn profile — check the URL and try again.");
+      setImportMsg(e.message || "Couldn't fetch LinkedIn profile - check the URL and try again.");
     } finally { setImporting(false); }
   };
 
@@ -1184,7 +1184,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
             <div style={{ minWidth: 0, flex: "1 1 320px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                 <h1 style={{ margin: 0, fontSize: isMobileView ? "1.3rem" : "1.55rem", fontWeight: 700, color: C.text, letterSpacing: "-0.02em", wordBreak: "break-word" }}>
-                  {user?.username || user?.name || "—"}
+                  {user?.username || user?.name || "-"}
                 </h1>
                 {isMentor && (
                   <span style={{ background: C.accentSoft, border: `1px solid ${C.accent}55`, color: C.accentText, borderRadius: 999, padding: "3px 11px", fontSize: ".64rem", fontWeight: 700, letterSpacing: ".07em" }}>MENTOR</span>
@@ -1265,14 +1265,14 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
 
       {/* ════════ CONTENT ════════ */}
       <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
-        {/* RIGHT CONTENT PANEL — forms stay a readable width; overview and availability use the full row */}
+        {/* RIGHT CONTENT PANEL - forms stay a readable width; overview and availability use the full row */}
         <div style={{ flex: 1, minWidth: 0, maxWidth: ["overview", "booking"].includes(activeSection) ? "none" : 760 }}>
 
         {/* ── OVERVIEW ── */}
         {activeSection === 'overview' && (<>
 
       <div className="pf-ov">
-        {/* Main column — things to do */}
+        {/* Main column - things to do */}
         <div>
       {/* ════════ COMPLETION CHECKLIST ════════ */}
       {pct < 100 && (
@@ -1313,7 +1313,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
           </div>
         </div>
       )}
-      {/* ════════ IMPORT — LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
+      {/* ════════ IMPORT - LinkedIn URL or Resume PDF (hidden once 60%+) ════════ */}
       {isMentor && pct < 60 && (
         <div className="pf-card pf-anim pf-anim-1" style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 16, marginBottom: 18, overflow: "hidden" }}>
           {/* Tab header */}
@@ -1346,11 +1346,11 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                 </div>
                 {importDone && (
                   <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8244", borderRadius: 8, padding: "8px 12px" }}>
-                    <Check size={13} color={C.green} /><span style={{ fontSize: ".78rem", color: C.green, fontWeight: 600 }}>Profile auto-filled from LinkedIn — review and save</span>
+                    <Check size={13} color={C.green} /><span style={{ fontSize: ".78rem", color: C.green, fontWeight: 600 }}>Profile auto-filled from LinkedIn - review and save</span>
                   </div>
                 )}
                 {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 8 }}>{importMsg}</div>}
-                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7 }}>We extract name, college, companies, skills — you just review</div>
+                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7 }}>We extract name, college, companies, skills - you just review</div>
               </>
             ) : (
               <>
@@ -1359,12 +1359,12 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                   {importing
                     ? <><Loader2 size={20} style={{ animation: "spin 1s linear infinite", color: C.accentText }} /><span style={{ fontSize: ".82rem", color: C.accentText, fontWeight: 600 }}>Reading resume…</span></>
                     : importDone
-                      ? <><Check size={20} color={C.green} /><span style={{ fontSize: ".82rem", color: C.green, fontWeight: 600 }}>Imported — review your fields above</span></>
+                      ? <><Check size={20} color={C.green} /><span style={{ fontSize: ".82rem", color: C.green, fontWeight: 600 }}>Imported - review your fields above</span></>
                       : <><Upload size={20} color={C.textMuted} /><span style={{ fontSize: ".82rem", color: C.textSub, fontWeight: 600 }}>Click to upload your Resume PDF</span></>
                   }
                 </label>
                 {importMsg && <div style={{ fontSize: ".74rem", color: "#F87171", marginTop: 8 }}>{importMsg}</div>}
-                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7, textAlign: "center" }}>Any resume PDF works — LinkedIn: Profile → More → Save to PDF</div>
+                <div style={{ fontSize: ".68rem", color: C.textMuted, marginTop: 7, textAlign: "center" }}>Any resume PDF works - LinkedIn: Profile → More → Save to PDF</div>
               </>
             )}
           </div>
@@ -1374,7 +1374,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
       {!isMentor && <AutoApplySettings onUpgrade={onUpgrade} />}
         </div>
 
-        {/* Side column — plan and resume */}
+        {/* Side column - plan and resume */}
         <div>
       {!isMentor && (() => {
         const expiryText = planExpiryText(user);
@@ -1426,7 +1426,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         {user?.resumeUrl ? (
           <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.active, borderRadius: 10, padding: "10px 12px" }}>
             <Check size={14} color={C.green} />
-            <span style={{ flex: 1, fontSize: ".78rem", color: C.textSub, fontWeight: 500 }}>Resume on file — shown during sessions &amp; used for insights</span>
+            <span style={{ flex: 1, fontSize: ".78rem", color: C.textSub, fontWeight: 500 }}>Resume on file - shown during sessions &amp; used for insights</span>
             <label style={{ cursor: "pointer" }} title="Replace resume">
               <input type="file" accept="application/pdf" hidden disabled={resumeUploading} onChange={onPickResume} />
               <span style={{ fontSize: ".72rem", color: C.accentText, fontWeight: 600, cursor: "pointer" }}>
@@ -1495,7 +1495,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
             {editing
               ? <textarea className="pf-textarea" rows={3} value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
                 placeholder={isMentor ? "One sharp line on what you cracked and how you help" : "Tell mentors a little about you"} aria-label="Bio" />
-              : <div style={{ fontSize: ".88rem", color: form.bio ? C.textSub : C.textMuted, lineHeight: 1.65 }}>{form.bio || "No bio yet — a 2-line story makes your profile far more memorable."}</div>}
+              : <div style={{ fontSize: ".88rem", color: form.bio ? C.textSub : C.textMuted, lineHeight: 1.65 }}>{form.bio || "No bio yet - a 2-line story makes your profile far more memorable."}</div>}
           </div>
         </Section>
         )} {/* end basic */}
@@ -1519,7 +1519,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
             <div>
               <label style={{ fontSize: ".66rem", fontWeight: 700, letterSpacing: ".09em", color: C.textMuted, display: "block", marginBottom: 8 }}>COMPANIES YOU'VE WORKED AT</label>
               <WorkExperienceEditor items={form.workExperience} editing={editing} onChange={v => setForm(f => ({ ...f, workExperience: v }))}
-                placeholder="Add a company, e.g. Amazon" emptyText="No companies yet — add where you worked or interned." />
+                placeholder="Add a company, e.g. Amazon" emptyText="No companies yet - add where you worked or interned." />
             </div>
           </Section>
         )}
@@ -1528,7 +1528,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         {activeSection === 'expertise' && isMentor && (
           <Section id="field-expertise" Icon={Zap} title="Skills & Expertise" subtitle="What you mentor students on" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.expertise} editing={editing} onChange={v => setForm(f => ({ ...f, expertise: v }))}
-              placeholder="Add an expertise, e.g. System Design" emptyText="No expertise added yet — this is what students get matched on." />
+              placeholder="Add an expertise, e.g. System Design" emptyText="No expertise added yet - this is what students get matched on." />
           </Section>
         )}
 
@@ -1536,7 +1536,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         {activeSection === 'achievements' && isMentor && (
           <Section id="field-tags" Icon={Trophy} title="Achievements" subtitle="Tags that build instant credibility" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.specialTags} editing={editing} onChange={v => setForm(f => ({ ...f, specialTags: v }))}
-              placeholder="Add a tag, e.g. FAANG, PPO, GATE" emptyText="No achievements yet — FAANG, PPO, GATE, research… add what you cracked." />
+              placeholder="Add a tag, e.g. FAANG, PPO, GATE" emptyText="No achievements yet - FAANG, PPO, GATE, research… add what you cracked." />
           </Section>
         )}
 
@@ -1693,7 +1693,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                     </a>
                   )}
                   {!publicUrl && (
-                    <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set yet — set a slug above to get your link</div>
+                    <div style={{ fontSize: ".84rem", color: C.textMuted, fontStyle: "italic" }}>Not set yet - set a slug above to get your link</div>
                   )}
                 </div>
                 {publicUrl && (
@@ -1725,7 +1725,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
             const isVerified = user?.isVerified || pct >= 80;
             return (
               <Section Icon={ShieldCheck} title="Verification Status" subtitle="Trust signals students see" delay={3}>
-                {/* Progress bar — only shown when not yet verified */}
+                {/* Progress bar - only shown when not yet verified */}
                 {!isVerified && (
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
@@ -1750,7 +1750,7 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
                     </div>
                     <div style={{ fontSize: ".74rem", color: C.textMuted, marginTop: 2, lineHeight: 1.5 }}>
                       {isVerified
-                        ? "Students see the verified badge on your profile — builds instant trust."
+                        ? "Students see the verified badge on your profile - builds instant trust."
                         : "Reach 80% profile completion to unlock your verified badge."}
                     </div>
                   </div>
@@ -1765,11 +1765,11 @@ export default function ProfilePage({ activeSection: sectionProp, setActiveSecti
         {activeSection === 'goals' && !isMentor && (<>
           <Section Icon={Target} title="Current Goals" subtitle="What you're working towards" onEdit={startEdit} editing={editing} delay={1}>
             <ChipEditor items={form.goals} editing={editing} onChange={v => setForm(f => ({ ...f, goals: v }))} highlightFirst
-              placeholder="Add a goal, e.g. AI/ML Internship" emptyText="No goals yet — your first goal powers your mentor matches." />
+              placeholder="Add a goal, e.g. AI/ML Internship" emptyText="No goals yet - your first goal powers your mentor matches." />
           </Section>
           <Section Icon={Zap} title="Skills" subtitle="What you already know" onEdit={startEdit} editing={editing} delay={2}>
             <ChipEditor items={form.skills} editing={editing} onChange={v => setForm(f => ({ ...f, skills: v }))}
-              placeholder="Add a skill, e.g. Python" emptyText="No skills added yet — list what you've learned so far." />
+              placeholder="Add a skill, e.g. Python" emptyText="No skills added yet - list what you've learned so far." />
           </Section>
         </>)}
 

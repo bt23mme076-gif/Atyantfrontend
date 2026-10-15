@@ -1,4 +1,4 @@
-// SEOHead — per-view document metadata for the Atyant SPA.
+// SEOHead - per-view document metadata for the Atyant SPA.
 //
 // The static tags live in index.html (and in the per-route HTML files written by
 // scripts/prerender.js). This component updates those same tags in place on
@@ -66,7 +66,7 @@ export default function SEOHead({
           key={i}
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            // JSON.stringify does not escape < or > — a string containing
+            // JSON.stringify does not escape < or > - a string containing
             // </script> in user-supplied schema data would break out of the
             // tag. Unicode-escape the three dangerous characters to be safe.
             __html: JSON.stringify(s)
@@ -98,7 +98,7 @@ export const VIEW_SEO = {
     canonical: "/",
     index: true,
   },
-  // Private surfaces — never index.
+  // Private surfaces - never index.
   chat:     { title: "Chat | Atyant", index: false },
   book:     { title: "Book a Session | Atyant", index: false },
   sessions: { title: "My Sessions | Atyant", index: false },

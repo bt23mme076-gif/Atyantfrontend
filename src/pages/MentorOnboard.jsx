@@ -71,11 +71,11 @@ export default function MentorOnboard({ onDone }) {
         setBusy(false);
         return;
       }
-      // If name is blank but LinkedIn URL is provided, use email prefix temporarily —
+      // If name is blank but LinkedIn URL is provided, use email prefix temporarily -
       // the LinkedIn import right below will overwrite it with the real name.
       const nameToUse = su.username.trim() || su.email.split("@")[0];
       await signup(nameToUse, su.email, su.password, phone, "mentor");
-      // Auto-import after signup — resume PDF takes priority over LinkedIn URL
+      // Auto-import after signup - resume PDF takes priority over LinkedIn URL
       if (resumeFile) {
         try {
           setLinkedinBusy(true);
@@ -143,7 +143,7 @@ export default function MentorOnboard({ onDone }) {
         story:           d.story            || prev.story,
       }));
       setLinkedinImported(true);
-    } catch (e) { setErr(e.message || "Couldn't import — fill the fields manually."); }
+    } catch (e) { setErr(e.message || "Couldn't import - fill the fields manually."); }
     finally { setLinkedinBusy(false); clearInterval(timerRef); }
   };
 
@@ -172,18 +172,18 @@ export default function MentorOnboard({ onDone }) {
     if (!file) return;
     if (file.type !== "application/pdf") { setErr("Please upload a PDF file."); return; }
     setErr("");
-    // On Step 0 (before signup) we can't call the protected endpoint yet — stage the file
+    // On Step 0 (before signup) we can't call the protected endpoint yet - stage the file
     if (step === 0) {
       setResumeFile(file);
       setLinkedinImported(true); // show "staged" green state
       return;
     }
-    // On Step 1 (already signed in via Google or after email signup) — parse immediately
+    // On Step 1 (already signed in via Google or after email signup) - parse immediately
     setLinkedinBusy(true);
     try {
       const res = await profileAPI.parseLinkedin(file);
       applyResumeData(res?.data || {});
-    } catch (e) { setErr(e.message || "Couldn't read PDF — fill the fields manually."); }
+    } catch (e) { setErr(e.message || "Couldn't read PDF - fill the fields manually."); }
     finally { setLinkedinBusy(false); }
   };
 
@@ -296,7 +296,7 @@ export default function MentorOnboard({ onDone }) {
         <h2 style={{ color: C.text, fontSize: "1.5rem", fontWeight: 600, marginBottom: 6 }}>Become an Atyant mentor</h2>
         <p style={{ color: C.textSub, fontSize: "0.9rem", marginBottom: 18 }}>Help juniors from a background like yours. Create your mentor account to start.</p>
 
-        {/* Google one-click signup — fastest path */}
+        {/* Google one-click signup - fastest path */}
         <button
           onClick={() => {
             sessionStorage.setItem("mentor_intent", "1");
@@ -317,7 +317,7 @@ export default function MentorOnboard({ onDone }) {
 
         {err && <Err msg={err} />}
 
-        {/* Auto-import block — LinkedIn URL or Resume PDF */}
+        {/* Auto-import block - LinkedIn URL or Resume PDF */}
         <div style={{ background: C.card, border: `1px solid ${C.activeBorder}`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
           {/* Tab header */}
           <div style={{ display: "flex", borderBottom: `1px solid ${C.cardBorder}` }}>
@@ -346,14 +346,14 @@ export default function MentorOnboard({ onDone }) {
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8233", borderRadius: 8, padding: "10px 12px" }}>
                     <Check size={14} color={C.green} style={{ marginTop: 1, flexShrink: 0 }} />
                     <span style={{ fontSize: "0.8rem", lineHeight: 1.5 }}>
-                      <span style={{ color: C.green }}>LinkedIn URL added — your name, college, companies and skills will be auto-imported after signup.</span>
+                      <span style={{ color: C.green }}>LinkedIn URL added - your name, college, companies and skills will be auto-imported after signup.</span>
                       <br />
                       <span style={{ color: "#e53e3e", fontWeight: 700 }}>Please only fill in your email, mobile number, and password to complete your account.</span>
                     </span>
                   </div>
                 ) : (
                   <div style={{ color: C.textMuted, fontSize: "0.74rem", marginTop: 6 }}>
-                    Paste your LinkedIn URL — we'll auto-fill everything. You just review.
+                    Paste your LinkedIn URL - we'll auto-fill everything. You just review.
                   </div>
                 )}
               </>
@@ -365,13 +365,13 @@ export default function MentorOnboard({ onDone }) {
                   {linkedinBusy ? (
                     <><Loader2 size={22} style={{ animation: "spin 1s linear infinite", color: C.accentText }} /><span style={{ fontSize: "0.82rem", color: C.accentText, fontWeight: 600 }}>Reading resume…</span></>
                   ) : resumeFile ? (
-                    <><Check size={22} color={C.green} /><span style={{ fontSize: "0.82rem", color: C.green, fontWeight: 600 }}>{resumeFile.name} — will be parsed after signup</span><span style={{ fontSize: "0.72rem", color: C.textMuted }}>Tap to change file</span></>
+                    <><Check size={22} color={C.green} /><span style={{ fontSize: "0.82rem", color: C.green, fontWeight: 600 }}>{resumeFile.name} - will be parsed after signup</span><span style={{ fontSize: "0.72rem", color: C.textMuted }}>Tap to change file</span></>
                   ) : (
                     <><Upload size={22} color={C.textMuted} /><span style={{ fontSize: "0.82rem", color: C.textSub, fontWeight: 600 }}>Click to upload your Resume PDF</span><span style={{ fontSize: "0.72rem", color: C.textMuted }}>We extract your name, college, companies, skills automatically</span></>
                   )}
                 </label>
                 <div style={{ color: C.textMuted, fontSize: "0.72rem", marginTop: 8, textAlign: "center" }}>
-                  Works with any resume PDF — no LinkedIn required
+                  Works with any resume PDF - no LinkedIn required
                 </div>
               </>
             )}
@@ -419,7 +419,7 @@ export default function MentorOnboard({ onDone }) {
         <Header step={1} />
         <h2 style={{ color: C.text, fontSize: "1.35rem", fontWeight: 600, marginBottom: 6 }}>Import from LinkedIn</h2>
         <p style={{ color: C.textSub, fontSize: "0.88rem", marginBottom: 18 }}>
-          Paste your LinkedIn profile URL — we'll fill everything automatically. Review and edit, then move forward.
+          Paste your LinkedIn profile URL - we'll fill everything automatically. Review and edit, then move forward.
         </p>
         {err && <Err msg={err} />}
 
@@ -449,7 +449,7 @@ export default function MentorOnboard({ onDone }) {
         {linkedinImported && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(61,190,130,0.08)", border: "1px solid #3DBE8244", borderRadius: 9, padding: "9px 12px", marginBottom: 16 }}>
             <Check size={14} color={C.green} />
-            <span style={{ color: C.green, fontSize: "0.82rem", fontWeight: 500 }}>Imported from LinkedIn — review your details below</span>
+            <span style={{ color: C.green, fontSize: "0.82rem", fontWeight: 500 }}>Imported from LinkedIn - review your details below</span>
           </div>
         )}
 
@@ -476,7 +476,7 @@ export default function MentorOnboard({ onDone }) {
         </div>
         <div style={{ marginTop: 14 }}>
           <span style={{ fontSize: "0.74rem", fontWeight: 600, color: C.textSub, marginBottom: 8, display: "block", letterSpacing: "0.02em" }}>
-            TOP SKILLS {importedSkills.length > 0 ? `— tap to remove` : ""}
+            TOP SKILLS {importedSkills.length > 0 ? `- tap to remove` : ""}
           </span>
           {importedSkills.length > 0 ? (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -540,7 +540,7 @@ export default function MentorOnboard({ onDone }) {
       </div>
 
       <div style={{ marginTop: 18 }}>
-        <Field label="Your story — how did you crack it?">
+        <Field label="Your story - how did you crack it?">
           <textarea style={{ ...inp, minHeight: 120, resize: "vertical", lineHeight: 1.5 }} value={f.story}
             onChange={e => set("story", e.target.value)}
             placeholder="e.g. As a Metallurgy student at VNIT with no CS background, I cold-mailed 40 labs, landed an IIM research internship, and used guesstimates + 2 case projects to convert…" />

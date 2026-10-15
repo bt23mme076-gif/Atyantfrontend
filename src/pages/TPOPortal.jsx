@@ -34,7 +34,7 @@ function PartnershipLogos({ size = "md", variant = "light" }) {
   // "light" = always light-mode style
   const isDark = variant === "dark" || (variant === "panel" && theme === "dark");
 
-  // Solid brand-purple pill, always inline — never depends on a stylesheet
+  // Solid brand-purple pill, always inline - never depends on a stylesheet
   // owned by a sibling component that might not be mounted (e.g. the header
   // renders this after LoginScreen, which used to own this CSS, unmounts).
   // White Atyant wordmark + colourful VNIT crest both read on purple, so one
@@ -115,7 +115,7 @@ function LoginScreen({ onLogin }) {
           background: #15141D;
         }
 
-        /* ── Left panel (transparent — inherits wrapper bg) ── */
+        /* ── Left panel (transparent - inherits wrapper bg) ── */
         @media (min-width:900px) { .tpo-left-panel { display:flex !important; } }
         @media (max-width:899px) { .tpo-left-panel { display:none !important; } }
         .tpo-left-panel { background: transparent; }
@@ -144,7 +144,7 @@ function LoginScreen({ onLogin }) {
         .dark .tpo-phase-text   { color: #c4b5fd; }
         .dark .tpo-phase-dot    { background: #a78bfa; }
 
-        /* ── Right panel — frosted glass card ── */
+        /* ── Right panel - frosted glass card ── */
         .tpo-right-panel {
           background: rgba(255,255,255,0.6);
           backdrop-filter: blur(28px);
@@ -157,7 +157,7 @@ function LoginScreen({ onLogin }) {
         }
       `}</style>
 
-      {/* ── Left panel — branding ── */}
+      {/* ── Left panel - branding ── */}
       <div
         className="tpo-left-panel"
         style={{ display:"none", flex:"0 0 52%", position:"relative", overflow:"hidden", padding:"3rem", flexDirection:"column", justifyContent:"space-between" }}
@@ -185,7 +185,7 @@ function LoginScreen({ onLogin }) {
           </h1>
 
           <p className="tpo-brand-sub" style={{ fontSize:"1rem", maxWidth:380, lineHeight:1.7, margin:"0 0 2.5rem" }}>
-            Schedule mock interviews, track student readiness, and manage placement sessions — all in one place.
+            Schedule mock interviews, track student readiness, and manage placement sessions - all in one place.
           </p>
 
           <div style={{ display:"flex", gap:"2rem" }}>
@@ -206,7 +206,7 @@ function LoginScreen({ onLogin }) {
         </div>
       </div>
 
-      {/* ── Right panel — login form ── */}
+      {/* ── Right panel - login form ── */}
       <div className="tpo-right-panel" style={{
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
@@ -335,7 +335,7 @@ function PortalHeader({ user, onLogout }) {
         }
       `}</style>
 
-      {/* Brand: logo × logo + "VNIT × Atyant / T&P Portal" — always visible */}
+      {/* Brand: logo × logo + "VNIT × Atyant / T&P Portal" - always visible */}
       <div className="tpo-header-brand" style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         <PartnershipLogos size="sm" />
         <div style={{ width: 1, height: 24, background: "var(--c-cardBorder)", flexShrink: 0 }} />

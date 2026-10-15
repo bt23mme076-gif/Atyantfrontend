@@ -183,7 +183,7 @@ function PastSessionInsights({ sessionId, pipelineStatus, isMentorView, onNaviga
 
           {!loading && data && !data.insight?.summary && pipelineStatus !== 'processing' && (
             <p style={{ fontSize: "0.8rem", color: C.textMuted, textAlign: "center", padding: "0.5rem" }}>
-              {pipelineStatus === 'no_audio' ? "Audio wasn't captured in this session — check your mic before the next one." :
+              {pipelineStatus === 'no_audio' ? "Audio wasn't captured in this session - check your mic before the next one." :
                 pipelineStatus === 'failed' ? "Insight generation encountered an error for this session." :
                   "No insights available yet."}
             </p>
@@ -191,7 +191,7 @@ function PastSessionInsights({ sessionId, pipelineStatus, isMentorView, onNaviga
 
           {!loading && pipelineStatus === 'processing' && (
             <p style={{ fontSize: "0.8rem", color: C.accentText, textAlign: "center", padding: "0.5rem" }}>
-              ⏳ AI is analyzing your session — check back in a few minutes.
+              ⏳ AI is analyzing your session - check back in a few minutes.
             </p>
           )}
 
@@ -234,7 +234,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
   const counterpartName = s.counterpartName || s.mentorName || "Your Mentor";
   const counterpartPic = s.counterpartPicture || s.mentorProfilePicture;
   const bookingId = (s._id || "").slice(-8).toUpperCase();
-  // The meet opens at /?meet=<id> on atyant.in — serving it same-origin keeps the localStorage auth
+  // The meet opens at /?meet=<id> on atyant.in - serving it same-origin keeps the localStorage auth
   // token available. The backend ensures the LiveKit room idempotently on join,
   // so we build the link from the id directly rather than relying on a saved
   // meetingLink.
@@ -242,7 +242,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
   const hasMeet = !!meetUrl;
   const now = Date.now();
   const sessionMs = date.getTime();
-  // Time-window states — NOT tied to isUpcoming so the join button stays live
+  // Time-window states - NOT tied to isUpcoming so the join button stays live
   // even after the backend moves the session from upcoming[] to past[].
   const isBeforeSession = now < sessionMs;
   // Active join window: from session start to +1 hour (e.g. 12:00–13:00)
@@ -259,7 +259,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
   return (
     <div style={{ background: C.card, border: `1px solid ${isUpcoming ? C.accent + "44" : C.cardBorder}`, borderRadius: 12, overflow: "hidden" }}>
       <div style={{ padding: "1.3rem 1.4rem" }}>
-        {/* header — show the other party (student sees mentor, mentor sees student) */}
+        {/* header - show the other party (student sees mentor, mentor sees student) */}
         <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
           <Avatar src={counterpartPic} name={counterpartName} size={46} bg="7567c9" style={{ border: `1.5px solid ${isUpcoming ? C.accent + "60" : C.activeBorder}` }} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -288,7 +288,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
           {s.amount > 0 && <Detail icon={<span style={{ fontSize: 12, fontWeight: 700 }}>₹</span>} label="Amount Paid" value={`₹${s.amount}`} valueColor={C.green} />}
         </div>
 
-        {/* meet CTA — visible before session (disabled) and during the 1-hour join window (active).
+        {/* meet CTA - visible before session (disabled) and during the 1-hour join window (active).
             Does NOT depend on isUpcoming so the button stays live even after the backend
             moves the session from upcoming[] to past[] once scheduledAt passes. */}
         {!treatAsPast && (hasMeet ? (
@@ -304,10 +304,10 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
           </div>
         ))}
 
-        {/* Past session insights — shown after the 1-hour window closes */}
+        {/* Past session insights - shown after the 1-hour window closes */}
         {treatAsPast && <PastSessionInsights sessionId={s._id} pipelineStatus={s.pipelineStatus} isMentorView={isMentorView} onNavigate={onNavigate} />}
 
-        {/* Review section — only for past student sessions */}
+        {/* Review section - only for past student sessions */}
         {treatAsPast && !isMentorView && (
           <div style={{ marginTop: "1.1rem", padding: "0.9rem 1.1rem", background: C.bg, borderRadius: 12, border: `1px solid ${C.cardBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             {review ? (
@@ -338,7 +338,7 @@ function SessionDetailCard({ s, isUpcoming, onNavigate, myRating, onRate }) {
           </div>
         )}
 
-        {/* Student's review — read-only, shown on the mentor's side of My Sessions */}
+        {/* Student's review - read-only, shown on the mentor's side of My Sessions */}
         {!isUpcoming && isMentorView && s.review?.submittedAt && (
           <div style={{ marginTop: "1.1rem", padding: "1rem 1.1rem", background: C.bg, borderRadius: 12, border: `1px solid ${C.cardBorder}` }}>
             <p style={{ fontSize: "0.72rem", fontWeight: 600, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.6rem" }}>
@@ -651,7 +651,7 @@ function MyRoadmapPage({ user }) {
         </div>
       )}
 
-      {/* How the roadmap is generated — hybrid (AI draft + mentor refinement) */}
+      {/* How the roadmap is generated - hybrid (AI draft + mentor refinement) */}
       {activeTab === "skill" && (
         <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 14, padding: "1rem 1.25rem", marginBottom: "2rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -662,7 +662,7 @@ function MyRoadmapPage({ user }) {
             {[
               { n: "1", t: "AI draft", d: "Generated from your branch, goals, CGPA and the questions you've asked Atyant." },
               { n: "2", t: "Mentor refinement", d: "A verified senior who's walked your path tailors the steps after your 1:1 session." },
-              { n: "3", t: "You track progress", d: "Tick off steps as you go — regenerate anytime your goals change." },
+              { n: "3", t: "You track progress", d: "Tick off steps as you go - regenerate anytime your goals change." },
             ].map((x) => (
               <div key={x.n} style={{ display: "flex", gap: 10 }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.accentSoft, color: C.accentText, border: `1px solid ${C.accent}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{x.n}</div>
@@ -777,7 +777,7 @@ function SavedAnswerCard({ a, onRemove }) {
         </div>
       </div>
 
-      {/* body — preserve line breaks (rich summaries carry a "Key points" list) */}
+      {/* body - preserve line breaks (rich summaries carry a "Key points" list) */}
       <div style={{
         color: C.text, fontSize: "0.9rem", lineHeight: 1.62, whiteSpace: "pre-wrap",
         ...(isLong && !expanded ? { display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" } : {}),
@@ -857,7 +857,7 @@ function SavedAnswersPage() {
               {search ? "No matches found" : "Nothing saved yet"}
             </div>
             <div style={{ color: C.textMuted, fontSize: "0.84rem", lineHeight: 1.5 }}>
-              {search ? `Nothing matches "${search}"` : "Finish a mentor session or bookmark answers from Clarity — they'll show up here."}
+              {search ? `Nothing matches "${search}"` : "Finish a mentor session or bookmark answers from Clarity - they'll show up here."}
             </div>
           </div>
         )}
@@ -913,7 +913,7 @@ function AuthModal({ onClose, onAuthed }) {
         }
         const referredBy = sessionStorage.getItem("referredBy") || undefined;
 
-        // Step 1 — send OTP
+        // Step 1 - send OTP
         await signupInitiate(username, email, password, cleanPhone, undefined);
         if (referredBy) sessionStorage.setItem("referredBy", referredBy); // keep until verified
 
@@ -922,7 +922,7 @@ function AuthModal({ onClose, onAuthed }) {
         setMode("signup-otp");
 
       } else if (mode === "signup-otp") {
-        // Step 2 — verify OTP
+        // Step 2 - verify OTP
         const u = await signupVerify(email, otp);
         sessionStorage.removeItem("referredBy");
         onClose();
@@ -992,7 +992,7 @@ function AuthModal({ onClose, onAuthed }) {
           <span style={{ fontWeight: 600, fontSize: "1rem", color: C.text }}>{modeTitle}</span>
         </div>
 
-        {/* Google Sign-in — only on login / signup screens */}
+        {/* Google Sign-in - only on login / signup screens */}
         {(mode === "login" || mode === "signup") && (
           <>
             <button
@@ -1249,7 +1249,7 @@ function RequirePhoneGate() {
 export default function App() {
   const { user, loading, logout } = useAuth();
   const userPlan = activePlan(user);   // "clarity" | "pro" | null
-  // After Google OAuth the backend redirects back with ?token=… — land on home, and
+  // After Google OAuth the backend redirects back with ?token=… - land on home, and
   // once the user loads, send them to profile onboarding only if it's incomplete
   // (same rule as email/password login, see handleAuthed).
   const googleLandingRef = useRef(OAUTH_HOME_LANDING);
@@ -1327,7 +1327,7 @@ export default function App() {
     };
     inviteAPI.claim(inviteCode).then(finish).catch((err) => {
       // 409 = already claimed/invalid: retrying can't help. Anything else is
-      // transient — keep the code so the landing card reappears for a retry.
+      // transient - keep the code so the landing card reappears for a retry.
       if (err?.status === 409) return finish();
       setInviteJoining(false);
     });
@@ -1379,7 +1379,7 @@ export default function App() {
   const [clarityContext, setClarityContext] = useState(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Desktop-only rail collapse (ChatGPT-style) — mobile keeps its own slide-in
+  // Desktop-only rail collapse (ChatGPT-style) - mobile keeps its own slide-in
   // drawer behavior via sidebarOpen and is unaffected by this.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try { return localStorage.getItem('atyant_sidebar_collapsed') === '1'; } catch { return false; }
@@ -1435,7 +1435,7 @@ export default function App() {
     setActivePage("ask");
     setTimeout(() => setTourOpen(true), 400);   // let the home page mount before steps are resolved
   };
-  // On mobile the sidebar is an off-canvas drawer — slide it in for sidebar steps.
+  // On mobile the sidebar is an off-canvas drawer - slide it in for sidebar steps.
   const handleTourStep = (step) => {
     if (isMobile) setSidebarOpen(!!step.sidebar);
   };
@@ -1444,7 +1444,7 @@ export default function App() {
     if (isMobile) setSidebarOpen(false);
   };
 
-  // Platform feedback — "Feedback" in the top bar, plus one prompt for people who've
+  // Platform feedback - "Feedback" in the top bar, plus one prompt for people who've
   // actually explored: 3+ different pages and 2+ minutes here, at most once a month.
   const [platformFeedback, setPlatformFeedback] = useState(false);
   const pagesSeenRef = useRef(new Set());
@@ -1614,7 +1614,7 @@ export default function App() {
         style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius: 10, border: "none", background: isActive ? C.accentSoft : "transparent", color: isActive ? C.text : C.textSub, cursor: "pointer", fontFamily: "inherit", fontSize: "0.9rem", lineHeight: 1.2, textAlign: "left", textDecoration: "none", boxSizing: "border-box", transition: "background-color 0.2s ease, color 0.2s ease", fontWeight: 500 }}
         onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = C.cardHover; e.currentTarget.style.color = C.text; } }}
         onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textSub; } }}>
-        {/* Left accent bar — active only */}
+        {/* Left accent bar - active only */}
         <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 3, height: 18, borderRadius: "0 3px 3px 0", background: C.accent, opacity: isActive ? 1 : 0, transition: "opacity 0.2s ease" }} />
         <span style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
           <item.Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} style={{ color: isActive ? C.accentText : "currentColor", transition: "color 0.2s ease" }} />
@@ -1678,7 +1678,7 @@ export default function App() {
           </div>
 
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 12px 1rem" }}>
-            {/* ── New Chat / Home — primary CTA ── */}
+            {/* ── New Chat / Home - primary CTA ── */}
             {activePage === "profile" ? (
               <button
                 onClick={() => {
@@ -1798,7 +1798,7 @@ export default function App() {
           </div>
 
           <div style={{ padding: "0.875rem", borderTop: `1px solid ${C.sidebarBorder}` }}>
-            {/* Become a mentor — only for logged-out visitors */}
+            {/* Become a mentor - only for logged-out visitors */}
             {!user && (
               collapsed ? (
                 <button onClick={() => setActivePage("mentor-onboard")} title="Become a mentor"
@@ -1876,7 +1876,7 @@ export default function App() {
                 <Menu size={18} />
               </button>
             ) : collapsed ? (
-              /* Sidebar rail is icon-only — keep the name visible up here, same
+              /* Sidebar rail is icon-only - keep the name visible up here, same
                  place ChatGPT keeps its title when its own rail is collapsed. */
               <span style={{ fontWeight: 700, fontSize: "1.15rem", letterSpacing: "-0.01em", color: C.text, lineHeight: 1, fontFamily: "'Noto Serif Devanagari','Georgia',serif" }}>अत्यanT</span>
             ) : <div />}
@@ -1910,7 +1910,7 @@ export default function App() {
                       style={{ background: "transparent", border: `1px solid ${C.cardBorder}`, borderRadius: 7, padding: "5px 12px", color: C.accentText, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>Free Plan</button>
                   )}
                   {/* On phones the plan badge already opens the plans page, so
-                      paid users get the badge alone — two buttons didn't fit. */}
+                      paid users get the badge alone - two buttons didn't fit. */}
                   {userPlan !== "pro" && !(isMobile && userPlan) && (
                     <button onClick={goToUpgrade} data-tour="upgrade"
                       style={{ background: C.accent, border: `1px solid ${C.accent}`, borderRadius: 7, padding: "5px 12px", color: "#fff", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>{userPlan ? "Go Pro" : "Upgrade"}</button>
@@ -1946,7 +1946,7 @@ export default function App() {
         {/* Mandatory mobile capture for phone-less (e.g. Google) accounts */}
         <RequirePhoneGate />
 
-        {/* Global toast host — booking/payment/chat feedback all render here */}
+        {/* Global toast host - booking/payment/chat feedback all render here */}
         <ToastContainer position="top-center" autoClose={3500} limit={3} newestOnTop pauseOnHover transition={Slide} theme="colored" style={{ zIndex: 99999 }} />
 
         {bookingTarget && (

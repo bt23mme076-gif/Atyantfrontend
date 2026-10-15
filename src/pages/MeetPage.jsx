@@ -73,7 +73,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
     const navigate = useNavigate();
     // Force all media through the TURN relay. Verified on 5G mobile data
     // (2026-07-12): forced relay gathered a relay candidate and held a stable
-    // call for the full duration — mobile/CGNAT users can't connect reliably on
+    // call for the full duration - mobile/CGNAT users can't connect reliably on
     // the direct (srflx) path (symmetric NAT drops them), so relay is the only
     // path that works for them every time. WiFi users are unaffected in practice
     // (the VPS is ~idle and TURN relay is just packet forwarding). The earlier
@@ -116,7 +116,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
                     const status = err?.response?.status;
                     const data = err?.response?.data || {};
                     // A 401 means the stored token is missing/expired/invalid for this
-                    // backend — surface a clear re-login prompt instead of a dead end.
+                    // backend - surface a clear re-login prompt instead of a dead end.
                     if (status === 401) {
                         setNeedsAuth(true);
                         setError('Your session has expired. Please sign in again to join.');
@@ -210,7 +210,7 @@ export default function MeetPage({ sessionId: propSessionId }) {
                 videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
             }}
             // Relay is NOT forced by default (direct/srflx is what works for WiFi).
-            // ?relay=1 forces THIS session through TURN relay — a temporary
+            // ?relay=1 forces THIS session through TURN relay - a temporary
             // diagnostic to test whether mobile/CGNAT can connect + stay stable
             // via relay. connectOptions is the correct prop (RoomOptions has no
             // rtcConfig field, which is why an earlier attempt on options was a
@@ -221,4 +221,4 @@ export default function MeetPage({ sessionId: propSessionId }) {
             <MeetTools hasVideo={roomData.callType !== 'audio'} sessionId={sessionId} />
         </LiveKitRoom>
     );
-}
+}

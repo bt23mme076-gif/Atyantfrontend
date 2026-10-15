@@ -1,7 +1,7 @@
 import { Crown } from "lucide-react";
 import { activePlan, PLAN_NAME } from "../../lib/plan";
 
-// Small plan pill for paying users — nothing for free or lapsed plans.
+// Small plan pill for paying users - nothing for free or lapsed plans.
 // Pro is amber (the premium colour used for Auto-apply); Clarity is the brand purple.
 const LOOK = {
   pro:     { bg: "#B45309", fg: "#fff" },

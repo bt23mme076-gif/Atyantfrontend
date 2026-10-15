@@ -7,7 +7,7 @@ import './CodeExercisePanel.css';
 // Shown when the interviewer asks a DSA or SQL question (interviewAgent.js
 // broadcasts a "coding_question" data message when it reaches one of these).
 // The candidate writes real code/SQL, runs it, and either submits a passing
-// solution or asks to move on — either way a "code_result" data message goes
+// solution or asks to move on - either way a "code_result" data message goes
 // back to the agent, which advances the interview exactly like a spoken
 // answer would (see InterviewController.onCodingResult).
 

@@ -3,10 +3,10 @@ import { useConnectionQualityIndicator, useParticipants } from '@livekit/compone
 import { ConnectionQuality } from 'livekit-client';
 
 // Tiny pop-up toasts that name-and-shame whichever side's connection is
-// struggling — "Rohit's connection is unstable" — instead of a generic
+// struggling - "Rohit's connection is unstable" - instead of a generic
 // spinner both people have to guess about. Purely event-driven: each watcher
 // subscribes to ONE participant's own connectionQualityChanged event via
-// LiveKit's own hook, so nothing here polls or touches the video pipeline —
+// LiveKit's own hook, so nothing here polls or touches the video pipeline -
 // it can't add lag to the call itself.
 const AUTO_DISMISS_MS = 4500;
 
@@ -14,7 +14,7 @@ function isDegraded(q) {
     return q === ConnectionQuality.Poor || q === ConnectionQuality.Lost;
 }
 
-// Renders nothing — just watches one participant and reports transitions
+// Renders nothing - just watches one participant and reports transitions
 // in/out of a degraded state up to the parent.
 function QualityWatcher({ participant, onTransition }) {
     const { quality } = useConnectionQualityIndicator({ participant });
@@ -26,7 +26,7 @@ function QualityWatcher({ participant, onTransition }) {
             const wasDegraded = isDegraded(prev);
             const nowDegraded = isDegraded(quality);
             // Only surface real transitions: entering a poor/lost state, or
-            // recovering FROM one — not every minor Excellent<->Good flicker.
+            // recovering FROM one - not every minor Excellent<->Good flicker.
             if (nowDegraded && !wasDegraded) {
                 onTransition(participant, 'degraded');
             } else if (!nowDegraded && wasDegraded) {

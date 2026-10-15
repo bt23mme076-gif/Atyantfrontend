@@ -1681,7 +1681,7 @@ function SuccessModal({ isOpen, onClose, onViewDetails, bookingDetails }) {
                   navigator.share({ title: "Session Booked!", text, url: window.location.href }).catch(() => {});
                 } else {
                   navigator.clipboard?.writeText(`${text} ${window.location.href}`);
-                  toast.success("Copied to clipboard — share it anywhere!");
+                  toast.success("Copied to clipboard - share it anywhere!");
                 }
               }}
               className="flex items-center justify-center gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold text-[var(--c-textSub)] transition hover:bg-gray-50 border-[var(--c-cardBorder)] text-[var(--c-textMuted)] hover:bg-[var(--c-active)]"
@@ -1717,7 +1717,7 @@ function NoMentorState({ onFindMentor }) {
           Find your mentor first
         </h2>
         <p className="mt-3 text-sm leading-7 text-[var(--c-textSub)] max-w-sm mx-auto">
-          Tell us your goal and we'll match you with the right mentor — then booking takes under 2 minutes.
+          Tell us your goal and we'll match you with the right mentor - then booking takes under 2 minutes.
         </p>
 
         {/* Steps */}
@@ -1970,13 +1970,13 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   }, [mentor?._id, mentor?.id]);
 
   const SERVICE_ICONS = { "text-qa": FiMessageCircle, "audio-call": FiPhone, "video-call": FiVideo, "resume-review": FiBookOpen };
-  // Original (crossed-out) price map — shown as strikethrough to show discount
+  // Original (crossed-out) price map - shown as strikethrough to show discount
   const ORIGINAL_PRICE = { "text-qa": 99, "audio-call": 199, "video-call": 499, "resume-review": 299 };
 
   const sessionOptions = useMemo(() => {
     // Use fetched full profile's servicesOffered, fall back to prop
     const offered = mentorProfile?.servicesOffered || mentor?.servicesOffered || [];
-    // Only show services the mentor explicitly opted into — never fall back to all
+    // Only show services the mentor explicitly opted into - never fall back to all
     const picked = serviceCatalog.filter(s => offered.includes(s.id));
     if (!picked.length) return []; // mentor hasn't configured services yet
     return picked.map(s => ({
@@ -1995,7 +1995,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
 
   // 2. Initialize states
   const [selectedSession, setSelectedSession] = useState(null);
-  // The user must consciously pick a session type before scheduling — we do NOT
+  // The user must consciously pick a session type before scheduling - we do NOT
   // auto-select one. (Auto-picking the "popular" service let people book without
   // ever choosing a format.) Only drop a stale selection if the mentor's
   // offered services change so it no longer exists.
@@ -2004,7 +2004,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       prev && sessionOptions.find(s => s.id === prev.id) ? prev : null
     );
   }, [sessionOptions]);
-  const [date, setDate] = useState(""); // start empty — let user pick from calendar
+  const [date, setDate] = useState(""); // start empty - let user pick from calendar
   const [time, setTime] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -2014,7 +2014,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
   const [showPayment, setShowPayment] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  // Snapshot of the booked session, captured at success time — so the success
+  // Snapshot of the booked session, captured at success time - so the success
   // modal keeps showing the right date/time even after refreshSlots clears them.
   const [successInfo, setSuccessInfo] = useState(null);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -2129,7 +2129,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
       const topic = (selectedGoals && selectedGoals.length ? selectedGoals.join(', ') : selectedSession.title);
       const durationMin = selectedSession.durationMin || 30;
 
-      // 1) Create order — serviceId drives price; couponCode validated & applied server-side
+      // 1) Create order - serviceId drives price; couponCode validated & applied server-side
       const order = await paymentAPI.createOrder({
         mentorId, date, time, topic, durationMin, serviceId: selectedSession.serviceId,
         couponCode: couponApplied ? couponCode.toUpperCase() : undefined,
@@ -2210,7 +2210,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
             <HiSparkles className="text-white" size={16} />
           </div>
           <p className="flex-1 text-sm font-semibold text-[var(--c-text)]">
-            Early Bird Offer —{" "}
+            Early Bird Offer -{" "}
             <span className="text-[#7567C9]">Save up to 50% on your first session!</span>
           </p>
           <span className="rounded-full border border-[#7567C9]/30 bg-[var(--c-active)] px-3 py-1 text-xs font-bold text-[var(--c-accentText)]">
@@ -2250,7 +2250,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                 <div style={{ background: "rgba(61,190,130,0.06)", border: "1px solid rgba(61,190,130,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
                   <FiGift size={14} color="#3DBE82" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: 13, color: "#3DBE82", fontWeight: 500 }}>
-                    All sessions include: written notes + curated resources after every call — yours to keep forever.
+                    All sessions include: written notes + curated resources after every call - yours to keep forever.
                   </span>
                 </div>
 
@@ -2261,7 +2261,7 @@ export default function BookingPage({ mentor, onFindMentor, user, onAuthRequired
                       {serviceCatalog.length === 0 ? "Loading services…" : "Mentor hasn't set up sessions yet"}
                     </div>
                     <div style={{ fontSize: ".8rem", color: "var(--c-textMuted)" }}>
-                      {serviceCatalog.length === 0 ? "Please wait a moment." : "Check back soon — they're still configuring their profile."}
+                      {serviceCatalog.length === 0 ? "Please wait a moment." : "Check back soon - they're still configuring their profile."}
                     </div>
                   </div>
                 ) : (

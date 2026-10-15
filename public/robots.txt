@@ -1,4 +1,4 @@
-# Atyant — https://atyant.in
+# Atyant - https://atyant.in
 # Indexable: /, /jobs, /mock-interview, /mentor-onboard (see src/seo/routes.js), /guides/*, /company
 # Blocked: app shell, auth, booking, dashboard, internal APIs
 
@@ -13,7 +13,7 @@ Disallow: /signup
 Disallow: /book/
 Disallow: /profile/edit
 Disallow: /settings
-# Do NOT block /product-assets/ — Googlebot needs the JS/CSS to render the SPA.
+# Do NOT block /product-assets/ - Googlebot needs the JS/CSS to render the SPA.
 
 User-agent: *
 Crawl-delay: 1

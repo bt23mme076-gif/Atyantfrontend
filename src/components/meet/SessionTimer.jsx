@@ -5,7 +5,7 @@ import { useParticipants } from '@livekit/components-react';
 // mentor and the user always know how long they've been talking.
 //
 // The start reference is the EARLIEST joinedAt across everyone in the room, so
-// both sides converge on the same running total once they're both connected —
+// both sides converge on the same running total once they're both connected -
 // a late joiner immediately sees how long the session has really been going,
 // rather than restarting from zero. Falls back to mount time before joinedAt
 // is populated, and never counts from a future timestamp (clock skew).
@@ -78,7 +78,7 @@ const wrap = {
     WebkitBackdropFilter: 'blur(10px)',
     boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
     userSelect: 'none',
-    pointerEvents: 'none', // purely informational — never intercept clicks
+    pointerEvents: 'none', // purely informational - never intercept clicks
 };
 const dot = {
     width: 8,

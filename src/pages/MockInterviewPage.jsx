@@ -10,7 +10,7 @@ import { wasAsked, markAsked, RATING_WORDS } from "../lib/feedback";
 import { loadRazorpay } from "../lib/checkout";
 import MockInterviewRoom from "../components/mockInterview/MockInterviewRoom";
 
-// Theme palette — maps to CSS vars defined in index.css (light + dark).
+// Theme palette - maps to CSS vars defined in index.css (light + dark).
 const C = {
   bg:           "var(--c-bg)",
   card:         "var(--c-card)",
@@ -189,7 +189,7 @@ function HowItWorks() {
   );
 }
 
-// Illustrative only — clearly labelled as an example, never the user's own numbers.
+// Illustrative only - clearly labelled as an example, never the user's own numbers.
 const SAMPLE_DIMENSIONS = [
   { label: "Technical depth", value: 68 },
   { label: "Communication", value: 81 },
@@ -360,7 +360,7 @@ function NewInterviewForm({ onCreated }) {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <span style={label}>Interview focus <span style={{ fontWeight: 500, color: C.textMuted }}>(optional — we'll guess from company/role)</span></span>
+        <span style={label}>Interview focus <span style={{ fontWeight: 500, color: C.textMuted }}>(optional - we'll guess from company/role)</span></span>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {CATEGORIES.map(({ id, label: text, Icon }) => {
             const on = category === id;
@@ -504,7 +504,7 @@ function InterviewList({ interviews, onOpen }) {
   );
 }
 
-// Interview tips — shown while an interview builds and on its plan screen.
+// Interview tips - shown while an interview builds and on its plan screen.
 const TIPS = [
   { title: "Lead with the why", body: "Say why you picked a tool or approach before describing it. That's what follow-ups dig for." },
   { title: "Put numbers on impact", body: "Users, latency, time saved. One real number beats three adjectives." },
@@ -526,7 +526,7 @@ const SCORING_OUTPUT = [
   "What to prepare before the real one",
 ];
 
-// "0:42", "3:05" — time since this screen opened.
+// "0:42", "3:05" - time since this screen opened.
 function useElapsed() {
   const [startedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
@@ -1446,7 +1446,7 @@ export default function MockInterviewPage({ onAuthRequired, onNavigate }) {
       try {
         const res = await mockInterviewAPI.get(id);
         setInterview(res.interview);
-      } catch { /* transient — next tick retries */ }
+      } catch { /* transient - next tick retries */ }
     }, POLL_MS);
     return () => clearInterval(t);
   }, [id, status]);

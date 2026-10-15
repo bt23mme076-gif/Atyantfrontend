@@ -9,7 +9,7 @@ import { canAutoApply as planAllowsAutoApply } from "../lib/plan";
 import VideoBubble from "../components/VideoBubble";
 import { JOBS_WELCOME_VIDEO } from "../config/jobsWelcomeVideo";
 
-// Theme palette — maps to CSS vars defined in index.css (light + dark).
+// Theme palette - maps to CSS vars defined in index.css (light + dark).
 const C = {
   bg:           "var(--c-bg)",
   card:         "var(--c-card)",
@@ -27,14 +27,14 @@ const C = {
   greenText:    "#1F9D63",
   red:          "#F87171",
   orange:       "#FB923C",
-  // Premium (Auto-apply) — warm amber, the one colour on this page that isn't the brand purple.
+  // Premium (Auto-apply) - warm amber, the one colour on this page that isn't the brand purple.
   gold:         "#B45309",
   goldText:     "#C2620A",
   goldSoft:     "rgba(217,119,6,0.10)",
   goldBorder:   "rgba(217,119,6,0.35)",
 };
 
-// Deterministic avatar color per company name — no logo assets needed.
+// Deterministic avatar color per company name - no logo assets needed.
 const AVATAR_HUES = ["#7567C9", "#3DBE82", "#FB923C", "#3B82F6", "#EC4899", "#F59E0B", "#14B8A6"];
 function avatarColor(name = "") {
   let hash = 0;
@@ -105,16 +105,16 @@ const PageStyles = () => (
   `}</style>
 );
 
-// Most Atyant users are freshers — these are the question shapes that assume
+// Most Atyant users are freshers - these are the question shapes that assume
 // prior employment (Greenhouse/Lever "work history" fields) and don't apply
 // to them. Matched by label text since third-party forms have no stable IDs.
-// Deliberately excludes "expected compensation" / "current location" — those
+// Deliberately excludes "expected compensation" / "current location" - those
 // have real answers a fresher still needs to give.
 const FRESHER_DEFAULTS = [
   { pattern: /notice period/i, value: "Immediate" },
-  { pattern: /current\s+(annual\s+)?(compensation|salary|ctc)/i, value: "N/A — Fresher, no prior compensation" },
-  { pattern: /company|employer/i, value: "N/A — Fresher, no prior employer" },
-  { pattern: /title|role|designation/i, value: "N/A — Fresher, no prior job title" },
+  { pattern: /current\s+(annual\s+)?(compensation|salary|ctc)/i, value: "N/A - Fresher, no prior compensation" },
+  { pattern: /company|employer/i, value: "N/A - Fresher, no prior employer" },
+  { pattern: /title|role|designation/i, value: "N/A - Fresher, no prior job title" },
   { pattern: /start date/i, value: "N/A" },
   { pattern: /end date/i, value: "N/A" },
 ];
@@ -125,7 +125,7 @@ function matchTier(score) {
   return { label: "Stretch match", color: C.textMuted };
 }
 
-// Relative time from an ISO date string — "3h ago", "5d ago", etc.
+// Relative time from an ISO date string - "3h ago", "5d ago", etc.
 function timeAgo(dateStr) {
   if (!dateStr) return null;
   const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
@@ -138,7 +138,7 @@ function timeAgo(dateStr) {
 }
 
 // Scraped descriptions arrive with HTML entities still encoded ("&nbsp;", "&amp;").
-// A detached <textarea> decodes them as plain text — nothing is parsed or run as HTML.
+// A detached <textarea> decodes them as plain text - nothing is parsed or run as HTML.
 function decodeEntities(text = "") {
   if (!/&[#a-z0-9]+;/i.test(text)) return text;
   const el = document.createElement("textarea");
@@ -184,11 +184,11 @@ function practiceJob(job, onNavigate) {
       role: job.title || "",
       jdText: decodeEntities(job.descriptionText || "").slice(0, 8000),
     }));
-  } catch { /* storage blocked — the form just opens empty */ }
+  } catch { /* storage blocked - the form just opens empty */ }
   onNavigate?.("mock-interview");
 }
 
-// ─── Skill extraction — gate for the "Recommended" tab ───────────────────────
+// ─── Skill extraction - gate for the "Recommended" tab ───────────────────────
 function SkillExtractGate({ onSaved }) {
   const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted] = useState(null);
@@ -411,11 +411,11 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
       await navigator.clipboard.writeText(letter);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch { /* clipboard permission denied — non-critical */ }
+    } catch { /* clipboard permission denied - non-critical */ }
   };
 
   const markApplied = async () => {
-    // Signed-out visitors still get the outbound link — we just can't track it.
+    // Signed-out visitors still get the outbound link - we just can't track it.
     if (!user) return;
     setMarking(true);
     try {
@@ -446,9 +446,9 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
       });
       if (res.application?.status === "submitted") onApplied(job._id);
     } catch (err) {
-      // Plan lapsed since the page loaded — the server said no; send them to pricing.
+      // Plan lapsed since the page loaded - the server said no; send them to pricing.
       if (err.data?.code === "PLAN_REQUIRED") { onNavigate?.("upgrade"); return; }
-      // Daily quota used up — show the server's message (it names Pro's higher limit for Clarity users).
+      // Daily quota used up - show the server's message (it names Pro's higher limit for Clarity users).
       setAutoApplyResult({ status: err.data?.code === "DAILY_LIMIT" ? "needs_manual_action" : "failed", reason: err.message || "Auto-apply failed", unansweredQuestions: [] });
     } finally {
       setAutoApplying(false);
@@ -465,7 +465,7 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
   }, [autoStart, canAutoApply]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-fills only the questions that match a known work-history shape and
-  // aren't already typed — leaves everything else (location, expected pay) for
+  // aren't already typed - leaves everything else (location, expected pay) for
   // the student to answer themselves.
   const applyFresherDefaults = () => {
     setAnswerDrafts((prev) => {
@@ -524,7 +524,7 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Building2 size={14} color={C.textMuted} /> via {SOURCE_LABEL[job.source] || "company site"}</span>
       </div>
 
-      {/* Premium: auto-apply — shown first because it's the fastest way to apply */}
+      {/* Premium: auto-apply - shown first because it's the fastest way to apply */}
       {canAutoApply && (
         <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 12, background: C.goldSoft, border: `1px solid ${C.goldBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -718,7 +718,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   const [needsExtraction, setNeedsExtraction] = useState(false);
   const [error, setError] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
-  const [open, setOpen] = useState(null); // { id, autoStart } — the job in the details panel
+  const [open, setOpen] = useState(null); // { id, autoStart } - the job in the details panel
 
   const PAGE_SIZE = 50; // backend caps at 50/request (see GET /api/jobs)
 
@@ -730,11 +730,11 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
       setAppliedJobIds(new Set((res.applications || [])
         .filter(a => a.status === "submitted")
         .map(a => a.job?._id || a.job)));
-    } catch { /* non-critical — applied badges just won't show */ }
+    } catch { /* non-critical - applied badges just won't show */ }
   };
 
   // Guards against a stale response landing after the user has switched tabs
-  // again — without this, an in-flight "all" fetch resolving after the user
+  // again - without this, an in-flight "all" fetch resolving after the user
   // has already switched to "matched" would overwrite jobs with the wrong shape.
   const requestModeRef = useRef(mode);
 
@@ -776,7 +776,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     }
   };
 
-  // Appends the next page to the existing list rather than replacing it —
+  // Appends the next page to the existing list rather than replacing it -
   // "Show more" keeps everything already rendered (and the open job) in place.
   const loadMore = async () => {
     const forMode = mode;
@@ -805,7 +805,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
 
   useEffect(() => {
     loadApplied();
-    // Resume matching needs an account — don't fire a request that can only 401.
+    // Resume matching needs an account - don't fire a request that can only 401.
     if (mode === "matched" && !user) { setJobs([]); return; }
     if (mode === "all") loadAll(); else loadMatched();
   }, [mode, user]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -827,7 +827,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   };
 
   // Shared by every filter that should apply immediately (chips, checkboxes,
-  // dropdowns, suggested searches) rather than waiting on the Search button —
+  // dropdowns, suggested searches) rather than waiting on the Search button -
   // takes whichever fields changed as overrides, syncs their state, and refetches page 1.
   const applyServerFilters = (overrides = {}) => {
     const setters = { q: setQ, location: setLocation, company: setCompany, source: setSource, remote: setRemote };
@@ -855,7 +855,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     applyServerFilters({ q: "", location: "", company: "", source: "", remote: false });
   };
 
-  // Department has no server-side filter yet — derived from whatever's currently
+  // Department has no server-side filter yet - derived from whatever's currently
   // loaded and filtered client-side. A subset of the true global list, not exhaustive.
   const departments = useMemo(() => {
     if (mode !== "all" || !jobs) return [];
@@ -873,7 +873,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
       : jobs.map(job => ({ job }));
   }, [jobs, mode]);
 
-  // Department + posted-within apply client-side on top of whatever's loaded —
+  // Department + posted-within apply client-side on top of whatever's loaded -
   // neither has server-side support yet (see `departments` above). Sorting is
   // client-side too, over the loaded set.
   const filteredItems = useMemo(() => {
@@ -1074,7 +1074,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
             ))}
           </div>
 
-          {/* Premium banner — until auto-apply is switched on */}
+          {/* Premium banner - until auto-apply is switched on */}
           {showResults && !autoApplyOn && (
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", padding: "14px 16px", marginBottom: 14, borderRadius: 12, background: C.goldSoft, border: `1px solid ${C.goldBorder}` }}>
               <div style={{ width: 38, height: 38, borderRadius: 9, background: C.gold, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>

@@ -11,7 +11,7 @@ export const PUBLIC_ROUTES = [
   {
     page: "ask",
     path: "/",
-    title: "Atyant — India's First Human + AI Career Execution Platform",
+    title: "Atyant - India's First Human + AI Career Execution Platform",
     description:
       "India's first Human + AI career execution platform. Placement and internship guidance from seniors of your college and branch who already did it.",
     h1: "Placement and internship guidance from seniors who started where you are",
@@ -21,7 +21,7 @@ export const PUBLIC_ROUTES = [
   {
     page: "jobs",
     path: "/jobs",
-    title: "Fresher Jobs in India — Filter, Apply & Prepare | Atyant",
+    title: "Fresher Jobs in India - Filter, Apply & Prepare | Atyant",
     description:
       "Browse fresh job openings for college students and freshers in India. Filter by city, work mode and date posted, draft a cover letter, and practise a mock interview for any role.",
     h1: "Jobs for freshers",

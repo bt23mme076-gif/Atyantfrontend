@@ -16,7 +16,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-// Shared app tokens (index.css) — same surfaces as every other page, light + dark.
+// Shared app tokens (index.css) - same surfaces as every other page, light + dark.
 const C = {
   bg: "var(--c-bg)",
   card: "var(--c-card)",

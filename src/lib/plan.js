@@ -7,7 +7,7 @@ export function hasActivePlan(user, requiredPlan = "clarity") {
   if ((PLAN_LEVEL[user.subscriptionPlan] || 0) < (PLAN_LEVEL[requiredPlan] || 0)) return false;
   const expired = user.subscriptionExpiry && new Date() > new Date(user.subscriptionExpiry);
   if (expired) return false;
-  // Cancelling stops renewal, not access — a cancelled plan works until its paid-up expiry.
+  // Cancelling stops renewal, not access - a cancelled plan works until its paid-up expiry.
   if (user.subscriptionStatus === "active") return true;
   return user.subscriptionStatus === "cancelled" && !!user.subscriptionExpiry;
 }
@@ -24,7 +24,7 @@ export function activePlan(user) {
 
 export const PLAN_NAME = { clarity: "Clarity", pro: "Pro" };
 
-// Auto-applies per day — mirrors backend services/autoapply/limits.js (the
+// Auto-applies per day - mirrors backend services/autoapply/limits.js (the
 // pricing endpoint returns the live values; these are the first-paint fallback).
 export const AUTO_APPLY_DAILY = { clarity: 10, pro: 25 };
 

@@ -207,7 +207,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
       <div style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 18, maxWidth: 720, margin: "0 auto" }}>
 
-          {/* Stats row — card-style, not table */}
+          {/* Stats row - card-style, not table */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             {/* Rating */}
             <div style={{
@@ -246,7 +246,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
             </div>
           </div>
 
-          {/* Outcome — most important, moved up */}
+          {/* Outcome - most important, moved up */}
           {mentor.outcome && (
             <div style={{
               borderRadius: 14, padding: "14px 16px",
@@ -346,7 +346,7 @@ export default function SeniorDetail({ mentor, onSelect, onTalkToMentor, onOpenC
             onMouseLeave={e => e.currentTarget.style.opacity = "1"}
           >
             <Video size={15} />
-            Book 1:1 — starting ₹{STARTING_PRICE}
+            Book 1:1 - starting ₹{STARTING_PRICE}
           </button>
 
           {onOpenChat && (

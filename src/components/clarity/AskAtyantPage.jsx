@@ -15,7 +15,7 @@ function freshSid() {
   return "sess_" + Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Persistent session id — the SAME conversation survives a page refresh.
+// Persistent session id - the SAME conversation survives a page refresh.
 // Reused on refresh so we can restore messages; rotated only by "New Chat".
 function getStoredSessionId() {
   let sid = null;
@@ -55,8 +55,8 @@ const ASK_PREFILL_KEY = "atyant_ask_prefill"; // also written by JobsPage (welco
 const GREETING_CHIPS = [
   { label: "🎯  I want an internship but don't know where to start", value: "I want an internship but I don't know where to start" },
   { label: "🏢  Placement season is coming and I'm not prepared", value: "Placement season is coming and I'm not prepared" },
-  { label: "🤔  Career confused — don't know what path to take", value: "I'm career confused and don't know what path to take" },
-  { label: "📚  Thinking about higher studies (MS / MBA / GATE)", value: "I'm thinking about higher studies — MS, MBA or GATE" },
+  { label: "🤔  Career confused - don't know what path to take", value: "I'm career confused and don't know what path to take" },
+  { label: "📚  Thinking about higher studies (MS / MBA / GATE)", value: "I'm thinking about higher studies - MS, MBA or GATE" },
 ];
 
 // "VNIT Nagpur" ? "VNIT" ; "iit bombay" ? "IIT" ; "Manipal" ? "Manipal"
@@ -73,7 +73,7 @@ function collegeShort(college) {
   return first.length <= 5 ? first.toUpperCase() : first;
 }
 
-// Theme-aware palette — maps to CSS vars defined in index.css (light + dark).
+// Theme-aware palette - maps to CSS vars defined in index.css (light + dark).
 // `accent`/`green` stay literal (used with alpha concatenation / identical in both themes).
 const C = {
   bg: "var(--c-bg)",
@@ -160,7 +160,7 @@ function describeProgress(event, previous = {}) {
       const layers = event.contextLayers;
       const layerNote = typeof layers === "number" ? ` · ${layers}/5 captured` : "";
 
-      // Only call out what's genuinely NEW this turn — restating the same
+      // Only call out what's genuinely NEW this turn - restating the same
       // already-known profile every single turn is exactly what made this line
       // feel canned before. `previous` is what was known BEFORE this turn.
       const fresh = [];
@@ -168,7 +168,7 @@ function describeProgress(event, previous = {}) {
       if (id.branch && id.branch !== previous.branch) fresh.push(id.branch);
       if (event.context?.target && event.context.target !== previous.target) fresh.push(`aiming for ${event.context.target}`);
 
-      if (fresh.length) return `Got it — ${fresh.join(", ")}${layerNote}`;
+      if (fresh.length) return `Got it - ${fresh.join(", ")}${layerNote}`;
       if (id.college || id.branch || event.context?.target) return `Noted${layerNote}`;
       return `Still building your profile from what you've shared…${layerNote}`;
     }
@@ -179,13 +179,13 @@ function describeProgress(event, previous = {}) {
     case "mentors_found":
       return event.count > 0
         ? `Found ${event.count} senior${event.count === 1 ? "" : "s"} matching your background…`
-        : "No exact match yet — widening the search…";
+        : "No exact match yet - widening the search…";
     default:
       return null;
   }
 }
 
-// Kimi/Claude-style "Thinking" block — lightbulb + label + chevron, expands to
+// Kimi/Claude-style "Thinking" block - lightbulb + label + chevron, expands to
 // show real backend checkpoints (`lines`) as they actually complete.
 //
 // The elapsed timer and the shimmer on the active line are what make this read
@@ -198,7 +198,7 @@ const ThinkingIndicator = ({ lines }) => {
   const [elapsed, setElapsed] = useState(0);
   const startedAt = useRef(Date.now());
 
-  // 200ms tick, whole seconds shown — fast enough that the number never looks
+  // 200ms tick, whole seconds shown - fast enough that the number never looks
   // stuck, slow enough that it doesn't read as a frantic stopwatch.
   useEffect(() => {
     const id = setInterval(
@@ -216,7 +216,7 @@ const ThinkingIndicator = ({ lines }) => {
       <button
         onClick={() => setExpanded(e => !e)}
         aria-expanded={expanded}
-        aria-label="Atyant is thinking — toggle details"
+        aria-label="Atyant is thinking - toggle details"
         style={{ display: "flex", width: "100%", alignItems: "center", gap: 8, padding: "9px 14px", cursor: "pointer", userSelect: "none", background: "transparent", border: "none", font: "inherit", textAlign: "left" }}
       >
         <Lightbulb size={14} color={C.accent} style={{ flexShrink: 0, animation: "thinkPulse 1.8s ease-in-out infinite" }} />
@@ -271,7 +271,7 @@ const ThinkingIndicator = ({ lines }) => {
 
 // The settled counterpart to ThinkingIndicator: once a turn lands, its trace is
 // frozen onto the message and shown here as a collapsed one-liner the user can
-// reopen. Label reflects what the turn actually did — on a routing turn "Found
+// reopen. Label reflects what the turn actually did - on a routing turn "Found
 // 3 verified seniors" is far more useful than a bare "Thought for 4s".
 const ThoughtStub = ({ trace, ms }) => {
   const [open, setOpen] = useState(false);
@@ -321,8 +321,8 @@ function mentorHue(name = "") {
 }
 
 // The real mentors the engine matched, shown inline instead of being computed
-// and thrown away. Reasons come straight from `matchedOn` — the fields that
-// actually matched — so a card can only claim overlap it genuinely has. A
+// and thrown away. Reasons come straight from `matchedOn` - the fields that
+// actually matched - so a card can only claim overlap it genuinely has. A
 // fallback pick (isRelevanceMatch false) matched on nothing and says nothing;
 // it's labelled for what it is rather than dressed up with invented reasons.
 const MentorMatches = ({ mentors, onSelect }) => {
@@ -394,7 +394,7 @@ const MentorMatches = ({ mentors, onSelect }) => {
                   </div>
                 ) : (
                   <div style={{ fontSize: "0.7rem", color: C.textMuted, marginTop: 6, fontStyle: "italic" }}>
-                    Suggested — no direct overlap with your goal yet
+                    Suggested - no direct overlap with your goal yet
                   </div>
                 )}
               </div>
@@ -457,7 +457,7 @@ function RotatingHeadline({ paused, style }) {
 
 // Shown when a guest runs out of free messages: the seniors we'd matched,
 // blurred, with a login hook. Real matched mentors when we have them; otherwise
-// anonymous skeleton cards — never invented names.
+// anonymous skeleton cards - never invented names.
 const LockedMentors = ({ mentors, college, goal, onLogin }) => {
   const rows = mentors?.length ? mentors.slice(0, 3) : [null, null, null];
   return (
@@ -531,9 +531,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const heroInputRef = useRef(null);
   const sessionIdRef = useRef(getStoredSessionId());
   const abortRef = useRef(null);  // cancels the in-flight chat stream on unmount
-  const sendingRef = useRef(false);  // synchronous re-entrancy guard — see handleSend
+  const sendingRef = useRef(false);  // synchronous re-entrancy guard - see handleSend
   // The live trace lives in state (for rendering) AND a ref, because the reply
-  // handler needs the FINAL list to freeze onto the message — reading the state
+  // handler needs the FINAL list to freeze onto the message - reading the state
   // variable there would close over its value from the start of the turn.
   const traceRef = useRef([]);
   const turnStartedAt = useRef(0);
@@ -551,11 +551,11 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
   const [selectedLang, setSelectedLang] = useState("en-IN");
 
-  // "+" attach menu — Upload document / Upload photo / Take photo — and the
+  // "+" attach menu - Upload document / Upload photo / Take photo - and the
   // hidden file inputs it triggers. Shared by both the landing and footer
   // input rows (only one of the two is ever mounted at a time).
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
-  // Staged file — picked but not yet sent. Shown as a preview chip in the
+  // Staged file - picked but not yet sent. Shown as a preview chip in the
   // input (ChatGPT-style) so the student can back out before anything uploads.
   const [pendingFile, setPendingFile] = useState(null);
   // Daily AI messages left (from the backend's `done` event); null = unknown/unlimited.
@@ -652,7 +652,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   useEffect(() => {
     if (user) {
       const edu = user.education?.[0] || {};
-      // Use only the user's real profile — no fake "VNIT/Metallurgy/6.0" defaults,
+      // Use only the user's real profile - no fake "VNIT/Metallurgy/6.0" defaults,
       // which would otherwise misrepresent students from other colleges.
       setContext({
         college: edu.institutionName || edu.institution || "",
@@ -689,7 +689,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           // Re-attach the greeting chips after a refresh (server doesn't store them).
           chips: m.role === "assistant" && m.content?.trim() === GREETING_OPENER ? GREETING_CHIPS : null,
         }));
-        // Re-show the match button — and the matched mentor cards — on the latest
+        // Re-show the match button - and the matched mentor cards - on the latest
         // Atyant message if the engine was ready.
         const ready = s.phase === "engine" || s.outputMode === "MENTOR_ROUTING";
         if (ready) {
@@ -728,7 +728,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     const toBottom = () => { el.scrollTop = el.scrollHeight; };
     requestAnimationFrame(toBottom);
     const t = setTimeout(toBottom, 120);
-    // Avoid force-focusing on mobile — it re-triggers the keyboard and fights the scroll.
+    // Avoid force-focusing on mobile - it re-triggers the keyboard and fights the scroll.
     if (!isTyping && !isMobile) chatInputRef.current?.focus();
     return () => clearTimeout(t);
   }, [messages, isTyping, isMobile]);
@@ -808,7 +808,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   // Streams real progress checkpoints (context extraction, mentor search) into
   // thinkingLines as the backend actually completes them.
   const sendToEngine = async (text) => {
-    // Seed with the "reading" line immediately — it's always the first real
+    // Seed with the "reading" line immediately - it's always the first real
     // stage, so there's no reason to wait on the network round trip to show it
     // instead of a generic "Thinking…" placeholder.
     const seed = describeProgress({ stage: "reading" });
@@ -830,23 +830,23 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         knownContextRef.current = { college: id.college || null, branch: id.branch || null, target: event.context?.target || null };
       }
       if (!line) return;
-      // The server also emits its own "reading" event right after — dedupe so
+      // The server also emits its own "reading" event right after - dedupe so
       // the seed line above doesn't show up twice in a row.
       const prevTrace = traceRef.current;
       if (prevTrace[prevTrace.length - 1] === line) return;
       traceRef.current = [...prevTrace, line];
       setThinkingLines(traceRef.current);
     }, controller.signal);
-    return applyEngineResult(res, "Hmm, I didn't catch that — could you rephrase?");
+    return applyEngineResult(res, "Hmm, I didn't catch that - could you rephrase?");
   };
 
   const handleSend = async (textToSend) => {
     // `isTyping` state isn't visible until React commits it, so two calls fired
-    // in the same tick (e.g. a fast double Enter) would both read it as false —
+    // in the same tick (e.g. a fast double Enter) would both read it as false -
     // sendingRef flips synchronously and closes that gap.
     if (sendingRef.current) return;
 
-    // A staged file takes priority — it sits in the composer until send is hit,
+    // A staged file takes priority - it sits in the composer until send is hit,
     // same as ChatGPT. Whatever's typed alongside it goes up together with the
     // file, same as a normal message would.
     if (pendingFile) {
@@ -877,7 +877,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         mentors: reply.mentors,
         canInvite: reply.canInvite,
         // Freeze the trace onto the message so it survives the live indicator
-        // unmounting — that's what the collapsed "Thought for Xs" stub reopens.
+        // unmounting - that's what the collapsed "Thought for Xs" stub reopens.
         trace: traceRef.current,
         thoughtMs: Date.now() - turnStartedAt.current,
       }]);
@@ -886,7 +886,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     } catch (e) {
       streamTextRef.current = "";
       setStreamingText("");
-      if (e.name === "AbortError") return;  // page unmounted — nothing to show
+      if (e.name === "AbortError") return;  // page unmounted - nothing to show
       const limitMsg = limitMessage(e);
       if (limitMsg) { setMessages(prev => [...prev, limitMsg]); return; }
       setMessages(prev => [...prev, {
@@ -934,26 +934,26 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   const RESUME_MAX_BYTES = 8 * 1024 * 1024;
 
   // "+" → Upload document / Upload photo / Take photo. Just STAGES the file as
-  // a preview chip (ChatGPT-style) — nothing uploads until the student hits
+  // a preview chip (ChatGPT-style) - nothing uploads until the student hits
   // send, so they can back out or add a message alongside it first.
   const stageResumeFile = (file) => {
     setAttachMenuOpen(false);
     if (!file) return;
 
     if (!RESUME_MIME_TYPES.includes(file.type)) {
-      setMessages(prev => [...prev, { sender: "atyant", text: "I can only read PDF, JPG, PNG or WEBP files right now — try one of those?", showMatch: false }]);
+      setMessages(prev => [...prev, { sender: "atyant", text: "I can only read PDF, JPG, PNG or WEBP files right now - try one of those?", showMatch: false }]);
       return;
     }
     if (file.size > RESUME_MAX_BYTES) {
-      setMessages(prev => [...prev, { sender: "atyant", text: "That file's a bit large — try one under 8MB.", showMatch: false }]);
+      setMessages(prev => [...prev, { sender: "atyant", text: "That file's a bit large - try one under 8MB.", showMatch: false }]);
       return;
     }
     setPendingFile(file);
   };
 
-  // Actually uploads a staged file — called from handleSend once the student
+  // Actually uploads a staged file - called from handleSend once the student
   // hits send. `text`, if the student typed anything alongside the file, goes
-  // up together with it — see AtyantEngineService.processResumeUpload: a bare
+  // up together with it - see AtyantEngineService.processResumeUpload: a bare
   // upload only asks a follow-up, but upload+text is a real turn that can
   // route straight to mentor matching, same as typing that text alone would.
   const uploadResumeFile = async (file, text = "") => {
@@ -983,20 +983,20 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
         setThinkingLines(prev => (prev[prev.length - 1] === line ? prev : [...prev, line]));
       }, controller.signal, text);
 
-      const reply = applyEngineResult(res, "Got your résumé — tell me a bit more so I can point you the right way.");
+      const reply = applyEngineResult(res, "Got your résumé - tell me a bit more so I can point you the right way.");
       setMessages(prev => [...prev, { sender: "atyant", text: reply.text, showMatch: reply.showMatch, chips: reply.chips, mentors: reply.mentors, canInvite: reply.canInvite }]);
       streamTextRef.current = "";
       setStreamingText("");
     } catch (e) {
       streamTextRef.current = "";
       setStreamingText("");
-      if (e.name === "AbortError") return;  // page unmounted — nothing to show
+      if (e.name === "AbortError") return;  // page unmounted - nothing to show
       const limitMsg = limitMessage(e);
       if (limitMsg) { setMessages(prev => [...prev, limitMsg]); return; }
       setMessages(prev => [...prev, {
         sender: "atyant",
         text: e?.status === 429
-          ? "I'm getting a lot of questions right now — give me a few seconds and try again."
+          ? "I'm getting a lot of questions right now - give me a few seconds and try again."
           : e?.status === 504
             ? "That took longer than it should have. Try uploading again?"
             : (e.message || "Couldn't read that file. Try again?"),
@@ -1008,7 +1008,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     }
   };
 
-  // Sits above the input row once a file is staged — a preview card (icon +
+  // Sits above the input row once a file is staged - a preview card (icon +
   // name + type + remove button), same idea as ChatGPT's composer attachment.
   const PendingFilePreview = () => {
     if (!pendingFile) return null;
@@ -1039,7 +1039,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
   };
 
   // "+" → a small popup with Upload document / Upload photo / Take photo. All
-  // three feed the same stageResumeFile — only the source file input differs.
+  // three feed the same stageResumeFile - only the source file input differs.
   const AttachButton = () => (
     <div style={{ position: "relative", flexShrink: 0 }}>
       <button
@@ -1165,7 +1165,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
             <div style={{ display: "flex", alignItems: "flex-end", gap: 10, padding: "0 0.75rem 0 1.25rem", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
               <AttachButton />
 
-              {/* Input — auto-growing textarea */}
+              {/* Input - auto-growing textarea */}
               <textarea
                 ref={heroInputRef}
                 autoFocus
@@ -1424,7 +1424,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
                           onRegenerate={() => handleRegenerate(m, i)}
                         />
                       )}
-                      {/* Quick-reply chips — only on the latest message, vanish after the user replies */}
+                      {/* Quick-reply chips - only on the latest message, vanish after the user replies */}
                       {!isUser && m.chips?.length > 0 && i === messages.length - 1 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, maxWidth: 520 }}>
                           {m.chips.map((chip, ci) => (
@@ -1535,7 +1535,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
           </div>
 
 
-          {/* Context Badge — shows Atyant building the student's profile each turn */}
+          {/* Context Badge - shows Atyant building the student's profile each turn */}
           {profileBadge && (
             <div style={{ maxWidth: 780, margin: "0 auto", width: "100%", padding: "0 1rem", boxSizing: "border-box" }}>
               <span style={{
@@ -1559,7 +1559,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
               <div style={{ padding: "0 0.75rem 0 1.25rem", display: "flex", gap: 10, alignItems: "flex-end", minHeight: 54, borderTop: pendingFile ? `1px solid ${C.cardBorder}` : "none" }}>
                 <AttachButton />
 
-                {/* Input — auto-growing textarea */}
+                {/* Input - auto-growing textarea */}
                 <textarea
                   ref={chatInputRef}
                   rows={1}
@@ -1616,8 +1616,8 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
             {remaining !== null && remaining <= 3 && (
               <div style={{ maxWidth: 780, margin: "6px auto 0", fontSize: "0.75rem", color: C.textMuted, textAlign: "center" }}>
                 {remaining === 0
-                  ? (user ? "Daily limit reached — upgrade or come back tomorrow." : "Free messages used up — log in to keep chatting.")
-                  : `${remaining} message${remaining === 1 ? "" : "s"} left today${user ? "" : " — log in for more"}`}
+                  ? (user ? "Daily limit reached - upgrade or come back tomorrow." : "Free messages used up - log in to keep chatting.")
+                  : `${remaining} message${remaining === 1 ? "" : "s"} left today${user ? "" : " - log in for more"}`}
               </div>
             )}
           </div>

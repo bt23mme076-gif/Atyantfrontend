@@ -28,7 +28,7 @@ export default class ErrorBoundary extends Component {
         <div style={{ fontSize: 44 }}>😵</div>
         <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700 }}>Something went wrong</h2>
         <p style={{ margin: 0, fontSize: "0.9rem", opacity: 0.7, maxWidth: 360 }}>
-          An unexpected error occurred. Reloading usually fixes it — your data is safe.
+          An unexpected error occurred. Reloading usually fixes it - your data is safe.
         </p>
         <button
           onClick={() => window.location.reload()}

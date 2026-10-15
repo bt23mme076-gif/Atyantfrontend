@@ -106,7 +106,7 @@
 }
 @keyframes ia-blink {
   0%, 94%, 100% { transform: scaleY(1); }
-  96%           { transform: scaleY(0.04); }  /* nearly shut — proper eyelid close */
+  96%           { transform: scaleY(0.04); }  /* nearly shut - proper eyelid close */
 }
 @keyframes ia-pulse {
   0%, 100% { opacity: 1; }
