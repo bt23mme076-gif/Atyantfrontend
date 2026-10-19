@@ -125,6 +125,15 @@ function matchTier(score) {
   return { label: "Stretch match", color: C.textMuted };
 }
 
+// Experience chip colour - by fit when the student's profile is known, else by level.
+function experienceTone(experience) {
+  const fit = experience?.fit;
+  if (fit === "good" || (!fit && ["internship", "entry"].includes(experience?.level))) return { color: C.greenText, bg: `${C.green}14`, border: `${C.green}55` };
+  if (fit === "stretch" || (!fit && experience?.level === "mid")) return { color: C.goldText, bg: C.goldSoft, border: C.goldBorder };
+  if (fit === "unlikely") return { color: "#B91C1C", bg: "rgba(248,113,113,0.10)", border: "rgba(248,113,113,0.40)" };
+  return { color: C.textSub, bg: undefined, border: undefined };
+}
+
 // Relative time from an ISO date string - "3h ago", "5d ago", etc.
 function timeAgo(dateStr) {
   if (!dateStr) return null;
@@ -279,7 +288,7 @@ function SkillExtractGate({ onSaved }) {
 }
 
 // ─── One job in the results list ─────────────────────────────────────────────
-function JobCard({ job, score, matchedSkills, applied, paid, onOpen, onAutoApply, onPractice }) {
+function JobCard({ job, score, matchedSkills, experience, applied, paid, onOpen, onAutoApply, onPractice }) {
   const isRemote = /remote/i.test(job.location || "");
   const tier = score !== undefined ? matchTier(score) : null;
   const snippet = useMemo(() => decodeEntities(job.descriptionText || "").replace(/\s+/g, " ").trim(), [job.descriptionText]);
@@ -310,6 +319,11 @@ function JobCard({ job, score, matchedSkills, applied, paid, onOpen, onAutoApply
       {/* Tags */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
         {applied && <Tag color={C.greenText} bg={`${C.green}14`} border={`${C.green}55`}><Check size={12} /> Applied</Tag>}
+        {experience?.label && (
+          <span title={experience.reason || undefined} style={{ display: "inline-flex" }}>
+            <Tag {...experienceTone(experience)}><GraduationCap size={12} /> {experience.label}</Tag>
+          </span>
+        )}
         {canAutoApply && <Tag color={C.goldText} bg={C.goldSoft} border={C.goldBorder}><Zap size={12} /> Auto-apply available</Tag>}
         {isRemote && <Tag>Remote</Tag>}
         {job.department && <Tag>{job.department}</Tag>}
@@ -371,7 +385,7 @@ function CardSkeleton() {
 }
 
 // ─── Details panel: everything about one job, and every action on it ────────
-function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onApplied, onNavigate, onAuthRequired }) {
+function JobDetail({ job, score, matchedSkills, experience, appliedStatus, autoStart, onApplied, onNavigate, onAuthRequired }) {
   const { user } = useAuth();
   const [showLetter, setShowLetter] = useState(false);
   const [letter, setLetter] = useState("");
@@ -520,6 +534,7 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
         {job.location && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><MapPin size={14} color={C.textMuted} /> {job.location}</span>}
         {job.postedAt && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Clock size={14} color={C.textMuted} /> Posted {timeAgo(job.postedAt)}</span>}
         {job.department && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Briefcase size={14} color={C.textMuted} /> {job.department}</span>}
+        {experience?.label && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><GraduationCap size={14} color={C.textMuted} /> {experience.label}</span>}
         {isRemote && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Globe size={14} color={C.textMuted} /> Remote</span>}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Building2 size={14} color={C.textMuted} /> via {SOURCE_LABEL[job.source] || "company site"}</span>
       </div>
@@ -653,6 +668,12 @@ function JobDetail({ job, score, matchedSkills, appliedStatus, autoStart, onAppl
             <span style={{ fontSize: "1.2rem", fontWeight: 700, color: tier.color, fontVariantNumeric: "tabular-nums" }}>{score}%</span>
             <span style={{ fontSize: ".84rem", fontWeight: 600, color: C.text }}>{tier.label} for your resume</span>
           </div>
+          {experience?.reason && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, fontSize: ".8rem", lineHeight: 1.5, color: experienceTone(experience).color }}>
+              <GraduationCap size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span><strong>Experience:</strong> {experience.reason}</span>
+            </div>
+          )}
           {matchedSkills?.length > 0 ? (
             <>
               <div style={{ fontSize: ".76rem", color: C.textSub, margin: "10px 0 6px" }}>Skills from your resume this job asks for</div>
@@ -704,6 +725,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   const [source, setSource] = useState("");
   const [company, setCompany] = useState("");
   const [remote, setRemote] = useState(false);
+  const [level, setLevel] = useState(""); // "" | "fresher" (internships + entry-level)
   const [companies, setCompanies] = useState([]);
   const [department, setDepartment] = useState("");
   const [postedWithin, setPostedWithin] = useState(""); // "" | "24h" | "3d" | "7d"
@@ -745,7 +767,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setJobs(null);
     setPage(1);
     try {
-      const res = await jobsAPI.list({ q, location, source, company, remote, page: 1, limit: PAGE_SIZE });
+      const res = await jobsAPI.list({ q, location, source, company, remote, level, page: 1, limit: PAGE_SIZE });
       if (requestModeRef.current !== forMode) return;
       setJobs(res.jobs || []);
       setTotal(res.total || 0);
@@ -756,7 +778,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     }
   };
 
-  const loadMatched = async () => {
+  const loadMatched = async (levelFilter = level) => {
     const forMode = "matched";
     requestModeRef.current = forMode;
     setError("");
@@ -764,7 +786,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setJobs(null);
     setPage(1);
     try {
-      const res = await jobsAPI.matches({ minScore: 0, page: 1, limit: PAGE_SIZE });
+      const res = await jobsAPI.matches({ minScore: 0, level: levelFilter, page: 1, limit: PAGE_SIZE });
       if (requestModeRef.current !== forMode) return;
       setJobs(res.matches || []);
       setTotal(res.total || 0);
@@ -784,12 +806,12 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setLoadingMore(true);
     try {
       if (forMode === "all") {
-        const res = await jobsAPI.list({ q, location, source, company, remote, page: nextPage, limit: PAGE_SIZE });
+        const res = await jobsAPI.list({ q, location, source, company, remote, level, page: nextPage, limit: PAGE_SIZE });
         if (requestModeRef.current !== forMode) return;
         setJobs((prev) => [...(prev || []), ...(res.jobs || [])]);
         setTotal(res.total || 0);
       } else {
-        const res = await jobsAPI.matches({ minScore: 0, page: nextPage, limit: PAGE_SIZE });
+        const res = await jobsAPI.matches({ minScore: 0, level, page: nextPage, limit: PAGE_SIZE });
         if (requestModeRef.current !== forMode) return;
         setJobs((prev) => [...(prev || []), ...(res.matches || [])]);
         setTotal(res.total || 0);
@@ -830,14 +852,14 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   // dropdowns, suggested searches) rather than waiting on the Search button -
   // takes whichever fields changed as overrides, syncs their state, and refetches page 1.
   const applyServerFilters = (overrides = {}) => {
-    const setters = { q: setQ, location: setLocation, company: setCompany, source: setSource, remote: setRemote };
+    const setters = { q: setQ, location: setLocation, company: setCompany, source: setSource, remote: setRemote, level: setLevel };
     Object.entries(overrides).forEach(([key, val]) => setters[key]?.(val));
     // From "Recommended", switch tabs; the mode effect then loads with the new values.
     if (mode !== "all") { switchMode("all"); return; }
     setJobs(null);
     setError("");
     setPage(1);
-    jobsAPI.list({ q, location, company, source, remote, ...overrides, page: 1, limit: PAGE_SIZE })
+    jobsAPI.list({ q, location, company, source, remote, level, ...overrides, page: 1, limit: PAGE_SIZE })
       .then((res) => { if (requestModeRef.current !== "all") return; setJobs(res.jobs || []); setTotal(res.total || 0); })
       .catch((err) => { setError(err.message || "Failed to load jobs"); setJobs([]); });
   };
@@ -847,12 +869,12 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     applyServerFilters({ location: next, remote: false });
   };
 
-  const activeFilterCount = [location, remote, postedWithin, department, company, source].filter(Boolean).length;
+  const activeFilterCount = [location, remote, level, postedWithin, department, company, source].filter(Boolean).length;
   const hasActiveFilters = !!(q || activeFilterCount);
 
   const clearFilters = () => {
     setDepartment(""); setPostedWithin(""); setCityDraft("");
-    applyServerFilters({ q: "", location: "", company: "", source: "", remote: false });
+    applyServerFilters({ q: "", location: "", company: "", source: "", remote: false, level: "" });
   };
 
   // Department has no server-side filter yet - derived from whatever's currently
@@ -869,8 +891,8 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   const items = useMemo(() => {
     if (!jobs) return [];
     return mode === "matched"
-      ? jobs.map(m => ({ job: m.job, score: m.score, matchedSkills: m.matchedSkills }))
-      : jobs.map(job => ({ job }));
+      ? jobs.map(m => ({ job: m.job, score: m.score, matchedSkills: m.matchedSkills, experience: m.experience }))
+      : jobs.map(job => ({ job, experience: job.experience }));
   }, [jobs, mode]);
 
   // Department + posted-within apply client-side on top of whatever's loaded -
@@ -946,6 +968,18 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
           <input type="checkbox" checked={remote} onChange={() => applyServerFilters({ remote: !remote, location: !remote ? "" : location })} />
           Remote only
         </label>
+      </FilterSection>
+
+      <FilterSection title="Experience">
+        <label className="jb-check">
+          <input type="checkbox" checked={level === "fresher"} onChange={() => {
+            const next = level === "fresher" ? "" : "fresher";
+            if (mode === "matched") { setLevel(next); loadMatched(next); }
+            else applyServerFilters({ level: next });
+          }} />
+          Fresher-friendly only
+        </label>
+        <div style={{ fontSize: ".74rem", color: C.textMuted, marginTop: 4, lineHeight: 1.4 }}>Internships and entry-level roles</div>
       </FilterSection>
 
       <FilterSection title="Date posted">
@@ -1153,12 +1187,13 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {jobs === null && <CardSkeleton />}
 
-                {filteredItems.map(({ job, score, matchedSkills }) => (
+                {filteredItems.map(({ job, score, matchedSkills, experience }) => (
                   <JobCard
                     key={job._id}
                     job={job}
                     score={score}
                     matchedSkills={matchedSkills}
+                    experience={experience}
                     applied={appliedJobIds.has(job._id)}
                     paid={paidPlan}
                     onOpen={() => setOpen({ id: job._id, autoStart: false })}
@@ -1230,6 +1265,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
               job={openItem.job}
               score={openItem.score}
               matchedSkills={openItem.matchedSkills}
+              experience={openItem.experience}
               appliedStatus={appliedJobIds.has(openItem.job._id)}
               autoStart={open.autoStart}
               onApplied={markLocalApplied}
