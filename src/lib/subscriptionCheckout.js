@@ -45,7 +45,7 @@ export async function purchaseSubscription({
     amount: order.amount,        // paise
     currency: order.currency,
     name: "Atyant",
-    description: `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan (${billing})`,
+    description: plan === "autoapply" ? "Auto-Apply pass (30 days)" : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan (${billing})`,
     order_id: order.orderId,
     prefill,
     theme: { color: "#7567C9" },

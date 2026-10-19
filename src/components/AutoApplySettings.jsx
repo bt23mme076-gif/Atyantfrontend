@@ -5,7 +5,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { jobsAPI } from "../api";
-import { canAutoApply, activePlan, AUTO_APPLY_DAILY } from "../lib/plan";
+import { activePlan, AUTO_APPLY_DAILY, planExpiryText } from "../lib/plan";
+import { useAutoApplyAccess, FREE_TRIAL_APPLIES } from "../lib/autoApplyAccess";
+import AutoApplyPassOffer from "./AutoApplyPassOffer";
 
 // Theme palette - maps to CSS vars defined in index.css (light + dark).
 const C = {
@@ -137,9 +139,9 @@ function StatusBadge({ status }) {
 export default function AutoApplySettings({ onUpgrade }) {
   const { user, setUser } = useAuth();
   const autoApply = user?.autoApply || {};
-  // Paid feature (Clarity or Pro). Free users see an upgrade card instead of the switch;
-  // anyone who turned it on before it was paid can still turn it off.
-  const paid = canAutoApply(user);
+  // First FREE_TRIAL_APPLIES are free; then the ₹49 pass or a Clarity/Pro plan. Once the
+  // trial is used up the switch becomes a pass offer; anyone already on can still turn it off.
+  const { access: usage, allowed: paid, refresh: refreshUsage } = useAutoApplyAccess(user);
 
   const [minMatchScore, setMinMatchScore] = useState(autoApply.minMatchScore ?? 70);
   const [phone, setPhone] = useState(autoApply.phone || "");
@@ -152,11 +154,7 @@ export default function AutoApplySettings({ onUpgrade }) {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
 
-  const [usage, setUsage] = useState(null); // { limit, used, remaining, resetsAt }
-  useEffect(() => {
-    if (!paid) return;
-    jobsAPI.autoApplyUsage().then(setUsage).catch(() => {});
-  }, [paid, autoApply.enabled]);
+  useEffect(() => { refreshUsage(); }, [autoApply.enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [applications, setApplications] = useState(null); // null = not loaded yet
   const [loadingApps, setLoadingApps] = useState(false);
@@ -225,9 +223,8 @@ export default function AutoApplySettings({ onUpgrade }) {
       setConsentChecked(false);
       setMsg("Auto-Apply is on");
     } catch (err) {
-      setError(err.data?.code === "PLAN_REQUIRED"
-        ? "Auto-apply is part of the Clarity and Pro plans. Upgrade to turn it on."
-        : err.message || "Failed to enable auto-apply");
+      setError(err.message || "Failed to enable auto-apply");
+      if (err.data?.code === "PLAN_REQUIRED") refreshUsage();
     } finally {
       setSaving(false);
     }
@@ -267,12 +264,12 @@ export default function AutoApplySettings({ onUpgrade }) {
           </span>
         </div>
         <div style={{ fontSize: ".8rem", color: C.textSub, margin: "8px 0 12px", lineHeight: 1.5 }}>
-          We fill in and submit applications for Greenhouse and Lever jobs that match your resume, so you don't have to.
-          Clarity applies to up to {AUTO_APPLY_DAILY.clarity} jobs a day; Pro to {AUTO_APPLY_DAILY.pro}.
+          Your {FREE_TRIAL_APPLIES} free auto-applies are used up. The Auto-Apply pass keeps it going: we fill in and
+          submit up to 10 applications a day for jobs that match your resume.
         </div>
-        <button onClick={() => onUpgrade?.()}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".8rem", fontWeight: 700, color: "#fff", background: "#B45309", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
-          <Crown size={13} /> Upgrade to turn on
+        <AutoApplyPassOffer pass={usage?.pass} compact onPurchased={refreshUsage} />
+        <button onClick={() => onUpgrade?.()} style={{ marginTop: 10, fontSize: ".74rem", fontWeight: 600, color: C.accentText, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
+          Or see Clarity and Pro, which include Auto-Apply ({AUTO_APPLY_DAILY.clarity} and {AUTO_APPLY_DAILY.pro} a day)
         </button>
       </div>
     );
@@ -323,7 +320,9 @@ export default function AutoApplySettings({ onUpgrade }) {
       {paid && usage?.limit > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", fontSize: ".74rem", color: C.textSub, marginBottom: 5 }}>
-            <span><b style={{ color: C.text }}>{usage.used} of {usage.limit}</b> auto-applies used today · resets at midnight</span>
+            {usage.mode === "trial"
+              ? <span><b style={{ color: C.text }}>{usage.used} of {usage.limit}</b> free auto-applies used</span>
+              : <span><b style={{ color: C.text }}>{usage.used} of {usage.limit}</b> auto-applies used today · resets at midnight{usage.mode === "pass" && usage.passExpiry ? ` · pass active till ${planExpiryText({ subscriptionExpiry: usage.passExpiry })}` : ""}</span>}
             {activePlan(user) === "clarity" && (
               <button onClick={() => onUpgrade?.()} style={{ fontSize: ".72rem", fontWeight: 700, color: C.accentText, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}>
                 Need more? Pro gives {AUTO_APPLY_DAILY.pro}/day
@@ -338,10 +337,8 @@ export default function AutoApplySettings({ onUpgrade }) {
 
       {!paid && autoApply.enabled && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "rgba(217,119,6,0.10)", border: "1px solid rgba(217,119,6,0.35)", borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontSize: ".76rem", color: "#C2620A" }}>
-          <Crown size={14} /> Paused: auto-apply now needs a Clarity or Pro plan. No new applications go out until you upgrade.
-          <button onClick={() => onUpgrade?.()} style={{ marginLeft: "auto", fontSize: ".74rem", fontWeight: 700, color: "#fff", background: "#B45309", border: "none", borderRadius: 7, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}>
-            Upgrade
-          </button>
+          <Crown size={14} /> Paused: your free auto-applies are used up. No new applications go out until you get the pass.
+          <div style={{ flexBasis: "100%" }}><AutoApplyPassOffer pass={usage?.pass} compact onPurchased={refreshUsage} /></div>
         </div>
       )}
 
@@ -533,7 +530,7 @@ export default function AutoApplySettings({ onUpgrade }) {
                   <FinishPanel app={app} onDone={(updated) => {
                     if (updated) setApplications((list) => list.map((a) => (a._id === app._id ? { ...a, ...updated, job: a.job } : a)));
                     setFinishing(null);
-                    jobsAPI.autoApplyUsage().then(setUsage).catch(() => {});
+                    refreshUsage();
                   }} />
                 )}
                 </div>

@@ -5,7 +5,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { jobsAPI, profileAPI } from "../api";
-import { canAutoApply as planAllowsAutoApply } from "../lib/plan";
+import { useAutoApplyAccess, FREE_TRIAL_APPLIES } from "../lib/autoApplyAccess";
+import AutoApplyPassOffer from "../components/AutoApplyPassOffer";
 import VideoBubble from "../components/VideoBubble";
 import { JOBS_WELCOME_VIDEO } from "../config/jobsWelcomeVideo";
 
@@ -354,7 +355,7 @@ function JobCard({ job, score, matchedSkills, experience, applied, paid, onOpen,
           </button>
           {canAutoApply && (
             <button onClick={onAutoApply} className="jb-btn"
-              title={paid ? "We fill in and submit this application for you" : "Auto-apply comes with the Clarity and Pro plans"}
+              title={paid ? "We fill in and submit this application for you" : "Free auto-applies used up - get the Auto-Apply pass"}
               style={{ ...btn, color: "#fff", background: C.gold }}>
               {paid ? <Zap size={15} /> : <Crown size={15} />} Auto-apply
             </button>
@@ -385,7 +386,7 @@ function CardSkeleton() {
 }
 
 // ─── Details panel: everything about one job, and every action on it ────────
-function JobDetail({ job, score, matchedSkills, experience, appliedStatus, autoStart, onApplied, onNavigate, onAuthRequired }) {
+function JobDetail({ job, score, matchedSkills, experience, aaAllowed, aaAccess, onAccessChanged, appliedStatus, autoStart, onApplied, onNavigate, onAuthRequired }) {
   const { user } = useAuth();
   const [showLetter, setShowLetter] = useState(false);
   const [letter, setLetter] = useState("");
@@ -444,7 +445,7 @@ function JobDetail({ job, score, matchedSkills, experience, appliedStatus, autoS
 
   const autoApplyNow = async () => {
     if (!user) { onAuthRequired?.(); return; }
-    if (!planAllowsAutoApply(user)) { onNavigate?.("upgrade"); return; }
+    if (!aaAllowed) { setAutoApplyResult({ status: "pass_required", unansweredQuestions: [] }); return; }
     if (!user.autoApply?.enabled) {
       onNavigate?.("profile");
       return;
@@ -459,9 +460,10 @@ function JobDetail({ job, score, matchedSkills, experience, appliedStatus, autoS
         unansweredQuestions: res.application?.unansweredQuestions || [],
       });
       if (res.application?.status === "submitted") onApplied(job._id);
+      onAccessChanged?.();
     } catch (err) {
-      // Plan lapsed since the page loaded - the server said no; send them to pricing.
-      if (err.data?.code === "PLAN_REQUIRED") { onNavigate?.("upgrade"); return; }
+      // Free auto-applies used up (or pass lapsed) - offer the pass right here.
+      if (err.data?.code === "PLAN_REQUIRED") { setAutoApplyResult({ status: "pass_required", unansweredQuestions: [] }); onAccessChanged?.(); return; }
       // Daily quota used up - show the server's message (it names Pro's higher limit for Clarity users).
       setAutoApplyResult({ status: err.data?.code === "DAILY_LIMIT" ? "needs_manual_action" : "failed", reason: err.message || "Auto-apply failed", unansweredQuestions: [] });
     } finally {
@@ -514,9 +516,9 @@ function JobDetail({ job, score, matchedSkills, experience, appliedStatus, autoS
 
   const btnBase = { display: "inline-flex", alignItems: "center", gap: 7, fontSize: ".86rem", fontWeight: 700, borderRadius: 8, padding: "10px 16px", cursor: "pointer", fontFamily: "inherit", textDecoration: "none" };
   const statusColor = autoApplyResult?.status === "submitted" ? C.green : autoApplyResult?.status === "needs_manual_action" ? C.orange : C.red;
-  const paid = planAllowsAutoApply(user);
+  const paid = aaAllowed;
   const autoApplyLabel = !user ? "Sign in to auto-apply"
-    : !paid ? "Upgrade to auto-apply"
+    : !paid ? "Get pass to auto-apply"
     : user.autoApply?.enabled ? "Auto-apply to this job" : "Turn on auto-apply";
 
   return (
@@ -626,7 +628,17 @@ function JobDetail({ job, score, matchedSkills, experience, appliedStatus, autoS
         </div>
       )}
 
-      {autoApplyResult && !(autoApplyResult.unansweredQuestions?.length > 0) && (
+      {autoApplyResult?.status === "pass_required" && (
+        <div style={{ marginTop: 14, borderRadius: 10, padding: "14px 16px", background: C.goldSoft, border: `1px solid ${C.goldBorder}` }}>
+          <div style={{ fontSize: ".9rem", fontWeight: 700, color: C.text }}>Your {FREE_TRIAL_APPLIES} free auto-applies are used up</div>
+          <div style={{ fontSize: ".8rem", color: C.textSub, margin: "4px 0 12px", lineHeight: 1.5 }}>
+            Get the Auto-Apply pass and we keep applying for you: up to 10 applications a day for {aaAccess?.pass?.days || 30} days.
+          </div>
+          <AutoApplyPassOffer pass={aaAccess?.pass} compact onPurchased={async () => { await onAccessChanged?.(); setAutoApplyResult(null); }} />
+        </div>
+      )}
+
+      {autoApplyResult && autoApplyResult.status !== "pass_required" && !(autoApplyResult.unansweredQuestions?.length > 0) && (
         <div style={{ marginTop: 14, display: "flex", alignItems: "flex-start", gap: 8, fontSize: ".82rem", borderRadius: 8, padding: "10px 12px", color: statusColor, background: `${statusColor}14`, border: `1px solid ${statusColor}44` }}>
           {autoApplyResult.status === "submitted" ? <Check size={15} style={{ flexShrink: 0 }} /> : <AlertTriangle size={15} style={{ flexShrink: 0 }} />}
           {autoApplyResult.status === "submitted" ? "Application submitted."
@@ -930,13 +942,14 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   }, [open, filtersOpen]);
 
   const showResults = !(mode === "matched" && !user) && !needsExtraction;
-  const paidPlan = planAllowsAutoApply(user);
+  const { access: aaAccess, allowed: paidPlan, refresh: refreshAccess } = useAutoApplyAccess(user);
   const autoApplyOn = paidPlan && !!user?.autoApply?.enabled;
+  const trialLeft = aaAccess?.mode === "trial" ? aaAccess.remaining : null;
 
   // Card "Auto-apply": sign in → upgrade → otherwise open the job and start applying.
   const startAutoApply = (jobId) => {
     if (!user) { onAuthRequired?.(); return; }
-    if (!paidPlan) { onNavigate?.("upgrade"); return; }
+    // Out of free applies: the job panel shows the pass offer instead of applying.
     setOpen({ id: jobId, autoStart: true });
   };
 
@@ -1120,17 +1133,19 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
                   <PremiumTag />
                 </div>
                 <div style={{ fontSize: ".84rem", color: C.textSub, marginTop: 3, lineHeight: 1.45 }}>
-                  {paidPlan
+                  {!user || trialLeft !== null
+                    ? `Try it free: your first ${FREE_TRIAL_APPLIES} auto-applies are on us${trialLeft !== null && trialLeft < FREE_TRIAL_APPLIES ? ` (${trialLeft} left)` : ""}. Turn it on once and we fill in and submit applications for jobs that match your resume.`
+                    : paidPlan
                     ? "Turn on Auto-apply once. We fill in and submit applications for jobs that match your resume."
-                    : "We fill in and submit applications for jobs that match your resume. Included with the Clarity and Pro plans."}
+                    : `Your ${FREE_TRIAL_APPLIES} free auto-applies are used up. Keep going with the Auto-Apply pass: 10 applications a day.`}
                 </div>
+                {user && !paidPlan && <div style={{ marginTop: 10 }}><AutoApplyPassOffer pass={aaAccess?.pass} compact onPurchased={refreshAccess} /></div>}
               </div>
-              <button onClick={() => (!user ? onAuthRequired?.() : !paidPlan ? onNavigate?.("upgrade") : onNavigate?.("profile"))} className="jb-btn"
+              {(!user || paidPlan) && <button onClick={() => (!user ? onAuthRequired?.() : onNavigate?.("profile"))} className="jb-btn"
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".86rem", fontWeight: 700, color: "#fff", background: C.gold, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer", fontFamily: "inherit" }}>
                 {!user ? <><LogIn size={15} /> Sign in to start</>
-                  : !paidPlan ? <><Crown size={15} /> See plans</>
                   : <><Settings size={15} /> Turn on Auto-apply</>}
-              </button>
+              </button>}
             </div>
           )}
 
@@ -1266,6 +1281,9 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
               score={openItem.score}
               matchedSkills={openItem.matchedSkills}
               experience={openItem.experience}
+              aaAllowed={paidPlan}
+              aaAccess={aaAccess}
+              onAccessChanged={refreshAccess}
               appliedStatus={appliedJobIds.has(openItem.job._id)}
               autoStart={open.autoStart}
               onApplied={markLocalApplied}

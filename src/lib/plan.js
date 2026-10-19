@@ -12,8 +12,11 @@ export function hasActivePlan(user, requiredPlan = "clarity") {
   return user.subscriptionStatus === "cancelled" && !!user.subscriptionExpiry;
 }
 
-// Auto-apply: any active Clarity or Pro plan.
-export const canAutoApply = (user) => hasActivePlan(user, "clarity");
+// Auto-apply: an active Clarity/Pro plan or ₹49 Auto-Apply pass. The free trial
+// can only be counted server-side - see useAutoApplyAccess.
+export const hasActivePass = (user) =>
+  !!user?.autoApply?.passExpiry && new Date(user.autoApply.passExpiry) > new Date();
+export const canAutoApply = (user) => hasActivePlan(user, "clarity") || hasActivePass(user);
 
 // "clarity" | "pro" while that plan is usable, otherwise null.
 export function activePlan(user) {
