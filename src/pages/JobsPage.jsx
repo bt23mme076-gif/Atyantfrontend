@@ -738,6 +738,8 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   const [company, setCompany] = useState("");
   const [remote, setRemote] = useState(false);
   const [level, setLevel] = useState(""); // "" | "fresher" (internships + entry-level)
+  // Students are in India: show India roles by default; "International" opts out.
+  const [region, setRegion] = useState("india"); // "india" | ""
   const [companies, setCompanies] = useState([]);
   const [department, setDepartment] = useState("");
   const [postedWithin, setPostedWithin] = useState(""); // "" | "24h" | "3d" | "7d"
@@ -779,7 +781,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setJobs(null);
     setPage(1);
     try {
-      const res = await jobsAPI.list({ q, location, source, company, remote, level, page: 1, limit: PAGE_SIZE });
+      const res = await jobsAPI.list({ q, location, source, company, remote, level, region, page: 1, limit: PAGE_SIZE });
       if (requestModeRef.current !== forMode) return;
       setJobs(res.jobs || []);
       setTotal(res.total || 0);
@@ -790,7 +792,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     }
   };
 
-  const loadMatched = async (levelFilter = level) => {
+  const loadMatched = async (levelFilter = level, regionFilter = region) => {
     const forMode = "matched";
     requestModeRef.current = forMode;
     setError("");
@@ -798,7 +800,7 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setJobs(null);
     setPage(1);
     try {
-      const res = await jobsAPI.matches({ minScore: 0, level: levelFilter, page: 1, limit: PAGE_SIZE });
+      const res = await jobsAPI.matches({ minScore: 0, level: levelFilter, region: regionFilter, page: 1, limit: PAGE_SIZE });
       if (requestModeRef.current !== forMode) return;
       setJobs(res.matches || []);
       setTotal(res.total || 0);
@@ -818,12 +820,12 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     setLoadingMore(true);
     try {
       if (forMode === "all") {
-        const res = await jobsAPI.list({ q, location, source, company, remote, level, page: nextPage, limit: PAGE_SIZE });
+        const res = await jobsAPI.list({ q, location, source, company, remote, level, region, page: nextPage, limit: PAGE_SIZE });
         if (requestModeRef.current !== forMode) return;
         setJobs((prev) => [...(prev || []), ...(res.jobs || [])]);
         setTotal(res.total || 0);
       } else {
-        const res = await jobsAPI.matches({ minScore: 0, level, page: nextPage, limit: PAGE_SIZE });
+        const res = await jobsAPI.matches({ minScore: 0, level, region, page: nextPage, limit: PAGE_SIZE });
         if (requestModeRef.current !== forMode) return;
         setJobs((prev) => [...(prev || []), ...(res.matches || [])]);
         setTotal(res.total || 0);
@@ -864,14 +866,14 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
   // dropdowns, suggested searches) rather than waiting on the Search button -
   // takes whichever fields changed as overrides, syncs their state, and refetches page 1.
   const applyServerFilters = (overrides = {}) => {
-    const setters = { q: setQ, location: setLocation, company: setCompany, source: setSource, remote: setRemote, level: setLevel };
+    const setters = { q: setQ, location: setLocation, company: setCompany, source: setSource, remote: setRemote, level: setLevel, region: setRegion };
     Object.entries(overrides).forEach(([key, val]) => setters[key]?.(val));
     // From "Recommended", switch tabs; the mode effect then loads with the new values.
     if (mode !== "all") { switchMode("all"); return; }
     setJobs(null);
     setError("");
     setPage(1);
-    jobsAPI.list({ q, location, company, source, remote, level, ...overrides, page: 1, limit: PAGE_SIZE })
+    jobsAPI.list({ q, location, company, source, remote, level, region, ...overrides, page: 1, limit: PAGE_SIZE })
       .then((res) => { if (requestModeRef.current !== "all") return; setJobs(res.jobs || []); setTotal(res.total || 0); })
       .catch((err) => { setError(err.message || "Failed to load jobs"); setJobs([]); });
   };
@@ -881,12 +883,12 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
     applyServerFilters({ location: next, remote: false });
   };
 
-  const activeFilterCount = [location, remote, level, postedWithin, department, company, source].filter(Boolean).length;
+  const activeFilterCount = [location, remote, level, region === "" && "international", postedWithin, department, company, source].filter(Boolean).length;
   const hasActiveFilters = !!(q || activeFilterCount);
 
   const clearFilters = () => {
     setDepartment(""); setPostedWithin(""); setCityDraft("");
-    applyServerFilters({ q: "", location: "", company: "", source: "", remote: false, level: "" });
+    applyServerFilters({ q: "", location: "", company: "", source: "", remote: false, level: "", region: "india" });
   };
 
   // Department has no server-side filter yet - derived from whatever's currently
@@ -981,6 +983,18 @@ export default function JobsPage({ onNavigate, onAuthRequired }) {
           <input type="checkbox" checked={remote} onChange={() => applyServerFilters({ remote: !remote, location: !remote ? "" : location })} />
           Remote only
         </label>
+      </FilterSection>
+
+      <FilterSection title="Region">
+        <label className="jb-check">
+          <input type="checkbox" checked={region === "india"} onChange={() => {
+            const next = region === "india" ? "" : "india";
+            if (mode === "matched") { setRegion(next); loadMatched(level, next); }
+            else applyServerFilters({ region: next });
+          }} />
+          India jobs only
+        </label>
+        <div style={{ fontSize: ".74rem", color: C.textMuted, marginTop: 4, lineHeight: 1.4 }}>Untick to include international and remote roles</div>
       </FilterSection>
 
       <FilterSection title="Experience">
