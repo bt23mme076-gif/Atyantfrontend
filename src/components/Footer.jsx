@@ -71,6 +71,37 @@ export default function Footer() {
         >
           © 2026 Atyant. All rights reserved.
         </span>
+
+        <address
+          style={{
+            fontSize: "13px",
+            color: "#6260a0",
+            textAlign: "center",
+            fontStyle: "normal",
+            lineHeight: 1.7,
+          }}
+        >
+          <strong style={{ fontWeight: 600 }}>ATYANT AI Technologies Pvt Ltd</strong>
+          <br />
+          Reg. Office: Plot No 03, Neelmani, 8 Flat No 301, Parvati Nagar, Nagpur-440027, Maharashtra
+          <br />
+          <a href="tel:+919579040183" style={{ color: "#6260a0", textDecoration: "none" }}>
+            +91 95790 40183
+          </a>
+          {" · "}
+          <a href="mailto:atyant.in@gmail.com" style={{ color: "#6260a0", textDecoration: "none" }}>
+            atyant.in@gmail.com
+          </a>
+          {" · "}
+          <a
+            href="https://atyant.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#6260a0", textDecoration: "none" }}
+          >
+            atyant.in
+          </a>
+        </address>
       </div>
     </footer>
   );
