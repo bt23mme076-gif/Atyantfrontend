@@ -6,6 +6,8 @@
 // only, never names.
 
 export const GUIDES_UPDATED = "2026-10-08";
+// The /guides hub has its own copy, so it gets its own lastmod.
+export const GUIDES_HUB_UPDATED = "2026-11-05";
 
 export const GUIDES = [
   {
@@ -14,6 +16,8 @@ export const GUIDES = [
     description:
       "Civil, Mechanical or Metallurgy student aiming for data analytics or consulting? How seniors got into ZS Associates, IQVIA, Aspect Ratio and Swiggy without a CS degree.",
     h1: "From a non-CS branch to data analytics or consulting",
+    // Card copy on the /guides hub. Written for a student skimming, not for a search box.
+    hub: "Five of the seven seniors here studied Civil, Mechanical or Chemistry. None had a CS degree, and they now work at ZS Associates, IQVIA, Aspect Ratio and Swiggy. You get the order they learned Excel, SQL and Python in, the projects that got them shortlisted, and how long the switch really took: anywhere from 4 months to 2 years.",
     intro:
       "Yes, you can get a data analyst or consulting job from Civil, Mechanical, Metallurgy or Electrical. Atyant seniors did it at ZS Associates, IQVIA, Aspect Ratio and Swiggy. They had three things in common. They learned Python and SQL first instead of every tool at once. They built two or three data projects they could explain end to end. And they applied off-campus through alumni and referrals instead of waiting for campus drives that mostly listed core roles.",
     sections: [
@@ -156,6 +160,7 @@ export const GUIDES = [
     description:
       "Civil, Mechanical, Electrical or Metallurgy and want a core job? How seniors got HPCL, JSW Steel, Maruti Suzuki, MNGL and AM/NS offers, and what they would change.",
     h1: "Getting a core job from Civil, Mechanical, Electrical or Metallurgy",
+    hub: "For students who actually want to stay in their branch. Seniors from Civil, Mechanical, Electrical and Metallurgy explain how they got into HPCL, JSW Steel, Maruti Suzuki, MNGL and AM/NS, which subjects the interviews really tested, and why months of generic coding prep did nothing for a core profile.",
     intro:
       "Core placements need different preparation from software roles. You need strong fundamentals in three or four branch subjects, at least one hands-on core project or internship, research on each company's process, and communication good enough for group tasks and interviews. Atyant seniors got HPCL, JSW Steel, JSL, Maruti Suzuki, MNGL and AM/NS this way. Several say their biggest mistake was spending months on generic coding prep for roles that did not fit their branch.",
     sections: [
@@ -282,6 +287,7 @@ export const GUIDES = [
     description:
       "Applied to 100+ internships with no reply? How seniors from colleges like yours got off-campus internships through portfolios, cold emails, referrals and follow-ups.",
     h1: "How to get an off-campus internship when campus placements don't help",
+    hub: "If you've sent a hundred applications and heard nothing back, start here. Seniors from REC Kannauj, NIT Srinagar and VNIT Nagpur explain what changed once they stopped mass-applying: a small portfolio first, startups before big brands, and cold emails with a proper follow-up.",
     intro:
       "Mass-applying rarely works. Students on r/developersIndia and r/indiafreshers describe hundreds of applications with no callbacks. Atyant seniors who got off-campus internships did three things instead. They built a small portfolio of real projects on GitHub. They targeted startups and smaller firms where they would be noticed. And they reached people directly through cold emails, LinkedIn and referrals, then followed up.",
     sections: [
@@ -397,6 +403,7 @@ export const GUIDES = [
     description:
       "How seniors from VNIT Nagpur, including one from Chemical Engineering, landed Amazon and Google roles: DSA routine, system design timing, mock interviews and off-campus applications.",
     h1: "Getting an SDE role at Amazon or Google from a non-IIT college",
+    hub: "Four CSE seniors and one Chemical Engineering senior from VNIT Nagpur who made it to Amazon and Google. The DSA routine they stuck with, when they started system design, how they practised explaining their thinking, and what they did when campus placements didn't work out.",
     intro:
       "Seniors from VNIT Nagpur, including one from Chemical Engineering, reached Amazon and Google with a consistent daily DSA routine, mock interviews with seniors and real projects. Their most repeated regret was starting system design too late.",
     sections: [
@@ -505,6 +512,7 @@ export const GUIDES = [
     description:
       "Torn between GATE, campus placements, CAT and MBA or M.Tech? Real decisions from seniors who took each route, what they would change and how they kept a backup open.",
     h1: "GATE, placement or MBA: deciding in third year",
+    hub: "Third year is when this question gets loud. Seniors who went the GATE, campus placement and CAT/MBA routes explain how they chose, whether preparing for two at once worked, and how they kept a backup open. Where they ended up: M.Tech at IIT Kharagpur, Maruti Suzuki, Deloitte and an IIM Ahmedabad call.",
     intro:
       "You do not have to bet everything on one exam. The Atyant seniors who did best kept campus placements open as a backup while preparing for GATE or a management exam. They also started GATE preparation in third year, not in the last semester.",
     sections: [
@@ -617,6 +625,7 @@ export const GUIDES = [
     description:
       "Trying DSA, web dev, AI and GATE at once? Seniors who landed Amazon, Google and AI roles explain why they picked one focus at a time, and in what order.",
     h1: "DSA, development, AI or everything? Pick one focus at a time",
+    hub: "For the semester you're trying to do DSA, web dev, AI and GATE all at once. Seniors now at Amazon, Maruti Suzuki and AI startups explain why they dropped to one focus at a time, and the order that worked for them, semester by semester.",
     intro:
       "The most repeated mistake across Atyant seniors' stories is trying to learn everything at once. The seniors who got results picked one focus per semester, built projects in it, and only then added the next skill.",
     sections: [

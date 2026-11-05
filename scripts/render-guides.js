@@ -6,7 +6,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { SITE, DEFAULT_OG } from "../src/seo/routes.js";
-import { GUIDES, GUIDES_UPDATED } from "../src/seo/guides.js";
+import { GUIDES, GUIDES_UPDATED, GUIDES_HUB_UPDATED } from "../src/seo/guides.js";
 
 const esc = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -63,8 +63,18 @@ li{margin:6px 0}
 .related li p{margin:2px 0 0;color:var(--muted-fg);font-size:.92rem}
 .cards{list-style:none;padding:0;display:grid;gap:14px}
 .cards li{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin:0}
-.cards h2{font-size:1.15rem;margin:0 0 6px}
-.cards p{margin:0;color:var(--muted-fg)}
+.cards h3{font-size:1.15rem;line-height:1.35;margin:0 0 4px}
+.cards p{margin:8px 0 0}
+.cards .facts{margin:0;color:var(--muted-fg);font-size:.85rem}
+.cards .inside{font-size:.88rem;display:flex;flex-wrap:wrap;gap:4px 14px}
+.cards .inside span{color:var(--muted-fg)}
+.lead p{margin:0}
+.lead p+p{margin-top:12px}
+.qs{list-style:none;padding:0;margin:12px 0 0;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.qs li{margin:0;border-top:1px solid var(--border)}
+.qs li:first-child{border-top:0}
+.qs a{display:block;padding:11px 18px;text-decoration:none}
+.qs a:hover{text-decoration:underline}
 .foot{border-top:1px solid var(--border);margin-top:56px;padding:24px 16px 40px;font-size:.88rem;color:var(--muted-fg)}
 .foot nav{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:8px}
 `;
@@ -200,33 +210,117 @@ ${faqs}
   return page({ title: g.title, description: g.description, url, ogType: "article", schema, body });
 }
 
+// Questions students type into Google, each linked to the section that answers it.
+// [question, guide slug, exact h2 of the answering section (null = top of guide)]
+const HUB_QUESTIONS = [
+  ["I'm in Mechanical or Civil. Can I still become a data analyst?", "non-cs-branch-to-data-analytics-and-consulting", "Can a Mechanical or Civil student become a data analyst?"],
+  ["How long does it take to switch from a core branch to analytics?", "non-cs-branch-to-data-analytics-and-consulting", "How long the switch takes"],
+  ["Core or IT: which one should I go for?", "core-branch-jobs-and-psu-placements", "Core or IT: how to decide"],
+  ["How do PSU and government-company placements work?", "core-branch-jobs-and-psu-placements", "PSU and government-company placements"],
+  ["I've applied to 100 internships and nobody replies. What am I doing wrong?", "how-to-get-off-campus-internship", "Why 100+ applications get no replies"],
+  ["How do I write a cold email that actually gets a reply?", "how-to-get-off-campus-internship", "Cold emails and follow-ups that get answered"],
+  ["Can I get into Amazon or Google from a non-IIT college?", "faang-sde-from-non-iit-college", null],
+  ["Can I prepare for GATE and placements at the same time?", "gate-vs-placement-vs-mba", "Can you prepare for GATE and placements together?"],
+  ["When should I start GATE preparation?", "gate-vs-placement-vs-mba", "When to start GATE preparation"],
+  ["DSA or development: which should I do first?", "dsa-vs-development-what-to-focus-on", "DSA or development first?"],
+];
+
+const HUB_FAQS = [
+  {
+    q: "Are the stories in these guides from real students?",
+    a: "Yes. Every journey comes from an answer a senior wrote for juniors on Atyant. We take out names and keep the branch, college, company and timeline, because those are what you need to judge whether their path fits yours.",
+  },
+  {
+    q: "My college isn't VNIT. Does any of this apply to me?",
+    a: "Most of it does. The things that worked for these seniors, like learning one skill at a time, building two or three projects you can explain, asking alumni for referrals and applying off-campus, don't depend on one placement cell. If your situation is very specific, ask on Atyant and you'll be matched with a senior from a college closer to yours.",
+  },
+  {
+    q: "Which guide should I read first?",
+    a: "The one that matches the decision in front of you right now. In first or second year, start with DSA vs development. In third year, read GATE vs placement vs MBA. If you're in a non-CS branch, read the analytics guide and the core jobs guide side by side before you pick a direction.",
+  },
+  {
+    q: "Do I need to sign up to read the guides?",
+    a: "No. Every guide is free to read without an account. You only need to sign up if you want to ask a senior your own question.",
+  },
+];
+
+// "Civil, VNIT Nagpur (working in structural design)" -> "Civil"
+const branchOf = (from) => from.split(",")[0].trim();
+const uniq = (xs) => [...new Set(xs)];
+
 function renderHub() {
   const url = `${SITE}/guides`;
-  const title = "Placement & Internship Guides from Seniors Like You | Atyant";
+  const bySlug = Object.fromEntries(GUIDES.map((g) => [g.slug, g]));
+  const title = "Placement & Internship Guides for B.Tech Students | Atyant";
   const description =
-    "Real answers from engineering seniors who faced the same problems: off-campus internships, core vs IT, GATE vs placement, non-CS to analytics, FAANG from a non-IIT college.";
-  const cards = GUIDES.map(
-    (g) => `<li><h2><a href="/guides/${g.slug}">${esc(g.h1)}</a></h2><p>${esc(g.description)}</p></li>`,
-  ).join("\n");
+    "Off-campus internships, core and PSU jobs, GATE vs placement, non-CS to data analytics, Amazon from a non-IIT college. Real paths from seniors, not theory.";
+  const h1 = "Placement and internship guides for engineering students";
+  const updated = new Date(`${GUIDES_HUB_UPDATED}T00:00:00Z`).toLocaleDateString("en-IN", {
+    day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+  });
+  // The same senior can appear in two guides; count each journey once.
+  const journeys = uniq(GUIDES.flatMap((g) => g.stories.map((s) => `${s.from}|${s.to}`))).length;
+
+  const questions = HUB_QUESTIONS.map(([q, slug, h2]) => {
+    const g = bySlug[slug];
+    if (!g) throw new Error(`HUB_QUESTIONS: unknown guide ${slug}`);
+    if (h2 && !g.sections.some((s) => s.h2 === h2)) throw new Error(`HUB_QUESTIONS: no section "${h2}" in ${slug}`);
+    return `<li><a href="/guides/${slug}${h2 ? `#${anchor(h2)}` : ""}">${esc(q)}</a></li>`;
+  }).join("\n");
+
+  const cards = GUIDES.map((g) => {
+    const branches = uniq(g.stories.map((s) => branchOf(s.from))).filter((b) => b !== "Engineering");
+    const inside = g.sections
+      .slice(0, 4)
+      .map((s) => `<a href="/guides/${g.slug}#${anchor(s.h2)}">${esc(s.h2)}</a>`)
+      .join("");
+    return `<li><h3><a href="/guides/${g.slug}">${esc(g.h1)}</a></h3>
+<p class="facts">${g.stories.length} senior journeys · ${esc(branches.join(", "))}</p>
+<p>${esc(g.hub || g.description)}</p>
+<p class="inside"><span>Inside:</span>${inside}</p></li>`;
+  }).join("\n");
+
+  const faqs = HUB_FAQS.map((f) => `<h3>${esc(f.q)}</h3>\n<p>${esc(f.a)}</p>`).join("\n");
 
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <span>Guides</span></nav>
-<h1>Placement and internship guides from seniors who started where you are</h1>
-<p class="lead">Each guide answers one question students keep asking, using real, anonymised journeys from Atyant seniors: what they did, how long it took, and what they would change.</p>
-<ul class="cards" style="margin-top:24px">
+<h1>${esc(h1)}</h1>
+<p class="meta">Updated ${updated} · ${GUIDES.length} guides · ${journeys} real senior journeys, names removed</p>
+<div class="lead">
+<p>Most placement advice online assumes you're in CSE at a top college, with recruiters queuing up on campus. If that isn't you, these guides are.</p>
+<p>Each one is built from answers seniors wrote for juniors on Atyant: what they actually did, how long it took, and what they'd do differently. A Civil graduate who learned SQL and joined ZS Associates. An Electrical student who cleared GATE and joined Maruti Suzuki. CSE seniors from VNIT Nagpur who got into Amazon without an IIT on their resume.</p>
+</div>
+<section id="start-with-your-question"><h2>Start with your question</h2>
+<p>Pick the one closest to what's on your mind. Each link opens the part of the guide that answers it.</p>
+<ul class="qs">
+${questions}
+</ul></section>
+<section id="all-guides"><h2>All placement and internship guides</h2>
+<ul class="cards">
 ${cards}
-</ul>
-<aside class="cta"><h2>Have a question these do not cover?</h2>
-<p>Type it in your own words and get matched to a senior from your branch who has been there.</p>
-<a class="btn" href="/">Ask your question</a></aside>`;
+</ul></section>
+<section id="how-these-guides-are-written"><h2>How these guides are written</h2>
+<p>We start with the questions juniors ask again and again, on r/Btechtards, r/developersIndia and r/GATEtard, and in our own inbox. Then we go through what seniors have written on Atyant and keep only the answers that end in a real outcome: a company, a role, a timeline. Names come out. Branch, college and result stay in.</p>
+<p>Where a senior's experience and popular forum advice disagree, the guide says so instead of quietly picking a side. Most seniors so far are from VNIT Nagpur, with others from NIT Raipur, NIT Srinagar, REC Kannauj, RGPV Bhopal and IIT Bombay. As more seniors share their paths, the guides get updated.</p>
+</section>
+<section id="frequently-asked-questions"><h2>Frequently asked questions</h2>
+${faqs}
+</section>
+<aside class="cta"><h2>Didn't find your exact situation?</h2>
+<p>Ask it the way you'd ask a senior in the hostel corridor. Atyant matches you with someone from your branch who has been through it.</p>
+<a class="btn" href="/">Ask a senior</a></aside>`;
 
   const schema = [
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: title,
+      name: h1,
+      headline: h1,
       description,
       url,
       inLanguage: "en-IN",
+      dateModified: GUIDES_HUB_UPDATED,
+      about: ["Campus placements", "Internships", "GATE", "Engineering careers in India"],
+      audience: { "@type": "EducationalAudience", educationalRole: "student" },
       publisher: PUBLISHER,
       mainEntity: {
         "@type": "ItemList",
@@ -239,6 +333,15 @@ ${cards}
       },
     },
     breadcrumb([["Home", `${SITE}/`], ["Guides", url]]),
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: HUB_FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    },
   ];
 
   return page({ title, description, url, ogType: "website", schema, body });
@@ -256,4 +359,4 @@ export function renderGuides(dist) {
   return ["/guides", ...GUIDES.map((g) => `/guides/${g.slug}`)];
 }
 
-export { GUIDES_UPDATED };
+export { GUIDES_UPDATED, GUIDES_HUB_UPDATED };

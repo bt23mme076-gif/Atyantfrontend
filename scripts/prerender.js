@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PUBLIC_ROUTES, SITE } from "../src/seo/routes.js";
-import { renderGuides, GUIDES_UPDATED } from "./render-guides.js";
+import { renderGuides, GUIDES_UPDATED, GUIDES_HUB_UPDATED } from "./render-guides.js";
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 
@@ -103,7 +103,7 @@ const guidePaths = renderGuides(DIST);
 const buildDate = new Date().toISOString().slice(0, 10);
 const urls = [
   ...[...PUBLIC_ROUTES.map((r) => r.path), ...EXTERNAL_PATHS].map((p) => [p, buildDate]),
-  ...guidePaths.map((p) => [p, GUIDES_UPDATED]),
+  ...guidePaths.map((p) => [p, p === "/guides" ? GUIDES_HUB_UPDATED : GUIDES_UPDATED]),
 ]
   .map(([p, lastmod]) => {
     const images = (EXTERNAL_IMAGES[p] || [])
