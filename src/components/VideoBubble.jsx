@@ -196,6 +196,7 @@ export default function VideoBubble({ config, onAsk }) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.6 }}
           transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.6 }}
+          className="atyant-video-bubble"
           style={{ position: "fixed", right: "clamp(12px, 2vw, 24px)", bottom: "calc(clamp(12px, 2vw, 24px) + env(safe-area-inset-bottom))", zIndex: 900, width: "min(180px, 34vw)", aspectRatio: "1" }}
         >
           <motion.button
@@ -227,6 +228,7 @@ export default function VideoBubble({ config, onAsk }) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: reduce ? 1 : 0.3 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="atyant-video-panel"
           style={{ position: "fixed", right: "clamp(12px, 2vw, 24px)", bottom: "calc(clamp(12px, 2vw, 24px) + env(safe-area-inset-bottom))", zIndex: 1000, width: portrait ? `min(400px, calc((100vh - 48px) * ${ratio.toFixed(4)}), calc(100vw - 24px))` : "min(800px, calc(100vw - 24px))", transformOrigin: "bottom right" }}
         >
           <div

@@ -495,7 +495,7 @@ const LockedMentors = ({ mentors, college, goal, onLogin }) => {
   );
 };
 
-export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview, onGoToUpgrade }) {
+export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard, onGoToJobs, onGoToMockInterview, onGoToUpgrade, onChattingChange }) {
   const isMobile = useIsMobile();
   // A question typed elsewhere (e.g. the Jobs welcome video) lands in the composer, unsent.
   const [query, setQuery] = useState(() => {
@@ -513,6 +513,9 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only: consume the prefill once
   const [messages, setMessages] = useState([]);
+  const chatting = messages.length > 0;
+  useEffect(() => { onChattingChange?.(chatting); }, [chatting, onChattingChange]);
+  useEffect(() => () => onChattingChange?.(false), [onChattingChange]);
   const [isTyping, setIsTyping] = useState(false);
   const [thinkingLines, setThinkingLines] = useState([]);
   const [showContext, setShowContext] = useState(false);

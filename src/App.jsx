@@ -48,6 +48,7 @@ import {
   eventsAPI
 } from "./api";
 import BookingModal from "./components/BookingModal";
+import WhatsAppButton from "./components/WhatsAppButton";
 import InviteLanding from "./components/invite/InviteLanding";
 import { inviteAPI } from "./api";
 
@@ -1275,6 +1276,7 @@ export default function App() {
   });
   const [inviteJoining, setInviteJoining] = useState(false);
   const [bookingTarget, setBookingTarget] = useState(null); // { mentorId, mentorName, mentorPic, services }
+  const [askChatting, setAskChatting] = useState(false); // Ask page composer is pinned to the bottom
   const [serviceCatalog, setServiceCatalog] = useState([]);
   const [hasJoinableSession, setHasJoinableSession] = useState(false);
 
@@ -1545,7 +1547,7 @@ export default function App() {
   ];
 
   const pages = {
-    ask: <AskAtyantPage key={chatSession} user={user} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} onGoToMockInterview={() => setActivePage("mock-interview")} onGoToUpgrade={goToUpgrade} />,
+    ask: <AskAtyantPage key={chatSession} user={user} onChattingChange={setAskChatting} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} onGoToMockInterview={() => setActivePage("mock-interview")} onGoToUpgrade={goToUpgrade} />,
     // "upgrade" goes through goToUpgrade so the pricing page's Back returns here.
     jobs: <JobsPage onNavigate={(p) => (p === "upgrade" ? goToUpgrade() : setActivePage(p))} onAuthRequired={() => setShowAuth(true)} />,
     "mock-interview": <MockInterviewPage onAuthRequired={() => setShowAuth(true)} onNavigate={setActivePage} />,
@@ -1945,6 +1947,13 @@ export default function App() {
 
         {/* Mandatory mobile capture for phone-less (e.g. Google) accounts */}
         <RequirePhoneGate />
+
+        {/* Off pages with their own bottom controls, for mentors, and while a modal is open */}
+        <WhatsAppButton hidden={
+          isMentor || tourOpen || showAuth || !!bookingTarget || !!platformFeedback ||
+          (activePage === "ask" && askChatting) ||
+          ["chat", "clarity", "mock-interview", "track", "tpo", "mentor-onboard"].includes(activePage)
+        } />
 
         {/* Global toast host - booking/payment/chat feedback all render here */}
         <ToastContainer position="top-center" autoClose={3500} limit={3} newestOnTop pauseOnHover transition={Slide} theme="colored" style={{ zIndex: 99999 }} />

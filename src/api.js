@@ -443,6 +443,7 @@ export const reviewAPI = {
 };
 
 export const mockInterviewAPI = {
+  stats:  ()   => api.get('/api/mock-interviews/stats'),
   list:   ()   => api.get('/api/mock-interviews'),
   get:    (id) => api.get(`/api/mock-interviews/${id}`),
   create: async ({ company, role, jdText, resumeFile, resumeText, useProfileResume, interviewCategory }) => {

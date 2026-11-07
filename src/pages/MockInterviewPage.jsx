@@ -92,7 +92,41 @@ const PageStyles = () => (
     .mi-ready:focus-within { outline:2px solid #7567C9; outline-offset:2px; }
     .mi-tab { font-family:inherit; font-size:.8rem; font-weight:600; border-radius:999px; padding:6px 12px; cursor:pointer; border:1px solid var(--c-cardBorder); background:var(--c-card); color:var(--c-textSub); }
     .mi-tab.on { background:var(--c-accentSoft); border-color:#7567C9; color:var(--c-accentText); }
-    @media (max-width: 720px) { .mi-steps { grid-template-columns:1fr; } }
+    @media (max-width: 720px) { .mi-steps { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; } }
+    /* Landing hero: copy left, live-round scene right */
+    .mi-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:28px; align-items:center; padding:6px 0 26px; }
+    @media (max-width: 860px) { .mi-hero { grid-template-columns:minmax(0,1fr); gap:18px; } }
+    .mi-chip { display:inline-flex; align-items:center; gap:6px; font-size:.8rem; font-weight:600; color:var(--c-textSub); background:var(--c-card); border:1px solid var(--c-cardBorder); border-radius:999px; padding:6px 12px; }
+    .mi-price-pill { display:inline-flex; align-items:center; gap:12px; margin-top:18px; padding:10px 18px; border-radius:14px; background:linear-gradient(135deg,#7567C9,#5a4cb8); color:#fff; box-shadow:0 8px 24px #7567C955; }
+    .mi-scene { border-radius:16px; overflow:hidden; border:1px solid var(--c-cardBorder); background:var(--c-card); box-shadow:0 18px 44px rgba(20,16,40,.14); animation:miFadeUp .4s ease-out both; }
+    .mi-scene-bar { display:flex; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--c-cardBorder); background:var(--c-active); }
+    .mi-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .mi-scene-title { margin-left:8px; font-size:.74rem; font-weight:600; color:var(--c-textSub); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mi-scene-timer { display:inline-flex; align-items:center; gap:6px; font-size:.74rem; font-weight:700; color:var(--c-text); font-variant-numeric:tabular-nums; }
+    .mi-rec { width:8px; height:8px; border-radius:50%; background:#F04438; animation:miBlink 1.2s ease-in-out infinite; }
+    @keyframes miBlink { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+    .mi-scene-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
+    .mi-scene-q { display:flex; gap:10px; align-items:flex-start; font-size:.86rem; color:var(--c-text); line-height:1.45; background:var(--c-active); border:1px solid var(--c-cardBorder); border-radius:12px 12px 12px 4px; padding:10px 12px; animation:miFadeUp .5s .15s ease-out both; }
+    .mi-scene-ai { width:24px; height:24px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:#7567C9; color:#fff; font-size:.6rem; font-weight:800; }
+    .mi-scene-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .mi-scene-you { flex:1; min-width:150px; display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#232032,#17141f); border-radius:12px; padding:12px 14px; color:#fff; }
+    .mi-scene-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#7567C9; color:#fff; flex-shrink:0; }
+    .mi-wave { flex:1; display:flex; align-items:center; justify-content:center; gap:3px; height:28px; }
+    .mi-wave span { width:4px; border-radius:2px; background:#3DBE82; animation:miTalk 1s ease-in-out infinite; }
+    @keyframes miTalk { 0%,100% { transform:scaleY(.4) } 50% { transform:scaleY(1) } }
+    .mi-scene-label { font-size:.7rem; opacity:.75; }
+    .mi-scene-score { display:inline-flex; align-items:center; gap:6px; font-size:.76rem; font-weight:700; color:#3DBE82; background:#3DBE8214; border:1px solid #3DBE8255; border-radius:999px; padding:7px 11px; animation:miFadeUp .5s .5s ease-out both; white-space:nowrap; }
+    .mi-step-tile { display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; padding:16px 8px; background:var(--c-card); border:1px solid var(--c-cardBorder); border-radius:12px; position:relative; }
+    .mi-step-n { position:absolute; top:7px; left:10px; font-size:.68rem; font-weight:800; color:var(--c-textMuted); }
+    @media (max-width: 720px) { .mi-step-tile { padding:12px 6px; } .mi-step-tile > span:last-child { font-size:.72rem !important; } }
+    @media (prefers-reduced-motion: reduce) { .mi-rec, .mi-wave span { animation:none; } }
+    /* Company logo marquee: two identical rows loop seamlessly; hover pauses */
+    .mi-marquee { display:flex; overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask-image:linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+    .mi-marquee-row { display:flex; align-items:center; gap:10px; padding-right:10px; flex-shrink:0; min-width:max-content; animation:miMarquee 38s linear infinite; }
+    .mi-marquee:hover .mi-marquee-row { animation-play-state:paused; }
+    @keyframes miMarquee { from { transform:translateX(0) } to { transform:translateX(-100%) } }
+    .mi-marquee-chip { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px; border:1px solid var(--c-cardBorder); background:var(--c-card); font-size:.82rem; font-weight:600; color:var(--c-text); white-space:nowrap; }
+    @media (prefers-reduced-motion: reduce) { .mi-marquee-row { animation:none; } }
   `}</style>
 );
 
@@ -141,48 +175,147 @@ function CompanyTile({ name, size = 40 }) {
   );
 }
 
-function Hero() {
-  const facts = [
-    { Icon: Video, text: "Live video round" },
-    { Icon: Clock, text: "About 20 minutes" },
-    { Icon: MessageSquareText, text: "Feedback on every answer" },
-  ];
+// Pure-CSS mock of the live round — a visitor "gets it" without reading:
+// the AI asks, you answer out loud, the clock runs, answers get scored.
+function HeroScene() {
+  const bars = [12, 20, 9, 24, 15, 22, 11, 18];
   return (
-    <section style={{ textAlign: "center", padding: "10px 0 24px" }}>
-      <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(1.8rem, 3.6vw, 2.5rem)", lineHeight: 1.15, color: C.text, textWrap: "balance" }}>
-        Practice the interview before the real one
-      </h1>
-      <p style={{ margin: "10px auto 0", maxWidth: 560, fontSize: ".95rem", lineHeight: 1.55, color: C.textSub, textWrap: "balance" }}>
-        An AI interviewer asks what this company would ask, digs into your projects, and pushes back when an answer is thin.
-      </p>
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 18px", marginTop: 16 }}>
-        {facts.map(({ Icon, text }) => (
-          <span key={text} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: ".84rem", color: C.textSub }}>
-            <Icon size={15} color={C.accentText} /> {text}
+    <div className="mi-scene" aria-hidden="true">
+      <div className="mi-scene-bar">
+        <span className="mi-dot" style={{ background: "#FF5F57" }} />
+        <span className="mi-dot" style={{ background: "#FEBC2E" }} />
+        <span className="mi-dot" style={{ background: "#28C840" }} />
+        <span className="mi-scene-title">Google · SDE Intern</span>
+        <span className="mi-scene-timer"><span className="mi-rec" />12:47</span>
+      </div>
+      <div className="mi-scene-body">
+        <div className="mi-scene-q">
+          <span className="mi-scene-ai">AI</span>
+          <span>You used Redis in your project — why not an in-memory map?</span>
+        </div>
+        <div className="mi-scene-row">
+          <div className="mi-scene-you">
+            <span className="mi-scene-avatar"><Mic size={14} /></span>
+            <span className="mi-wave">{bars.map((h, i) => <span key={i} style={{ height: h, animationDelay: `${i * 0.12}s` }} />)}</span>
+            <span className="mi-scene-label">You</span>
+          </div>
+          <span className="mi-scene-score"><CheckCircle2 size={13} /> Communication 81</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Real counts from the server; each number only appears once it's big enough
+// to persuade (a "3 interviews taken" line would do the opposite).
+const MIN_PROOF_INTERVIEWS = 50;
+const MIN_PROOF_COLLEGES = 10;
+function SocialProof() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => { mockInterviewAPI.stats().then(setStats).catch(() => {}); }, []);
+  if (!stats) return null;
+  const parts = [];
+  if (stats.interviews >= MIN_PROOF_INTERVIEWS) parts.push(`${stats.interviews.toLocaleString("en-IN")} interviews taken`);
+  if (stats.colleges >= MIN_PROOF_COLLEGES) parts.push(`students from ${stats.colleges}+ colleges`);
+  if (!parts.length) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: ".82rem", color: C.textSub }}>
+      <span style={{ display: "inline-flex" }}>
+        {["#7567C9", "#3DBE82", "#FB923C"].map((c, i) => (
+          <span key={c} style={{ width: 22, height: 22, borderRadius: "50%", background: c, border: `2px solid ${C.bg}`, marginLeft: i ? -7 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Users size={11} color="#fff" />
           </span>
         ))}
+      </span>
+      <span><b style={{ color: C.text }}>{parts[0]}</b>{parts[1] ? ` · ${parts[1]}` : ""}</span>
+    </div>
+  );
+}
+
+function Hero() {
+  const chips = [
+    { Icon: Video, text: "Live video" },
+    { Icon: Clock, text: "15 minutes" },
+    { Icon: MessageSquareText, text: "Report on every answer" },
+  ];
+  return (
+    <section className="mi-hero">
+      <div>
+        <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "clamp(1.8rem, 3.4vw, 2.4rem)", lineHeight: 1.15, color: C.text, textWrap: "balance" }}>
+          Practice the interview before the real one
+        </h1>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+          {chips.map(({ Icon, text }) => (
+            <span key={text} className="mi-chip"><Icon size={14} color={C.accentText} /> {text}</span>
+          ))}
+        </div>
+        <div className="mi-price-pill">
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "1.9rem", lineHeight: 1 }}>₹10</span>
+          <span style={{ fontSize: ".78rem", lineHeight: 1.35, textAlign: "left" }}>per interview<br />full report included</span>
+        </div>
+        <SocialProof />
       </div>
+      <HeroScene />
     </section>
   );
 }
 
-// ─── How it works ────────────────────────────────────────────────────────────
+// ─── Company logo marquee ─────────────────────────────────────────────────────
+// Real logos via Google's public favicon endpoint (Clearbit's logo API is
+// gone); a failed load falls back to the same initial tile used across the app.
+const MARQUEE_COMPANIES = [
+  { name: "Google", domain: "google.com" }, { name: "Amazon", domain: "amazon.com" },
+  { name: "Microsoft", domain: "microsoft.com" }, { name: "TCS", domain: "tcs.com" },
+  { name: "Infosys", domain: "infosys.com" }, { name: "Accenture", domain: "accenture.com" },
+  { name: "Deloitte", domain: "deloitte.com" }, { name: "Flipkart", domain: "flipkart.com" },
+  { name: "Adobe", domain: "adobe.com" }, { name: "Wipro", domain: "wipro.com" },
+  { name: "Zomato", domain: "zomato.com" }, { name: "JP Morgan", domain: "jpmorganchase.com" },
+  { name: "Razorpay", domain: "razorpay.com" }, { name: "Goldman Sachs", domain: "goldmansachs.com" },
+  { name: "Cognizant", domain: "cognizant.com" }, { name: "Swiggy", domain: "swiggy.com" },
+];
+
+function CompanyLogo({ name, domain, size = 20 }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <CompanyTile name={name} size={size} />;
+  return (
+    <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`} alt="" width={size} height={size} loading="lazy"
+      onError={() => setFailed(true)} style={{ borderRadius: 5, objectFit: "contain", flexShrink: 0 }} />
+  );
+}
+
+function CompanyMarquee() {
+  const row = (dup) => (
+    <div className="mi-marquee-row" aria-hidden={dup || undefined}>
+      {MARQUEE_COMPANIES.map(c => (
+        <span key={c.name} className="mi-marquee-chip"><CompanyLogo {...c} /> {c.name}</span>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{ margin: "2px 0 24px" }}>
+      <div style={{ textAlign: "center", fontSize: ".7rem", fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: C.textMuted, marginBottom: 10 }}>
+        Students practise for
+      </div>
+      <div className="mi-marquee">{row(false)}{row(true)}</div>
+    </div>
+  );
+}
+
+// ─── How it works: three glanceable tiles, no paragraphs ─────────────────────
 const HOW_STEPS = [
-  { title: "Add the JD and your resume", body: "Questions come from the JD, your own projects, and what seniors were asked at this company." },
-  { title: "Take the interview on video", body: "Camera on, answers out loud. Thin or vague answers get follow-up questions." },
-  { title: "Read your report", body: "A score out of 100, feedback on each answer, and what to prepare next." },
+  { Icon: FileText, label: "Paste the JD + resume" },
+  { Icon: Video, label: "Answer on camera" },
+  { Icon: Target, label: "Score + report" },
 ];
 
 function HowItWorks() {
   return (
     <ol className="mi-steps" style={{ listStyle: "none", margin: "0 0 22px", padding: 0 }}>
       {HOW_STEPS.map((s, i) => (
-        <li key={s.title} style={{ display: "flex", gap: 12, padding: "14px 16px", background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 12 }}>
-          <span style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.accentSoft, color: C.accentText, fontWeight: 700, fontSize: ".86rem" }}>{i + 1}</span>
-          <div>
-            <div style={{ fontSize: ".88rem", fontWeight: 700, color: C.text }}>{s.title}</div>
-            <div style={{ fontSize: ".78rem", color: C.textSub, marginTop: 3, lineHeight: 1.45 }}>{s.body}</div>
-          </div>
+        <li key={s.label} className="mi-step-tile">
+          <span className="mi-step-n">{i + 1}</span>
+          <span style={{ width: 38, height: 38, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: C.accentSoft, color: C.accentText }}><s.Icon size={19} /></span>
+          <span style={{ fontSize: ".84rem", fontWeight: 700, color: C.text }}>{s.label}</span>
         </li>
       ))}
     </ol>
@@ -264,6 +397,35 @@ function detectCategory(company, role) {
   return null;
 }
 
+// ─── One-tap presets: company + role + a typical campus JD, so nobody has to
+// hunt for a JD before an interview. Labelled as typical, editable.
+const QUICK_PICKS = [
+  {
+    label: "TCS Digital", company: "TCS", role: "Digital - Assistant System Engineer", category: "tech",
+    jd: "TCS Digital hires engineering graduates as Assistant System Engineers for higher-skill digital projects. Responsibilities: build and maintain software modules in Java, Python or JavaScript; write efficient code for data structures and algorithm problems; work with SQL databases; understand OOP, DBMS, operating systems and computer networks fundamentals; collaborate in agile teams with clients. Requirements: strong problem solving and coding, good communication, willingness to relocate and learn new technologies. Interview rounds: technical (coding, projects, CS fundamentals), managerial and HR.",
+  },
+  {
+    label: "Infosys SE", company: "Infosys", role: "Systems Engineer", category: "tech",
+    jd: "Infosys Systems Engineers join after campus hiring and are trained at the Mysore campus before moving to client projects. Responsibilities: develop, test and support applications; write clean code in Java, Python or C++; work with SQL and basic web technologies; debug and document. Requirements: knowledge of programming fundamentals, OOP, DBMS, basic data structures, logical reasoning, clear verbal communication and a learning mindset. Interview covers your projects, programming basics, puzzles and HR questions about relocation and teamwork.",
+  },
+  {
+    label: "Amazon SDE", company: "Amazon", role: "SDE Intern / SDE-1", category: "tech",
+    jd: "Amazon Software Development Engineers design, build and own services used by millions of customers. Responsibilities: solve problems with strong data structures and algorithms (arrays, trees, graphs, dynamic programming); write production-quality, tested code; reason about time and space complexity; take part in design discussions. Requirements: proficiency in one language such as Java, C++ or Python, CS fundamentals, ownership of past projects. Interviews include coding rounds and behavioral questions based on Amazon Leadership Principles like Customer Obsession, Ownership and Dive Deep.",
+  },
+  {
+    label: "Deloitte Analyst", company: "Deloitte", role: "Analyst", category: "business",
+    jd: "Deloitte Analysts support consulting and technology engagements for clients across industries. Responsibilities: gather and analyse data, build Excel and PowerPoint deliverables, document business requirements, support solution testing and implementation, present findings to team leads. Requirements: structured problem solving, comfort with guesstimates and case-style questions, basic SQL or Excel, strong written and spoken communication, teamwork. Interviews cover your resume and projects, a case or guesstimate, and HR questions on why consulting and why Deloitte.",
+  },
+  {
+    label: "Accenture ASE", company: "Accenture", role: "Associate Software Engineer", category: "tech",
+    jd: "Accenture Associate Software Engineers work on application development and maintenance for global clients. Responsibilities: write and test code in Java, Python or .NET, work with databases and cloud basics, fix defects, follow coding standards and collaborate with distributed teams. Requirements: programming fundamentals, OOP, DBMS, basic cloud and agile awareness, good communication. Interviews focus on your final-year project, coding basics, CS fundamentals and HR questions about flexibility, shifts and learning new technologies.",
+  },
+  {
+    label: "Data Analyst", company: "Fractal", role: "Data Analyst", category: "analytics",
+    jd: "Data Analysts turn business data into decisions. Responsibilities: write SQL queries to extract and clean data, analyse trends in Excel or Python (pandas), build dashboards in Power BI or Tableau, define and track KPIs, and explain insights to non-technical stakeholders. Requirements: strong SQL (joins, group by, window functions), statistics basics, Excel, one visualisation tool, structured thinking and clear communication. Interviews include SQL questions, a case or guesstimate, and a deep dive into an analytics project from your resume.",
+  },
+];
+
 // ─── New interview form ──────────────────────────────────────────────────────
 function NewInterviewForm({ onCreated }) {
   const [prefill] = useState(takePrefill);
@@ -338,6 +500,9 @@ function NewInterviewForm({ onCreated }) {
           <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: C.text }}>Set up your interview</h2>
           <div style={{ fontSize: ".82rem", color: C.textSub, marginTop: 4 }}>It takes about a minute to build once you submit.</div>
         </div>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, padding: "7px 12px", borderRadius: 999, background: C.accentSoft, border: `1px solid ${C.accent}44`, color: C.accentText, fontSize: ".78rem", fontWeight: 700, whiteSpace: "nowrap" }}>
+          ₹10 · 15 min · report
+        </span>
       </div>
 
       {prefill.company && (
@@ -345,6 +510,27 @@ function NewInterviewForm({ onCreated }) {
           <CompanyTile name={prefill.company} size={30} />
           <div style={{ fontSize: ".8rem", color: C.text, lineHeight: 1.4 }}>
             Filled in from <b>{prefill.role || "the job"}</b> at <b>{prefill.company}</b> on Jobs. Check it and pick a resume.
+          </div>
+        </div>
+      )}
+
+      {!prefill.company && (
+        <div style={{ marginBottom: 16 }}>
+          <span style={label}>Quick start <span style={{ fontWeight: 500, color: C.textMuted }}>(one tap fills a typical JD)</span></span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {QUICK_PICKS.map(p => {
+              const on = company === p.company && role === p.role && jdText === p.jd;
+              return (
+                <button key={p.label} type="button" aria-pressed={on} className="mi-btn"
+                  onClick={() => { setCompany(p.company); setRole(p.role); setJdText(p.jd); setCategoryTouched(true); setCategory(p.category); }}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px 6px 6px", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+                    border: `1.5px solid ${on ? C.accent : C.cardBorder}`, background: on ? C.accentSoft : C.card, color: on ? C.accentText : C.text, fontSize: ".8rem", fontWeight: 600,
+                  }}>
+                  <CompanyTile name={p.company} size={22} /> {p.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -387,7 +573,7 @@ function NewInterviewForm({ onCreated }) {
           <span style={{ color: C.textMuted }}>The more complete the JD, the sharper the questions.</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0, fontVariantNumeric: "tabular-nums", color: jdShort ? C.textMuted : C.green, fontWeight: 600 }}>
             {!jdShort && <Check size={12} />}
-            {jdShort ? `${jdLen} / ${MIN_JD_CHARS} min` : `${jdLen.toLocaleString("en-IN")} characters`}
+            {jdShort ? `${jdLen} / ${MIN_JD_CHARS} characters` : `${jdLen.toLocaleString("en-IN")} characters`}
           </span>
         </div>
       </div>
@@ -832,12 +1018,68 @@ function PlanCard({ selected, onSelect, tag, title, price, features, note }) {
   );
 }
 
+// Live mic check for the first checklist item: it ticks itself once we actually
+// hear the student. If the mic can't be read (blocked, no device), the item
+// falls back to a manual tick so nobody is locked out of their interview.
+function useMicCheck(onOk) {
+  const [state, setState] = useState("idle"); // idle | listening | ok | error
+  const [level, setLevel] = useState(0);
+  const refs = useRef({});
+  const stop = useCallback(() => {
+    const r = refs.current;
+    if (r.raf) cancelAnimationFrame(r.raf);
+    r.stream?.getTracks().forEach(t => t.stop());
+    r.ctx?.close().catch(() => {});
+    refs.current = {};
+  }, []);
+  useEffect(() => stop, [stop]);
+  const start = useCallback(async () => {
+    setState("listening");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new Ctx();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      let heardMs = 0;
+      let last = performance.now();
+      const tick = (now) => {
+        analyser.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) { const d = (buf[i] - 128) / 128; sum += d * d; }
+        const rms = Math.sqrt(sum / buf.length);
+        setLevel(rms);
+        if (rms > 0.04) heardMs += now - last; // actual speech, not room hum
+        last = now;
+        if (heardMs > 500) { setState("ok"); stop(); onOk?.(); return; }
+        refs.current.raf = requestAnimationFrame(tick);
+      };
+      refs.current = { stream, ctx, raf: requestAnimationFrame(tick) };
+    } catch {
+      setState("error");
+    }
+  }, [stop]);
+  return { state, level, start };
+}
+
+function MicBars({ level }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 2, height: 18, marginLeft: "auto", flexShrink: 0 }} aria-hidden="true">
+      {Array.from({ length: 8 }, (_, i) => (
+        <span key={i} style={{ width: 3, borderRadius: 2, background: level * 20 > i * 0.9 + 0.6 ? C.green : C.cardBorder, height: 5 + Math.max(0, Math.min(1, level * 18 - i * 0.1)) * 13, transition: "height .08s, background-color .08s" }} />
+      ))}
+    </span>
+  );
+}
+
 // Treat it like the real room: the student confirms each item before starting.
-const READY_ITEMS = [
+const READY_ITEMS = (minutes = 20) => [
   { text: "My camera and mic are on and working", Icon: Video },
   { text: "I'm in a quiet room with decent lighting", Icon: Lightbulb },
   { text: "I'm dressed the way I would be for the real interview", Icon: Users },
-  { text: "I have about 20 minutes without interruptions", Icon: Clock },
+  { text: `I have about ${minutes} minutes without interruptions`, Icon: Clock },
 ];
 
 function ReadyCheck({ interview, onStart, onPaid, busy }) {
@@ -845,8 +1087,10 @@ function ReadyCheck({ interview, onStart, onPaid, busy }) {
   const pricing = interview.pricing || {};
   const rejoin = interview.status === "live";
   const alreadyPaid = rejoin || !!pricing.entryPaid;
-  const [checked, setChecked] = useState(() => READY_ITEMS.map(() => alreadyPaid));
-  // First interview only: "interview" (₹99, score preview) or "bundle" (₹149, includes the full report).
+  const readyItems = READY_ITEMS(pricing.durationMin || 20);
+  const [checked, setChecked] = useState(() => readyItems.map(() => alreadyPaid));
+  const mic = useMicCheck(() => setChecked(c => c.map((v, i) => (i === 0 ? true : v))));
+  // Every interview: ₹10, 15 min, report included (plan picker below only applies to older pricing).
   const [plan, setPlan] = useState("interview");
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
@@ -898,7 +1142,7 @@ function ReadyCheck({ interview, onStart, onPaid, busy }) {
         </h2>
         {!rejoin && (
           <span style={{ fontSize: ".76rem", fontWeight: 700, color: ready ? C.green : C.textMuted, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-            {readyCount} of {READY_ITEMS.length} ready
+            {readyCount} of {readyItems.length} ready
           </span>
         )}
       </div>
@@ -910,16 +1154,32 @@ function ReadyCheck({ interview, onStart, onPaid, busy }) {
 
       {!rejoin && (
         <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 16 }}>
-          {READY_ITEMS.map((item, i) => (
-            <label key={item.text} className={`mi-ready${checked[i] ? " on" : ""}`} style={{ position: "relative" }}>
-              <input type="checkbox" checked={checked[i]} onChange={() => setChecked(c => c.map((v, j) => (j === i ? !v : v)))} />
-              <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${checked[i] ? C.green : C.cardBorder}`, background: checked[i] ? C.green : "transparent" }}>
-                {checked[i] && <Check size={12} color="#fff" strokeWidth={3} />}
-              </span>
-              <item.Icon size={15} color={checked[i] ? C.green : C.textMuted} style={{ flexShrink: 0 }} />
-              <span style={{ lineHeight: 1.4 }}>{item.text}</span>
-            </label>
-          ))}
+          {readyItems.map((item, i) => {
+            // The mic item proves itself: tapping it starts a live check, and it
+            // ticks when we hear the student. Manual tick only if the mic is blocked.
+            const micGate = i === 0 && !checked[0];
+            const hint = !micGate ? null
+              : mic.state === "listening" ? "Say something out loud — \"testing, one two\" works."
+              : mic.state === "error" ? "Couldn't open your mic. Check it yourself, then tick this."
+              : "Tap for a quick mic check.";
+            return (
+              <label key={item.text} className={`mi-ready${checked[i] ? " on" : ""}`} style={{ position: "relative" }}>
+                <input type="checkbox" checked={checked[i]} onChange={() => {
+                  if (micGate && mic.state !== "error") { if (mic.state === "idle") mic.start(); return; }
+                  setChecked(c => c.map((v, j) => (j === i ? !v : v)));
+                }} />
+                <span style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${checked[i] ? C.green : C.cardBorder}`, background: checked[i] ? C.green : "transparent" }}>
+                  {checked[i] && <Check size={12} color="#fff" strokeWidth={3} />}
+                </span>
+                <item.Icon size={15} color={checked[i] ? C.green : C.textMuted} style={{ flexShrink: 0 }} />
+                <span style={{ lineHeight: 1.4 }}>
+                  {item.text}
+                  {hint && <span style={{ display: "block", fontSize: ".72rem", marginTop: 1, color: mic.state === "listening" ? C.accentText : C.textMuted }}>{hint}</span>}
+                </span>
+                {micGate && mic.state === "listening" && <MicBars level={mic.level} />}
+              </label>
+            );
+          })}
         </div>
       )}
 
@@ -939,10 +1199,10 @@ function ReadyCheck({ interview, onStart, onPaid, busy }) {
             // First interview: one plan, the full report is included.
             <PlanCard
               selected
-              tag="Your first interview"
-              title="Interview + full report"
+              tag="One price, everything included"
+              title={`${pricing.durationMin || 15}-min interview + full report`}
               price={pricing.interview}
-              note={<><b style={{ color: C.green }}>Full report free</b> on your first interview (worth ₹{pricing.report})</>}
+              note={<><b style={{ color: C.green }}>Full report included</b> with every interview</>}
               features={[
                 "Live video interview with real follow-ups",
                 "Score and dimension breakdown",
@@ -988,9 +1248,21 @@ function ReadyCheck({ interview, onStart, onPaid, busy }) {
       </button>
       {!ready && !rejoin && (
         <div style={{ fontSize: ".74rem", color: C.textMuted, textAlign: "center", marginTop: 8 }}>
-          Tick all {READY_ITEMS.length} to start. It's how the real room works.
+          Tick all {readyItems.length} to start. It's how the real room works.
         </div>
       )}
+      {!alreadyPaid && !freeStart && <RefundLine />}
+    </div>
+  );
+}
+
+// Shown next to every "pay to start" button.
+const REFUND_EMAIL = "nitin@atyant.in";
+function RefundLine() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, fontSize: ".76rem", color: C.textSub }}>
+      <ShieldAlert size={13} color={C.green} />
+      <span>Interviewer doesn't join? <b style={{ color: C.text }}>Full refund</b> — <a href={`mailto:${REFUND_EMAIL}?subject=Mock%20interview%20refund`} style={{ color: C.accentText }}>{REFUND_EMAIL}</a></span>
     </div>
   );
 }
@@ -1139,7 +1411,7 @@ function AnswerReview({ q, index, locked }) {
   );
 }
 
-function Report({ interview, onRetake, busy }) {
+function Report({ interview, onRetake, busy, onNavigate }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [paying, setPaying] = useState(false);
@@ -1247,6 +1519,25 @@ function Report({ interview, onRetake, busy }) {
         </>
       )}
     </SideCard>
+  );
+
+  // The moment the score lands is when "how do I actually fix this?" is loudest:
+  // point it at the seniors, which is what Atyant is actually for.
+  const seniorCard = onNavigate && (
+    <div className="mi-card" style={{ ...card, background: `linear-gradient(135deg, ${C.accent}14, ${C.green}10)`, border: `1px solid ${C.accent}44` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.accent, color: "#fff" }}><Users size={18} /></span>
+        <div style={{ fontSize: ".9rem", fontWeight: 700, color: C.text }}>
+          Hear it from someone who cracked {interview.company || "it"}
+        </div>
+      </div>
+      <div style={{ fontSize: ".8rem", color: C.textSub, lineHeight: 1.5, marginBottom: 12 }}>
+        Ask your question on Atyant and get matched with seniors from your kind of college who got this exact offer — what they did differently, in their own words.
+      </div>
+      <Button onClick={() => onNavigate("ask")} style={{ width: "100%", justifyContent: "center", padding: "11px 16px", fontSize: ".88rem" }}>
+        <MessageSquareText size={15} /> Ask a senior
+      </Button>
+    </div>
   );
 
   const retakeCard = (
@@ -1408,6 +1699,7 @@ function Report({ interview, onRetake, busy }) {
             </SideCard>
           )}
 
+          {seniorCard}
           {rateCard}
           {retakeCard}
         </aside>
@@ -1462,6 +1754,18 @@ export default function MockInterviewPage({ onAuthRequired, onNavigate }) {
     }
   };
 
+  // WhatsApp links (report ready, "still waiting") land on ?interview=<id>.
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("interview");
+    if (!target || !/^[a-f0-9]{24}$/i.test(target)) return;
+    params.delete("interview");
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`);
+    mockInterviewAPI.get(target).then(res => setInterview(res.interview)).catch(err => setError(err.message || "Could not open interview"));
+  }, [user]);
+
   const run = async (fn) => {
     setBusy(true);
     setError("");
@@ -1503,13 +1807,13 @@ export default function MockInterviewPage({ onAuthRequired, onNavigate }) {
       <div className="mi-start">
         <div className="mi-main">
         <div className="mi-narrow-only"><div style={{ display: "flex", flexDirection: "column", gap: 16 }}><SampleReport />{jobsLink}</div></div>
-        <div className="mi-card" style={{ ...card, textAlign: "center", padding: "36px 22px" }}>
-          <Mic size={30} color={C.accent} style={{ display: "block", margin: "0 auto" }} />
-          <div style={{ fontSize: "1.1rem", fontWeight: 700, color: C.text, margin: "12px 0 6px" }}>Sign in to practice</div>
-          <div style={{ fontSize: ".86rem", color: C.textSub, marginBottom: 18, maxWidth: 380, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>
-            Every interview is built from your resume, so you need an account. It takes a minute.
-          </div>
-          <Button onClick={onAuthRequired} style={{ padding: "11px 22px", fontSize: ".9rem" }}><LogIn size={16} /> Sign in</Button>
+        <div className="mi-card" style={{ ...card, textAlign: "center", padding: "34px 22px" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "3rem", lineHeight: 1, color: C.text }}>₹10</div>
+          <div style={{ fontSize: "1.05rem", fontWeight: 700, color: C.text, margin: "8px 0 2px" }}>Per interview</div>
+          <div style={{ fontSize: ".84rem", color: C.textSub, marginBottom: 18 }}>15 minutes · full report included</div>
+          <Button onClick={onAuthRequired} style={{ padding: "12px 26px", fontSize: ".92rem" }}><Play size={16} /> Start for ₹10</Button>
+          <div style={{ fontSize: ".74rem", color: C.textMuted, marginTop: 10 }}><LogIn size={11} style={{ verticalAlign: "-1px" }} /> Sign in first — it takes a minute</div>
+          <RefundLine />
         </div>
         </div>
         <aside>
@@ -1542,7 +1846,7 @@ export default function MockInterviewPage({ onAuthRequired, onNavigate }) {
   } else if (status === "planned" || status === "ready" || status === "live") {
     body = <Blueprint interview={interview} onStart={start} onPaid={onPaid} busy={busy} />;
   } else if (status === "completed") {
-    body = <Report interview={interview} onRetake={retake} busy={busy} />;
+    body = <Report interview={interview} onRetake={retake} busy={busy} onNavigate={onNavigate} />;
   }
 
   const startScreen = !interview;
@@ -1554,6 +1858,7 @@ export default function MockInterviewPage({ onAuthRequired, onNavigate }) {
         {startScreen ? (
           <>
             <Hero />
+            <CompanyMarquee />
             <HowItWorks />
           </>
         ) : (
