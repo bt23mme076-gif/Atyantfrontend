@@ -490,6 +490,78 @@ export const mockInterviewAPI = {
   retake:       (id) => api.post(`/api/mock-interviews/${id}/retake`, {}),
 };
 
+// Atyant Hire - startups post a JD, share a link, candidates take the AI screening interview.
+// Backend: Atyantbackend routes/hireRoutes.js. Founder calls use the JWT; candidate
+// calls (/p/:slug, /a/:token) are public and keyed by the candidate's access token.
+async function sendForm(method, path, form) {
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || data.error || 'Request failed');
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+export const hireAPI = {
+  me:            ()           => api.get('/api/hire/me'),
+  saveCompany:   (body)       => api.put('/api/hire/company', body),
+  jobs:          ()           => api.get('/api/hire/jobs'),
+  job:           (id)         => api.get(`/api/hire/jobs/${id}`),
+  createJob:     ({ title, jdText, jdFile, interviewCategory, mustAsk, maxCandidates, deadline, requireCamera }) => {
+    const form = new FormData();
+    form.append('title', title || '');
+    if (jdFile) form.append('jdFile', jdFile); else form.append('jdText', jdText || '');
+    if (interviewCategory) form.append('interviewCategory', interviewCategory);
+    form.append('mustAsk', JSON.stringify(mustAsk || []));
+    if (maxCandidates) form.append('maxCandidates', String(maxCandidates));
+    if (deadline) form.append('deadline', deadline);
+    form.append('requireCamera', requireCamera === false ? 'false' : 'true');
+    return sendForm('POST', '/api/hire/jobs', form);
+  },
+  updateJob:     (id, body)   => api.patch(`/api/hire/jobs/${id}`, body),
+  publishJob:    (id)         => api.post(`/api/hire/jobs/${id}/publish`, {}),
+  applications:  (id, q = '') => api.get(`/api/hire/jobs/${id}/applications${q}`),
+  application:   (id)         => api.get(`/api/hire/applications/${id}`),
+  decide:        (id, body)   => api.patch(`/api/hire/applications/${id}`, body),
+  exportCsv:     async (id) => {
+    const token = getToken();
+    const res = await fetch(`${BASE}/api/hire/jobs/${id}/export.csv`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Could not export candidates');
+    return res.blob();
+  },
+  creditOrder:   (quantity)   => api.post('/api/hire/credits/order', { quantity }),
+  verifyCredits: (payment)    => api.post('/api/hire/credits/verify', payment),
+
+  // Candidate (public)
+  publicJob:     (slug)       => api.get(`/api/hire/p/${encodeURIComponent(slug)}`),
+  apply:         (slug, { name, email, phone, resumeFile }) => {
+    const form = new FormData();
+    form.append('name', name);
+    form.append('email', email);
+    form.append('phone', phone);
+    form.append('consent', 'true');
+    if (resumeFile) form.append('resume', resumeFile);
+    return sendForm('POST', `/api/hire/p/${encodeURIComponent(slug)}/apply`, form);
+  },
+  candidate:     (token)      => api.get(`/api/hire/a/${encodeURIComponent(token)}`),
+  retryPrep:     (token)      => api.post(`/api/hire/a/${encodeURIComponent(token)}/prepare`, {}),
+  join:          (token)      => api.post(`/api/hire/a/${encodeURIComponent(token)}/join`, {}),
+  integrity:     (token, type, seconds) =>
+    api.post(`/api/hire/a/${encodeURIComponent(token)}/integrity`, { type, seconds }).catch(() => {}),
+};
+
 // TPO (Training & Placement) - VNIT dashboard
 // Backend contract:
 //   GET  /api/tpo/students  → { students: [{ _id, name, email, branch, year, cgpa, targetCompany }] }

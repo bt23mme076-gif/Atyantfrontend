@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom'
 import './index.css'
@@ -10,6 +10,11 @@ import { ThemeProvider } from './context/ThemeContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MentorTrackPage from './pages/MentorTrackPage'
 
+const HireHome = lazy(() => import('./pages/hire/HireHome.jsx'))
+const HireJobPage = lazy(() => import('./pages/hire/HireJobPage.jsx'))
+const HireCandidatePage = lazy(() => import('./pages/hire/HireCandidatePage.jsx'))
+const hire = (el) => <Suspense fallback={null}>{el}</Suspense>
+
 const IS_TPO_SUBDOMAIN = window.location.hostname === 'vnit.atyant.in'
 
 // This app owns atyant.in (the marketing site is proxied under /company). The
@@ -18,6 +23,12 @@ const IS_TPO_SUBDOMAIN = window.location.hostname === 'vnit.atyant.in'
 // kept for localhost and direct vercel.app access.
 function RootOrMeet() {
   const [params] = useSearchParams()
+  // Google sign-in always lands on /?token=…; send founders who started it from /hire back there.
+  if (params.get('token') && sessionStorage.getItem('hire_intent')) {
+    sessionStorage.removeItem('hire_intent')
+    window.location.replace(`/hire?token=${encodeURIComponent(params.get('token'))}`)
+    return null
+  }
   const meetId = params.get('meet')
   if (meetId) return <MeetPage sessionId={meetId} />
   return <App />
@@ -53,6 +64,9 @@ if (IS_TPO_SUBDOMAIN) {
                   path="/mentor/:mentorId/track"
                   element={<MentorTrackPage />}
                 />
+                <Route path="/hire" element={hire(<HireHome />)} />
+                <Route path="/hire/jobs/:jobId" element={hire(<HireJobPage />)} />
+                <Route path="/hire/i/:slug" element={hire(<HireCandidatePage />)} />
                 <Route path="/*" element={<RootOrMeet />} />
               </Routes>
             </BrowserRouter>

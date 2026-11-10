@@ -50,7 +50,7 @@ function InterviewerCaptions() {
 }
 
 // The interview is meant to feel like the real room, so the camera stays on.
-function CameraReminder() {
+function CameraReminder({ hiring }) {
   const { isCameraEnabled } = useLocalParticipant();
   if (isCameraEnabled) return null;
   return (
@@ -58,12 +58,14 @@ function CameraReminder() {
       position: 'absolute', top: 64, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
       padding: '8px 14px', borderRadius: 10, background: '#FB923C', color: '#1a1a1a', fontSize: '.85rem', fontWeight: 600,
     }}>
-      Turn your camera on. Real interviews are on camera, so practice that way.
+      {hiring
+        ? 'Turn your camera on. The hiring team sees whether your camera was on during the interview.'
+        : 'Turn your camera on. Real interviews are on camera, so practice that way.'}
     </div>
   );
 }
 
-function InterviewTools({ interviewId }) {
+function InterviewTools({ interviewId, hiring }) {
   const state = useConnectionState();
   if (state !== ConnectionState.Connected) return null;
   return (
@@ -72,10 +74,10 @@ function InterviewTools({ interviewId }) {
       <SessionTimer />
       <NetworkAlerts />
       <BackgroundControl top={14} right={14} />
-      <CameraReminder />
+      <CameraReminder hiring={hiring} />
       <InterviewerCaptions />
       <InterviewerAvatar />
-      <CodeExercisePanel interviewId={interviewId} />
+      {!hiring && <CodeExercisePanel interviewId={interviewId} />}
     </>
   );
 }
@@ -92,8 +94,10 @@ function Screen({ children }) {
  * Full-screen interview room.
  * @param {string}   interviewId
  * @param {function} onExit  (reason: 'left' | 'ended') => void
+ * @param {function} [join]  returns { token, roomName, livekitUrl }; defaults to the mock interview join
+ * @param {boolean}  [hiring] Atyant Hire candidate: no code panel, hiring copy
  */
-export default function MockInterviewRoom({ interviewId, onExit }) {
+export default function MockInterviewRoom({ interviewId, onExit, join, hiring = false }) {
   const relayParam = new URLSearchParams(window.location.search).get('relay');
   const forceRelay = relayParam === '0' ? false : (FORCE_RELAY || relayParam === '1');
   const [roomData, setRoomData] = useState(null);
@@ -102,10 +106,11 @@ export default function MockInterviewRoom({ interviewId, onExit }) {
 
   useEffect(() => {
     let cancelled = false;
-    mockInterviewAPI.join(interviewId)
+    (join ? join() : mockInterviewAPI.join(interviewId))
       .then(data => { if (!cancelled) setRoomData(data); })
       .catch(err => { if (!cancelled) setError(err.message || 'Could not join the interview'); });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interviewId]);
 
   let body;
@@ -156,7 +161,7 @@ export default function MockInterviewRoom({ interviewId, onExit }) {
         connectOptions={forceRelay ? { rtcConfig: { iceTransportPolicy: 'relay' } } : undefined}
       >
         <VideoConference />
-        <InterviewTools interviewId={interviewId} />
+        <InterviewTools interviewId={interviewId} hiring={hiring} />
       </LiveKitRoom>
     );
   }
