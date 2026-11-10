@@ -6,7 +6,7 @@ import {
   LogIn, LogOut, X, Loader2, Menu, Sparkles,
   Copy, ExternalLink, Hash, Check, Star,
   Activity, IndianRupee, CalendarClock, UserRound,
-  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, ArrowLeft,
+  GraduationCap, Briefcase, Zap, Trophy, Compass, Link2, ArrowLeft, Rocket,
   Eye, EyeOff, PanelLeftClose, PanelLeftOpen,
   Headphones, FileText, CheckCircle2, AlertTriangle, Mic, ClipboardList, ChevronDown, HelpCircle, RotateCw, Lightbulb, BookOpen,
 } from "lucide-react";
@@ -1250,6 +1250,10 @@ function RequirePhoneGate() {
 export default function App() {
   const { user, loading, logout } = useAuth();
   const userPlan = activePlan(user);   // "clarity" | "pro" | null
+  // Atyant Hire (startup) accounts don't use the student app.
+  useEffect(() => {
+    if (user?.role === "startup") window.location.replace("/hire");
+  }, [user]);
   // After Google OAuth the backend redirects back with ?token=… - land on home, and
   // once the user loads, send them to profile onboarding only if it's incomplete
   // (same rule as email/password login, see handleAuthed).
@@ -1546,6 +1550,11 @@ export default function App() {
       : []),
   ];
 
+  // Atyant Hire lives on its own routes (/hire), so a real link, not a view.
+  const startupItems = [
+    { id: "hire", Icon: Rocket, label: "Atyant Hire", href: "/hire", badge: "NEW" },
+  ];
+
   const pages = {
     ask: <AskAtyantPage key={chatSession} user={user} onChattingChange={setAskChatting} onGoToClarity={goToClarity} onGoToMentorOnboard={() => setActivePage("mentor-onboard")} onGoToJobs={() => setActivePage("jobs")} onGoToMockInterview={() => setActivePage("mock-interview")} onGoToUpgrade={goToUpgrade} />,
     // "upgrade" goes through goToUpgrade so the pricing page's Back returns here.
@@ -1625,6 +1634,7 @@ export default function App() {
           )}
         </span>
         {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+        {!collapsed && item.badge && <span className="nav-new-badge">{item.badge}</span>}
         {!collapsed && item.id === "sessions" && hasJoinableSession && (
           <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#F04438", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>LIVE</span>
         )}
@@ -1793,6 +1803,12 @@ export default function App() {
                   {!collapsed && <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.12em", color: C.textMuted, padding: "0 12px", marginBottom: 8 }}>JOURNEY</div>}
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {journeyItems.map(item => <NavItem key={item.id} item={item} />)}
+                  </div>
+                </div>
+                <div style={{ marginTop: "1.5rem" }}>
+                  {!collapsed && <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.12em", color: C.textMuted, padding: "0 12px", marginBottom: 8 }}>FOR STARTUPS</div>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {startupItems.map(item => <NavItem key={item.id} item={item} />)}
                   </div>
                 </div>
               </>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Send, Sparkles, ArrowRight, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Send, Sparkles, ArrowRight, Rocket, Lightbulb, ChevronDown, FileText, Image, Camera, Paperclip, X, Briefcase, Mic, Gift, Zap, Lock } from "lucide-react";
 import { FiCopy, FiThumbsUp, FiThumbsDown, FiShare, FiRefreshCw, FiCheck } from 'react-icons/fi';
 import { clarityAPI, aiAPI, eventsAPI } from "../../api";
 import InviteSeniors from "../invite/InviteSeniors";
@@ -1154,6 +1155,12 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
       {messages.length === 0 ? (
         /* Landing View */
         <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: isMobile ? "1.5rem 16px" : "2rem" }}>
+          <Link to="/hire" className="hire-announce">
+            <b>New</b>
+            <Rocket size={14} style={{ color: C.accentText }} />
+            <span>{isMobile ? "Hiring? Try Atyant Hire" : "Hiring for your startup? AI interviews every applicant for you"}</span>
+            <ArrowRight size={14} />
+          </Link>
           <RotatingHeadline
             paused={query.trim().length > 0}
             style={{ position: "relative", zIndex: 1, margin: 0, textAlign: "center", fontSize: isMobile ? "1.7rem" : "clamp(1.9rem,4.5vw,2.8rem)", fontWeight: 400, lineHeight: 1.2, marginBottom: isMobile ? "1.25rem" : "2rem", color: C.text, fontFamily: "var(--font-display)", textWrap: "balance" }}

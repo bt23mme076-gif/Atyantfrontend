@@ -28,7 +28,7 @@ const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
 const FORCE_RELAY = true;
 
 // What the interviewer is saying (or that it is still joining / thinking).
-function InterviewerCaptions() {
+function InterviewerCaptions({ hiring }) {
   const { agent, state, agentTranscriptions } = useVoiceAssistant();
   const latest = agentTranscriptions?.[agentTranscriptions.length - 1]?.text;
   const text = !agent
@@ -37,6 +37,7 @@ function InterviewerCaptions() {
       ? '…'
       : latest || (state === 'listening' ? 'Listening…' : '');
   if (!text) return null;
+  if (hiring) return <div className="hr-room-cap"><b>Interviewer</b>{text}</div>;
   return (
     <div style={{
       position: 'absolute', left: '50%', bottom: 86, transform: 'translateX(-50%)', zIndex: 20,
@@ -65,7 +66,34 @@ function CameraReminder({ hiring }) {
   );
 }
 
-function InterviewTools({ interviewId, hiring }) {
+// Atyant Hire: which company and role this interview is for (styles in pages/hire/hire.css).
+function HireBrand({ brand }) {
+  if (!brand?.company) return null;
+  return (
+    <div className="hr-room-brand">
+      {brand.logoUrl ? <img src={brand.logoUrl} alt="" /> : <span className="hr-logo">{brand.company[0]}</span>}
+      <span>{brand.title ? <>{brand.title} <em>· {brand.company}</em></> : brand.company}</span>
+    </div>
+  );
+}
+
+function HireWait({ title, sub }) {
+  return (
+    <div className="hr-room-wait">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+        <div className="hr-orb" style={{ '--s': '150px' }} aria-hidden="true">
+          <span className="hr-orb-ring" /><span className="hr-orb-ring r2" /><span className="hr-orb-ring r3" />
+          <span className="hr-orb-halo" />
+          <span className="hr-orb-core" />
+        </div>
+        <div className="hr-h2 sm">{title}</div>
+        <div className="hr-sub" style={{ fontSize: '.95rem' }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function InterviewTools({ interviewId, hiring, brand }) {
   const state = useConnectionState();
   if (state !== ConnectionState.Connected) return null;
   return (
@@ -75,7 +103,8 @@ function InterviewTools({ interviewId, hiring }) {
       <NetworkAlerts />
       <BackgroundControl top={14} right={14} />
       <CameraReminder hiring={hiring} />
-      <InterviewerCaptions />
+      <InterviewerCaptions hiring={hiring} />
+      {hiring && <HireBrand brand={brand} />}
       <InterviewerAvatar />
       {!hiring && <CodeExercisePanel interviewId={interviewId} />}
     </>
@@ -95,9 +124,10 @@ function Screen({ children }) {
  * @param {string}   interviewId
  * @param {function} onExit  (reason: 'left' | 'ended') => void
  * @param {function} [join]  returns { token, roomName, livekitUrl }; defaults to the mock interview join
- * @param {boolean}  [hiring] Atyant Hire candidate: no code panel, hiring copy
+ * @param {boolean}  [hiring] Atyant Hire candidate: no code panel, hiring copy and styling
+ * @param {object}   [brand]  Atyant Hire: { company, title, logoUrl } shown in the room
  */
-export default function MockInterviewRoom({ interviewId, onExit, join, hiring = false }) {
+export default function MockInterviewRoom({ interviewId, onExit, join, hiring = false, brand }) {
   const relayParam = new URLSearchParams(window.location.search).get('relay');
   const forceRelay = relayParam === '0' ? false : (FORCE_RELAY || relayParam === '1');
   const [roomData, setRoomData] = useState(null);
@@ -122,6 +152,8 @@ export default function MockInterviewRoom({ interviewId, onExit, join, hiring = 
         <button className="meet-btn" onClick={() => onExit('left')}>Back</button>
       </Screen>
     );
+  } else if (!roomData && hiring) {
+    body = <HireWait title="Setting up your interview…" sub="Getting your interviewer ready" />;
   } else if (!roomData) {
     body = (
       <Screen>
@@ -161,7 +193,7 @@ export default function MockInterviewRoom({ interviewId, onExit, join, hiring = 
         connectOptions={forceRelay ? { rtcConfig: { iceTransportPolicy: 'relay' } } : undefined}
       >
         <VideoConference />
-        <InterviewTools interviewId={interviewId} hiring={hiring} />
+        <InterviewTools interviewId={interviewId} hiring={hiring} brand={brand} />
       </LiveKitRoom>
     );
   }

@@ -426,3 +426,17 @@ body {
     animation-duration: 1.6s;
   }
 }
+/* Atyant Hire entry points in the main app: home announcement pill + sidebar badge */
+@property --hire-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.hire-announce { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 9px; max-width: 100%; box-sizing: border-box; margin-bottom: 1.1rem; padding: 5px 14px 5px 5px; border-radius: 999px; font-size: .82rem; font-weight: 600; color: var(--c-text); text-decoration: none; border: 1px solid transparent; background: linear-gradient(var(--c-card), var(--c-card)) padding-box, conic-gradient(from var(--hire-angle), #7567C9, #A99CEC, #E4B27A, #7567C9) border-box; animation: hireAngle 5s linear infinite; box-shadow: 0 8px 24px -14px rgba(117, 103, 201, .7); transition: transform .2s, box-shadow .2s; }
+.hire-announce:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -14px rgba(117, 103, 201, .95); }
+.hire-announce b { flex-shrink: 0; background: linear-gradient(135deg, #7567C9, #5A4CB0); color: #fff; border-radius: 999px; padding: 3px 9px; font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; }
+.hire-announce span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hire-announce svg { flex-shrink: 0; transition: transform .2s; }
+.hire-announce:hover svg:last-child { transform: translateX(3px); }
+.nav-new-badge { flex-shrink: 0; font-size: .58rem; font-weight: 800; letter-spacing: .07em; color: #fff; padding: 2px 6px; border-radius: 999px; background: linear-gradient(110deg, #7567C9, #A99CEC, #E4B27A, #7567C9); background-size: 300% 100%; animation: hireShift 4s ease infinite; }
+@keyframes hireAngle { to { --hire-angle: 360deg; } }
+@keyframes hireShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@media (prefers-reduced-motion: reduce) {
+  .hire-announce, .nav-new-badge { animation: none; transition: none; }
+}

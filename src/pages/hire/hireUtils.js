@@ -25,6 +25,8 @@ export const JOB_STATUS = {
   failed:  { label: "Failed",     tone: "red" },
 };
 
+export const toneColor = (v) => (v == null ? "var(--c-textMuted)" : v >= 70 ? "#16A34A" : v >= 50 ? "#D97706" : "#DC2626");
+
 export function scoreTone(score) {
   if (score == null) return { background: "var(--c-active)", color: "var(--c-textMuted)" };
   if (score >= 70) return { background: "#16A34A1a", color: "#16A34A" };

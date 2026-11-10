@@ -1,98 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Plus, FileText, Link2, Mic, ListOrdered, Check, ShieldCheck, Quote, Building2, Coins, Users, Briefcase, LogOut, Upload, X,
+  Plus, FileText, Building2, Coins, Users, Briefcase, LogOut, Upload, X, ArrowRight, Radio, CheckCircle2, Sparkles, Link2, Mic, ListOrdered, UserX,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { hireAPI } from "../../api";
 import { loadRazorpay } from "../../lib/checkout";
-import { TopBar, HireAuth, Loading, Pill } from "./HireShared";
+import { TopBar, Loading, Pill, HirePage, Modal, ModalHead } from "./HireShared";
 import { JOB_STATUS, timeAgo } from "./hireUtils";
+import { Aurora, CountUp, GlowCard, VoiceOrb } from "./HireFx";
+import { rise, stagger } from "./hireMotion";
+import HireLanding from "./HireLanding";
 
 const CATEGORIES = [
   ["", "Auto-detect from JD"], ["tech", "Engineering"], ["analytics", "Data / Analytics"], ["product", "Product"],
   ["business", "Business / Consulting"], ["core", "Core engineering"], ["hr", "HR / Operations"],
 ];
-
-// ── Landing (signed out) ────────────────────────────────────────────────────
-
-function Landing() {
-  const steps = [
-    { Icon: FileText, t: "Paste your JD", d: "We pull out the skills to test. Add up to 3 questions you want every candidate asked." },
-    { Icon: Link2, t: "Share one link", d: "Post it on LinkedIn, WhatsApp groups, Internshala, your careers page." },
-    { Icon: Mic, t: "AI interviews everyone", d: "A 15-minute voice interview on their resume and your JD. Anytime, from their phone or laptop." },
-    { Icon: ListOrdered, t: "Get a ranked shortlist", d: "Scores, a hire verdict and quotes from each answer. Call only the best." },
-  ];
-  const report = [
-    "Score out of 100 and a hire verdict",
-    "Fit on each skill from your JD",
-    "Which resume claims held up under questioning",
-    "Strengths and concerns, each with a quote",
-    "Red flags and tab-switch count",
-    "Questions to ask in your next round",
-  ];
-  return (
-    <div className="hr-wrap">
-      <section className="hr-hero">
-        <div className="hr-col" style={{ gap: 18 }}>
-          <span className="hr-eyebrow">Atyant Hire · for startups</span>
-          <h1 className="hr-h1">300 applicants. One link. A ranked shortlist by tomorrow.</h1>
-          <p className="hr-sub">
-            Share one interview link. Every applicant takes a 15-minute AI voice interview built from your JD and their resume.
-            You get a ranked list, with evidence for every score, and you only spend your time on the top few.
-          </p>
-          <div className="hr-row wrap" style={{ gap: 8 }}>
-            <span className="hr-chip"><Check size={13} /> First 10 interviews free</span>
-            <span className="hr-chip"><Coins size={13} /> ₹49 per completed interview after that</span>
-            <span className="hr-chip"><ShieldCheck size={13} /> Pay only when a candidate finishes</span>
-          </div>
-        </div>
-        <HireAuth />
-      </section>
-
-      <section className="hr-col" style={{ gap: 14, marginTop: 24 }}>
-        <h2 className="hr-h2">How it works</h2>
-        <div className="hr-steps">
-          {steps.map(({ Icon, t, d }, i) => (
-            <div key={t} className="hr-step">
-              <div className="hr-row" style={{ marginBottom: 10 }}>
-                <div className="hr-step-n" style={{ marginBottom: 0 }}>{i + 1}</div>
-                <Icon size={18} style={{ color: "var(--c-accentText)" }} />
-              </div>
-              <div className="hr-h3">{t}</div>
-              <p className="hr-muted" style={{ margin: "6px 0 0", lineHeight: 1.5, fontSize: ".84rem" }}>{d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="hr-grid c2" style={{ marginTop: 28 }}>
-        <div className="hr-card pad-lg hr-col" style={{ gap: 12 }}>
-          <h2 className="hr-h2">Every candidate gets a report you can trust</h2>
-          <p className="hr-sub" style={{ fontSize: ".92rem" }}>
-            Every score comes from what the candidate actually said. Each strength and concern links to a quote from their answer, so you can check it yourself.
-          </p>
-          <div className="hr-col" style={{ gap: 8 }}>
-            {report.map(r => <div key={r} className="hr-row" style={{ fontSize: ".9rem" }}><Check size={15} style={{ color: "#16A34A" }} />{r}</div>)}
-          </div>
-        </div>
-        <div className="hr-card pad-lg hr-col" style={{ gap: 14 }}>
-          <span className="hr-eyebrow">Pricing</span>
-          <div className="hr-row" style={{ alignItems: "baseline", gap: 8 }}>
-            <span className="hr-price">₹49</span><span className="hr-muted">per completed interview</span>
-          </div>
-          <p className="hr-sub" style={{ fontSize: ".92rem" }}>
-            Your first 10 interviews are free. After that, buy packs from 10 interviews. If a candidate drops out before answering half the questions, you don't pay.
-          </p>
-          <div className="hr-ev">
-            <div className="hr-row"><Quote size={15} style={{ color: "var(--c-accentText)" }} /><b>A recruiter screen costs ₹500+ per call.</b></div>
-            <div className="hr-muted" style={{ marginTop: 6 }}>Atyant screens 100 applicants for ₹4,900, overnight, with no calendar back-and-forth.</div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
 
 // ── Company setup ───────────────────────────────────────────────────────────
 
@@ -116,24 +40,28 @@ function CompanyForm({ initial, onSaved, onCancel }) {
   };
 
   return (
-    <form className="hr-card pad-lg hr-col" style={{ gap: 14 }} onSubmit={save}>
-      <div>
-        <div className="hr-row"><Building2 size={18} style={{ color: "var(--c-accentText)" }} /><span className="hr-h3" style={{ fontSize: "1.1rem" }}>{initial ? "Company details" : "Tell candidates who you are"}</span></div>
-        <div className="hr-muted" style={{ marginTop: 4 }}>Shown on your interview link, so candidates know who they're interviewing with.</div>
+    <motion.form className="hr-card pad-lg hr-col hr-gborder" style={{ gap: 16 }} onSubmit={save}
+      initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+      <div className="hr-row" style={{ gap: 14 }}>
+        <span className="hr-icon-badge solid"><Building2 size={18} /></span>
+        <div className="hr-col" style={{ gap: 2 }}>
+          <span className="hr-h3" style={{ fontSize: "1.15rem" }}>{initial ? "Company details" : "Tell candidates who you are"}</span>
+          <span className="hr-muted">Shown on your interview link, so candidates know who they're interviewing with.</span>
+        </div>
       </div>
       <div><label className="hr-label">Company name</label><input className="hr-input" value={form.name} onChange={set("name")} required maxLength={120} /></div>
       <div className="hr-grid c2">
         <div><label className="hr-label">Website</label><input className="hr-input" value={form.website} onChange={set("website")} placeholder="https://" /></div>
         <div><label className="hr-label">Logo URL (optional)</label><input className="hr-input" value={form.logoUrl} onChange={set("logoUrl")} placeholder="https://…/logo.png" /></div>
       </div>
-      <div><label className="hr-label">One line about you (optional)</label><textarea className="hr-textarea" style={{ minHeight: 70 }} value={form.about} onChange={set("about")} maxLength={1000} placeholder="We're building…" /></div>
+      <div><label className="hr-label">One line about you (optional)</label><textarea className="hr-textarea" style={{ minHeight: 80 }} value={form.about} onChange={set("about")} maxLength={1000} placeholder="We're building…" /></div>
       {error && <div className="hr-error">{error}</div>}
       <div className="hr-row">
         {onCancel && <button type="button" className="hr-btn" onClick={onCancel}>Cancel</button>}
         <div className="hr-sp" />
-        <button className="hr-btn primary" disabled={busy}>{busy ? "Saving…" : initial ? "Save" : "Continue"}</button>
+        <button className="hr-btn primary" disabled={busy}>{busy ? "Saving…" : initial ? "Save" : "Continue"} {!busy && <ArrowRight size={15} className="hr-arrow" />}</button>
       </div>
-    </form>
+    </motion.form>
   );
 }
 
@@ -142,6 +70,7 @@ function CompanyForm({ initial, onSaved, onCancel }) {
 function NewJobModal({ onClose, onCreated }) {
   const [form, setForm] = useState({ title: "", jdText: "", interviewCategory: "", maxCandidates: 200, deadline: "", requireCamera: true });
   const [jdFile, setJdFile] = useState(null);
+  const [drag, setDrag] = useState(false);
   const [mustAsk, setMustAsk] = useState([""]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -159,68 +88,71 @@ function NewJobModal({ onClose, onCreated }) {
     }
   };
 
+  const onDrop = (e) => {
+    e.preventDefault(); setDrag(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && f.type === "application/pdf") setJdFile(f);
+  };
+
   return (
-    <>
-      <div className="hr-drawer-bg" onClick={onClose} />
-      <form className="hr-modal hr-col" style={{ gap: 14 }} onSubmit={submit}>
-        <div className="hr-row">
-          <span className="hr-h3" style={{ fontSize: "1.15rem" }}>New role</span>
-          <div className="hr-sp" />
-          <button type="button" className="hr-btn sm" onClick={onClose} aria-label="Close"><X size={14} /></button>
-        </div>
-        <div><label className="hr-label">Role title</label><input className="hr-input" value={form.title} onChange={set("title")} required maxLength={120} placeholder="e.g. Backend Engineering Intern" /></div>
-        <div>
-          <label className="hr-label">Job description</label>
-          {jdFile ? (
-            <div className="hr-file" style={{ cursor: "default" }}>
-              <FileText size={16} /><span style={{ flex: 1 }}>{jdFile.name}</span>
-              <button type="button" className="hr-link" onClick={() => setJdFile(null)}>Remove</button>
-            </div>
-          ) : (
-            <>
-              <textarea className="hr-textarea" value={form.jdText} onChange={set("jdText")} placeholder="Paste the full JD: responsibilities, requirements, nice-to-haves." />
-              <label className="hr-file" style={{ marginTop: 8, padding: 10 }}>
-                <Upload size={15} /> Or upload the JD as a PDF
-                <input type="file" accept="application/pdf" onChange={e => setJdFile(e.target.files?.[0] || null)} />
-              </label>
-            </>
-          )}
-        </div>
-        <div>
-          <label className="hr-label">Questions every candidate must answer (optional, up to 3)</label>
-          <div className="hr-col" style={{ gap: 8 }}>
+    <Modal as="form" onClose={onClose} onSubmit={submit}>
+      <ModalHead Icon={Sparkles} title="New role" sub="Paste the JD. Your interview link is ready in about a minute." onClose={onClose} />
+      <div><label className="hr-label">Role title</label><input className="hr-input" value={form.title} onChange={set("title")} required maxLength={120} placeholder="e.g. Backend Engineering Intern" autoFocus /></div>
+      <div>
+        <label className="hr-label">Job description</label>
+        {jdFile ? (
+          <div className="hr-file has" style={{ cursor: "default" }}>
+            <span className="hr-file-ic"><FileText size={17} /></span><span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{jdFile.name}</span>
+            <button type="button" className="hr-link" onClick={() => setJdFile(null)}>Remove</button>
+          </div>
+        ) : (
+          <>
+            <textarea className="hr-textarea" value={form.jdText} onChange={set("jdText")} placeholder="Paste the full JD: responsibilities, requirements, nice-to-haves." />
+            <label className={`hr-file ${drag ? "drag" : ""}`} style={{ marginTop: 8, padding: 12 }}
+              onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={onDrop}>
+              <span className="hr-file-ic" style={{ width: 32, height: 32, borderRadius: 9 }}><Upload size={15} /></span>
+              <span>Or drop / upload the JD as a PDF</span>
+              <input type="file" accept="application/pdf" onChange={e => setJdFile(e.target.files?.[0] || null)} />
+            </label>
+          </>
+        )}
+      </div>
+      <div>
+        <label className="hr-label">Questions every candidate must answer (optional, up to 3)</label>
+        <div className="hr-col" style={{ gap: 8 }}>
+          <AnimatePresence initial={false}>
             {mustAsk.map((q, i) => (
-              <div key={i} className="hr-row">
+              <motion.div key={i} className="hr-row" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
                 <input className="hr-input" value={q} maxLength={400}
                   onChange={e => setMustAsk(m => m.map((x, j) => (j === i ? e.target.value : x)))}
                   placeholder={i === 0 ? "e.g. Why do you want to work at an early-stage startup?" : "Another question"} />
-                {mustAsk.length > 1 && <button type="button" className="hr-btn sm" onClick={() => setMustAsk(m => m.filter((_, j) => j !== i))}><X size={13} /></button>}
-              </div>
+                {mustAsk.length > 1 && <button type="button" className="hr-btn sm" onClick={() => setMustAsk(m => m.filter((_, j) => j !== i))} aria-label="Remove question"><X size={13} /></button>}
+              </motion.div>
             ))}
-            {mustAsk.length < 3 && <button type="button" className="hr-link" style={{ alignSelf: "flex-start" }} onClick={() => setMustAsk(m => [...m, ""])}>+ Add question</button>}
-          </div>
+          </AnimatePresence>
+          {mustAsk.length < 3 && <button type="button" className="hr-link" style={{ alignSelf: "flex-start" }} onClick={() => setMustAsk(m => [...m, ""])}>+ Add question</button>}
         </div>
-        <div className="hr-grid c2">
-          <div>
-            <label className="hr-label">Interview focus</label>
-            <select className="hr-select" value={form.interviewCategory} onChange={set("interviewCategory")}>
-              {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-          <div><label className="hr-label">Max candidates</label><input className="hr-input" type="number" min={1} max={5000} value={form.maxCandidates} onChange={set("maxCandidates")} /></div>
-          <div><label className="hr-label">Close link on (optional)</label><input className="hr-input" type="date" value={form.deadline} onChange={set("deadline")} /></div>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <label className="hr-check"><input type="checkbox" checked={form.requireCamera} onChange={set("requireCamera")} />Ask candidates to keep their camera on</label>
-          </div>
+      </div>
+      <div className="hr-grid c2">
+        <div>
+          <label className="hr-label">Interview focus</label>
+          <select className="hr-select" value={form.interviewCategory} onChange={set("interviewCategory")}>
+            {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
         </div>
-        {error && <div className="hr-error">{error}</div>}
-        <div className="hr-row">
-          <span className="hr-muted">Each interview runs for 15 minutes.</span>
-          <div className="hr-sp" />
-          <button className="hr-btn primary" disabled={busy}>{busy ? "Creating…" : "Create role"}</button>
+        <div><label className="hr-label">Max candidates</label><input className="hr-input" type="number" min={1} max={5000} value={form.maxCandidates} onChange={set("maxCandidates")} /></div>
+        <div><label className="hr-label">Close link on (optional)</label><input className="hr-input" type="date" value={form.deadline} onChange={set("deadline")} /></div>
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <label className="hr-check"><input type="checkbox" checked={form.requireCamera} onChange={set("requireCamera")} />Ask candidates to keep their camera on</label>
         </div>
-      </form>
-    </>
+      </div>
+      {error && <div className="hr-error">{error}</div>}
+      <div className="hr-row wrap">
+        <span className="hr-muted">Each interview runs for 15 minutes.</span>
+        <div className="hr-sp" />
+        <button className="hr-btn primary" disabled={busy}>{busy ? "Creating…" : "Create role"} {!busy && <ArrowRight size={15} className="hr-arrow" />}</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -263,33 +195,66 @@ export function BuyCreditsModal({ company, user, onClose, onDone }) {
   };
 
   return (
-    <>
-      <div className="hr-drawer-bg" onClick={onClose} />
-      <div className="hr-modal hr-col" style={{ gap: 16 }}>
-        <div className="hr-row">
-          <span className="hr-h3" style={{ fontSize: "1.15rem" }}>Add interviews</span>
-          <div className="hr-sp" />
-          <button className="hr-btn sm" onClick={onClose} aria-label="Close"><X size={14} /></button>
-        </div>
-        <div className="hr-muted">₹{price} per completed interview. A candidate who drops out before answering half the questions doesn't use a credit.</div>
-        <div className="hr-grid c4" style={{ gap: 8 }}>
-          {packs.map(p => (
-            <button key={p} className={`hr-tab ${qty === p ? "on" : ""}`} style={{ borderRadius: 12, padding: "12px 6px" }} onClick={() => setQty(p)}>
-              <div style={{ fontSize: "1.1rem", fontWeight: 800 }}>{p}</div>
-              <div style={{ fontSize: ".72rem", opacity: .8 }}>₹{(p * price).toLocaleString("en-IN")}</div>
-            </button>
-          ))}
-        </div>
-        {error && <div className="hr-error">{error}</div>}
-        <button className="hr-btn primary lg block" onClick={buy} disabled={busy}>
-          {busy ? "Opening checkout…" : `Pay ₹${(qty * price).toLocaleString("en-IN")}`}
-        </button>
+    <Modal onClose={onClose}>
+      <ModalHead Icon={Coins} title="Add interviews" sub={`₹${price} per completed interview`} onClose={onClose} />
+      <div className="hr-muted" style={{ lineHeight: 1.5 }}>A candidate who drops out before answering half the questions doesn't use a credit.</div>
+      <div className="hr-grid c4" style={{ gap: 10 }}>
+        {packs.map(p => (
+          <motion.button key={p} type="button" className={`hr-tab ${qty === p ? "on" : ""}`} whileHover={{ y: -3 }} whileTap={{ scale: 0.96 }}
+            style={{ position: "relative", borderRadius: 14, padding: "16px 6px 12px", boxShadow: qty === p ? "0 12px 26px -14px rgba(117,103,201,.9)" : "none" }}
+            onClick={() => setQty(p)}>
+            {p === 25 && <span className="hr-pill solid" style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", fontSize: ".6rem", padding: "1px 7px" }}>Popular</span>}
+            <div style={{ fontFamily: "var(--font-body)", fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1 }}>{p}</div>
+            <div style={{ fontSize: ".72rem", opacity: .8, marginTop: 4 }}>₹{(p * price).toLocaleString("en-IN")}</div>
+          </motion.button>
+        ))}
       </div>
-    </>
+      {error && <div className="hr-error">{error}</div>}
+      <button className="hr-btn primary lg block" onClick={buy} disabled={busy}>
+        {busy ? "Opening checkout…" : <>Pay ₹<CountUp value={qty * price} duration={0.5} /></>}
+      </button>
+    </Modal>
   );
 }
 
 // ── Dashboard (signed in) ───────────────────────────────────────────────────
+
+function StatTile({ Icon, value, label, tone, delay, children }) {
+  return (
+    <motion.div variants={rise}>
+      <GlowCard className="hr-card hr-stattile" style={{ height: "100%", boxSizing: "border-box" }}>
+        <span className={`hr-icon-badge ${tone || ""}`}><Icon size={18} /></span>
+        <div className="hr-stat">
+          <b>{typeof value === "number" ? <CountUp value={value} delay={delay} /> : value}</b>
+          <span>{label}</span>
+          {children}
+        </div>
+        <span className="hr-spark" />
+      </GlowCard>
+    </motion.div>
+  );
+}
+
+function EmptyRoles({ onNew }) {
+  const steps = [[FileText, "Paste your JD"], [Link2, "Share the link"], [Mic, "AI interviews them"], [ListOrdered, "Get a ranked list"]];
+  return (
+    <motion.div className="hr-card hr-empty hr-col" style={{ alignItems: "center", gap: 16, overflow: "hidden" }}
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <Aurora grid={false} className="soft" />
+      <div style={{ position: "relative" }}><VoiceOrb size={110} /></div>
+      <div className="hr-h2 sm" style={{ position: "relative" }}>Create your first role</div>
+      <div className="hr-muted" style={{ maxWidth: 380, position: "relative", fontSize: ".9rem", lineHeight: 1.5 }}>Paste a job description and you'll get a link to share with applicants in about a minute.</div>
+      <div className="hr-row wrap" style={{ justifyContent: "center", gap: 8, position: "relative" }}>
+        {steps.map(([Icon, t], i) => (
+          <motion.span key={t} className="hr-chip glass" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}>
+            <Icon size={13} /> {t}
+          </motion.span>
+        ))}
+      </div>
+      <button className="hr-btn primary lg glow" style={{ position: "relative" }} onClick={onNew}><Plus size={17} /> Create a role</button>
+    </motion.div>
+  );
+}
 
 function Dashboard({ company, setCompany, user }) {
   const navigate = useNavigate();
@@ -306,6 +271,9 @@ function Dashboard({ company, setCompany, user }) {
 
   const totals = (jobs || []).reduce((a, j) => ({ applied: a.applied + (j.stats?.applied || 0), completed: a.completed + (j.stats?.completed || 0) }), { applied: 0, completed: 0 });
   const credits = company.credits;
+  const pool = Math.max(1, (credits.free || 0) + (credits.purchased || 0), credits.left);
+  const live = jobs?.filter(j => j.status === "live").length;
+  const first = (user?.name || user?.username || "").split(" ")[0];
 
   if (editCompany) {
     return <div className="hr-narrow"><CompanyForm initial={company} onSaved={c => { setCompany(c); setEditCompany(false); }} onCancel={() => setEditCompany(false)} /></div>;
@@ -313,112 +281,201 @@ function Dashboard({ company, setCompany, user }) {
 
   return (
     <div className="hr-wrap hr-col" style={{ gap: 22 }}>
-      <div className="hr-row wrap" style={{ gap: 12 }}>
-        <div className="hr-col" style={{ gap: 4 }}>
-          <h1 className="hr-h2">Hiring at {company.name}</h1>
-          <span className="hr-muted">Create a role, share its link, and candidates appear here ranked as they finish.</span>
-        </div>
-        <div className="hr-sp" />
-        <button className="hr-btn" onClick={() => setEditCompany(true)}><Building2 size={15} /> Company</button>
-        <button className="hr-btn primary" onClick={() => setShowNew(true)}><Plus size={16} /> New role</button>
-      </div>
-
-      <div className="hr-grid c4">
-        <div className="hr-card hr-stat"><b>{credits.left}</b><span>Interviews left</span></div>
-        <div className="hr-card hr-stat"><b>{jobs?.filter(j => j.status === "live").length ?? "—"}</b><span>Live roles</span></div>
-        <div className="hr-card hr-stat"><b>{totals.applied}</b><span>Candidates applied</span></div>
-        <div className="hr-card hr-stat"><b>{totals.completed}</b><span>Interviews completed</span></div>
-      </div>
-
-      {credits.left <= 3 && (
-        <div className="hr-card hr-row wrap" style={{ borderColor: "#D9770655", background: "#D977060d" }}>
-          <Coins size={18} style={{ color: "#D97706" }} />
-          <div className="hr-col" style={{ gap: 2, flex: 1, minWidth: 220 }}>
-            <b style={{ fontSize: ".9rem" }}>{credits.left <= 0 ? "You're out of interviews" : `Only ${credits.left} interview${credits.left === 1 ? "" : "s"} left`}</b>
-            <span className="hr-muted">Your links stop accepting new candidates when you run out.</span>
+      <motion.div className="hr-dash-head" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <Aurora />
+        <div className="hr-row wrap" style={{ gap: 14, position: "relative", zIndex: 1 }}>
+          <div className="hr-col" style={{ gap: 8, flex: 1, minWidth: 240 }}>
+            <span className="hr-eyebrow"><Sparkles size={13} /> {first ? `Welcome back, ${first}` : "Your hiring dashboard"}</span>
+            <h1 className="hr-h2">Hiring at <em className="hr-grad-text">{company.name}</em></h1>
+            <span className="hr-sub" style={{ fontSize: ".95rem" }}>Create a role, share its link, and candidates appear here ranked as they finish.</span>
           </div>
-          <button className="hr-btn primary" onClick={() => setShowBuy(true)}>Add interviews</button>
+          <div className="hr-row wrap" style={{ gap: 8 }}>
+            <button className="hr-btn ghost" onClick={() => setEditCompany(true)}><Building2 size={15} /> Company</button>
+            <button className="hr-btn primary glow" onClick={() => setShowNew(true)}><Plus size={16} /> New role</button>
+          </div>
         </div>
-      )}
+      </motion.div>
 
-      <div className="hr-col" style={{ gap: 10 }}>
+      <motion.div className="hr-grid c4" variants={stagger(0.08, 0.15)} initial="hidden" animate="show">
+        <StatTile Icon={Coins} value={credits.left} label="Interviews left" tone="solid">
+          <div className="hr-progress" style={{ marginTop: 8 }}>
+            <motion.i initial={{ width: 0 }} animate={{ width: `${Math.min(100, (credits.left / pool) * 100)}%` }} transition={{ duration: 1.2, delay: 0.4 }} />
+          </div>
+        </StatTile>
+        <StatTile Icon={Radio} value={live ?? "—"} label="Live roles" delay={0.1} />
+        <StatTile Icon={Users} value={totals.applied} label="Candidates applied" delay={0.2} />
+        <StatTile Icon={CheckCircle2} value={totals.completed} label="Interviews completed" tone="warm" delay={0.3} />
+      </motion.div>
+
+      <AnimatePresence>
+        {credits.left <= 3 && (
+          <motion.div className="hr-card hr-row wrap" style={{ borderColor: "#D9770655", background: "linear-gradient(110deg, #D977061a, transparent 70%), var(--c-card)" }}
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <span className="hr-icon-badge warm"><Coins size={18} /></span>
+            <div className="hr-col" style={{ gap: 2, flex: 1, minWidth: 220 }}>
+              <b style={{ fontSize: ".92rem" }}>{credits.left <= 0 ? "You're out of interviews" : `Only ${credits.left} interview${credits.left === 1 ? "" : "s"} left`}</b>
+              <span className="hr-muted">Your links stop accepting new candidates when you run out.</span>
+            </div>
+            <button className="hr-btn primary" onClick={() => setShowBuy(true)}>Add interviews</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="hr-col" style={{ gap: 12 }}>
         <div className="hr-row">
-          <h2 className="hr-h3" style={{ fontSize: "1.05rem" }}>Roles</h2>
+          <h2 className="hr-h3" style={{ fontSize: "1.1rem" }}>Roles</h2>
+          {jobs?.length > 0 && <span className="hr-pill gray">{jobs.length}</span>}
           <div className="hr-sp" />
-          {credits.left > 3 && <button className="hr-link" onClick={() => setShowBuy(true)}>Add interviews</button>}
+          {credits.left > 3 && <button className="hr-link" onClick={() => setShowBuy(true)}>+ Add interviews</button>}
         </div>
         {error && <div className="hr-error">{error}</div>}
-        {!jobs ? <Loading /> : jobs.length === 0 ? (
-          <div className="hr-card hr-empty hr-col" style={{ alignItems: "center", gap: 12 }}>
-            <Briefcase size={28} style={{ color: "var(--c-accentText)" }} />
-            <div className="hr-h3">No roles yet</div>
-            <div className="hr-muted" style={{ maxWidth: 360 }}>Paste a job description and you'll get a link to share with applicants in about a minute.</div>
-            <button className="hr-btn primary" onClick={() => setShowNew(true)}><Plus size={16} /> Create your first role</button>
-          </div>
-        ) : (
-          <div className="hr-joblist">
+        {!jobs ? <Loading /> : jobs.length === 0 ? <EmptyRoles onNew={() => setShowNew(true)} /> : (
+          <motion.div className="hr-joblist" variants={stagger(0.06, 0.1)} initial="hidden" animate="show">
             {jobs.map(j => {
               const s = JOB_STATUS[j.status] || JOB_STATUS.ready;
+              const applied = j.stats?.applied || 0;
+              const completed = j.stats?.completed || 0;
               return (
-                <Link key={j.id} to={`/hire/jobs/${j.id}`} className="hr-jobrow">
-                  <div className="hr-col" style={{ gap: 4, flex: 1, minWidth: 200 }}>
-                    <div className="hr-row" style={{ gap: 8 }}><b style={{ fontSize: ".98rem" }}>{j.title}</b><Pill tone={s.tone}>{s.label}</Pill></div>
-                    <span className="hr-muted">Created {timeAgo(j.createdAt)}{j.skills?.required?.length ? ` · ${j.skills.required.slice(0, 4).join(", ")}` : ""}</span>
-                  </div>
-                  <div className="hr-row" style={{ gap: 18 }}>
-                    <div className="hr-stat" style={{ alignItems: "flex-end" }}><b style={{ fontSize: "1.3rem" }}>{j.stats?.applied || 0}</b><span>applied</span></div>
-                    <div className="hr-stat" style={{ alignItems: "flex-end" }}><b style={{ fontSize: "1.3rem" }}>{j.stats?.completed || 0}</b><span>completed</span></div>
-                  </div>
-                </Link>
+                <motion.div key={j.id} variants={rise}>
+                  <GlowCard as={Link} to={`/hire/jobs/${j.id}`} className="hr-jobrow">
+                    <span className="hr-icon-badge hide-sm"><Briefcase size={18} /></span>
+                    <div className="hr-col" style={{ gap: 6, flex: 1, minWidth: 200 }}>
+                      <div className="hr-row wrap" style={{ gap: 8 }}><b style={{ fontSize: "1rem" }}>{j.title}</b><Pill tone={s.tone} pulse={j.status === "live"} dot={j.status !== "live"}>{s.label}</Pill></div>
+                      <span className="hr-muted">Created {timeAgo(j.createdAt)}{j.skills?.required?.length ? ` · ${j.skills.required.slice(0, 4).join(", ")}` : ""}</span>
+                      {applied > 0 && (
+                        <div className="hr-progress" style={{ maxWidth: 320 }} title={`${completed} of ${applied} completed`}>
+                          <motion.i initial={{ width: 0 }} animate={{ width: `${Math.round((completed / applied) * 100)}%` }} transition={{ duration: 1, delay: 0.3 }} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="hr-row" style={{ gap: 22 }}>
+                      <div className="hr-stat" style={{ alignItems: "flex-end" }}><b style={{ fontSize: "1.5rem" }}><CountUp value={applied} /></b><span>applied</span></div>
+                      <div className="hr-stat" style={{ alignItems: "flex-end" }}><b style={{ fontSize: "1.5rem" }}><CountUp value={completed} /></b><span>completed</span></div>
+                      <span className="hr-go"><ArrowRight size={16} /></span>
+                    </div>
+                  </GlowCard>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
 
-      {showNew && <NewJobModal onClose={() => setShowNew(false)} onCreated={job => navigate(`/hire/jobs/${job.id}`)} />}
-      {showBuy && <BuyCreditsModal company={company} user={user} onClose={() => setShowBuy(false)} onDone={c => { setCompany(c); setShowBuy(false); }} />}
+      <AnimatePresence>
+        {showNew && <NewJobModal key="new" onClose={() => setShowNew(false)} onCreated={job => navigate(`/hire/jobs/${job.id}`)} />}
+        {showBuy && <BuyCreditsModal key="buy" company={company} user={user} onClose={() => setShowBuy(false)} onDone={c => { setCompany(c); setShowBuy(false); }} />}
+      </AnimatePresence>
     </div>
   );
 }
 
+// Student and mentor accounts can't use Atyant Hire (backend answers NOT_STARTUP).
+function WrongAccount({ user, onSignOut }) {
+  return (
+    <div className="hr-narrow">
+      <motion.div className="hr-card pad-lg hr-col hr-gborder" style={{ alignItems: "center", textAlign: "center", gap: 14 }}
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <span className="hr-icon-badge warm" style={{ width: 54, height: 54, borderRadius: 16 }}><UserX size={24} /></span>
+        <div className="hr-h2 sm">This is a student or mentor account</div>
+        <p className="hr-sub" style={{ fontSize: ".95rem", maxWidth: 460 }}>
+          You're signed in as <b>{user.email || user.username}</b>. Atyant Hire uses separate startup accounts.
+          Sign out, then create a startup account with your work email.
+        </p>
+        <div className="hr-row wrap" style={{ justifyContent: "center", gap: 10, marginTop: 4 }}>
+          <button className="hr-btn primary" onClick={onSignOut}><LogOut size={15} /> Sign out and create a startup account</button>
+          <a className="hr-btn" href="/">Back to Atyant</a>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+const ACCOUNT_TYPE_ERROR = "That Google account is a student or mentor account on Atyant. Use your work email to create a startup account.";
+
 export default function HireHome() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, refreshUser } = useAuth();
   const [company, setCompany] = useState(undefined);
   const [error, setError] = useState("");
+  const [blocked, setBlocked] = useState(false);
+  // The backend sends ?error=account_type when Google sign-in from here used a student/mentor account.
+  const [auth, setAuth] = useState(() => (new URLSearchParams(window.location.search).get("error") === "account_type"
+    ? { mode: "signup", n: 1, error: ACCOUNT_TYPE_ERROR }
+    : { mode: "signup", n: 0, error: "" }));
 
   useEffect(() => {
     document.title = "Atyant Hire: AI screening interviews for startups";
     sessionStorage.removeItem("hire_intent");
+    if (new URLSearchParams(window.location.search).has("error")) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setTimeout(() => document.getElementById("hire-start")?.scrollIntoView({ block: "start" }), 300);
+    }
   }, []);
 
   useEffect(() => {
     if (!user) return;
-    hireAPI.me().then(d => setCompany(d.company)).catch(err => { setError(err.message); setCompany(null); });
-  }, [user]);
+    hireAPI.me()
+      .then(d => {
+        setBlocked(false);
+        setCompany(d.company);
+        // A 'user' account that already owned a company was just moved to 'startup'.
+        if (user.role === "user") refreshUser?.();
+      })
+      .catch(err => {
+        if (err.data?.code === "NOT_STARTUP") setBlocked(true);
+        else { setError(err.message); setCompany(null); }
+      });
+  }, [user, refreshUser]);
+
+  const openAuth = (mode) => {
+    setAuth(a => ({ mode, n: a.n + 1, error: "" }));
+    document.getElementById("hire-start")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const signOutToSignup = () => {
+    logout();
+    setBlocked(false);
+    setCompany(undefined);
+    setTimeout(() => openAuth("signup"), 80);
+  };
 
   let body;
-  if (loading || (user && company === undefined)) body = <Loading />;
-  else if (!user) body = <Landing />;
+  if (user && blocked) body = <WrongAccount user={user} onSignOut={signOutToSignup} />;
+  else if (loading || (user && company === undefined)) body = <Loading />;
+  else if (!user) body = <HireLanding auth={auth} onStart={openAuth} />;
   else if (!company) body = (
     <div className="hr-narrow hr-col" style={{ gap: 14 }}>
+      <Aurora className="soft" />
       {error && <div className="hr-error">{error}</div>}
       <CompanyForm onSaved={setCompany} />
     </div>
   );
   else body = <Dashboard company={company} setCompany={setCompany} user={user} />;
 
+  const landing = !loading && !user;
+
   return (
-    <div className="hr-page">
-      <TopBar>
+    <HirePage>
+      <TopBar nav={landing && (
+        <>
+          <a href="#how">How it works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="/mock-interview">For candidates</a>
+        </>
+      )}>
+        {landing && (
+          <>
+            <button className="hr-btn sm ghost hide-sm" onClick={() => openAuth("login")}>Sign in</button>
+            <button className="hr-btn sm primary" onClick={() => openAuth("signup")}>Start free</button>
+          </>
+        )}
         {user && (
           <>
-            {company && <span className="hr-chip"><Users size={13} /> {company.credits.left} interviews left</span>}
-            <button className="hr-btn sm" onClick={logout} title="Sign out"><LogOut size={14} /></button>
+            {company && !blocked && <span className="hr-chip hide-sm"><Coins size={13} /> {company.credits.left} interviews left</span>}
+            <button className="hr-btn sm ghost" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={14} /></button>
           </>
         )}
       </TopBar>
       {body}
-    </div>
+    </HirePage>
   );
 }
