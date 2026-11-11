@@ -374,9 +374,6 @@ em.hr-grad-text { font-style: italic; }
 
 /* Pricing */
 .hr-price { font-family: var(--font-body); font-weight: 800; font-size: clamp(3.2rem, 6.5vw, 4.6rem); line-height: .9; letter-spacing: -.05em; background: var(--hr-grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hr-compare { display: flex; flex-direction: column; gap: 18px; }
-.hr-compare-bar { height: 14px; border-radius: 7px; background: var(--c-active); overflow: hidden; }
-.hr-compare-bar i { display: block; height: 100%; border-radius: 7px; }
 
 .hr-cta-band { position: relative; overflow: hidden; border-radius: 28px; background: radial-gradient(120% 120% at 0% 0%, #3B2F8A 0%, #1B1636 55%, #120F24 100%); color: #F1EFF7; padding: 56px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; box-shadow: var(--hr-shadow-lg); }
 .hr-cta-band .hr-sub { color: #B9B2D4; }

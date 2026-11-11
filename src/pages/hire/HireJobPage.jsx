@@ -233,7 +233,7 @@ function CandidateReport({ id, onClose, onDecision }) {
                 <div className="hr-card hr-row" style={{ gap: 12 }}>
                   <span className="hr-icon-badge"><Clock size={17} /></span>
                   <span className="hr-muted" style={{ fontSize: ".86rem", lineHeight: 1.5 }}>
-                    {a.status === "failed" ? "This interview couldn't be completed or scored. The candidate wasn't charged to your credits." : "This candidate hasn't finished yet. The report appears here a few minutes after they finish."}
+                    {a.status === "failed" ? "This interview couldn't be completed or scored. The candidate can retry from the same link." : "This candidate hasn't finished yet. The report appears here a few minutes after they finish."}
                   </span>
                 </div>
               )}

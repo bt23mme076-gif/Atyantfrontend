@@ -541,8 +541,6 @@ export const hireAPI = {
     if (!res.ok) throw new Error('Could not export candidates');
     return res.blob();
   },
-  creditOrder:   (quantity)   => api.post('/api/hire/credits/order', { quantity }),
-  verifyCredits: (payment)    => api.post('/api/hire/credits/verify', payment),
 
   // Candidate (public)
   publicJob:     (slug)       => api.get(`/api/hire/p/${encodeURIComponent(slug)}`),

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import {
-  ArrowRight, BadgeCheck, Camera, Check, CheckCircle2, Clock, Coins, FileText, Globe, MessageSquareQuote, MonitorX,
+  ArrowRight, BadgeCheck, Camera, Check, CheckCircle2, Clock, FileText, Globe, MessageSquareQuote, MonitorX,
   Moon, Play, Quote, Send, ShieldCheck, Smartphone, Sparkles, Target, Zap, Briefcase, GraduationCap, Users,
 } from "lucide-react";
 import { FaWhatsapp, FaLinkedin } from "react-icons/fa6";
@@ -134,9 +134,9 @@ function Hero({ onStart }) {
             <a className="hr-btn lg ghost" href="#how"><Play size={15} /> See it work</a>
           </motion.div>
           <motion.div variants={rise} className="hr-hero-trust">
-            <span className="hr-chip glass"><Check size={13} /> First 10 interviews free</span>
-            <span className="hr-chip glass"><Coins size={13} /> ₹49 per completed interview</span>
-            <span className="hr-chip glass"><ShieldCheck size={13} /> Pay only when a candidate finishes</span>
+            <span className="hr-chip glass"><Check size={13} /> Free, no card</span>
+            <span className="hr-chip glass"><Sparkles size={13} /> Unlimited interviews</span>
+            <span className="hr-chip glass"><ShieldCheck size={13} /> Evidence behind every score</span>
           </motion.div>
         </motion.div>
         <HeroStack />
@@ -185,7 +185,7 @@ function Problem() {
             and ranks them by what they actually said, not by keywords.
           </p>
           <div className="hr-grid" style={{ gap: 10, marginTop: 8, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
-            {[[15, "min", "per interview"], [49, "₹", "per completed one"], [10, "", "free to start"]].map(([v, unit, l], i) => (
+            {[[15, "min", "per interview"], [0, "₹", "per interview"], [1, "min", "to get your link"]].map(([v, unit, l], i) => (
               <GlowCard key={l} className="hr-card" style={{ padding: 16 }}>
                 <div className="hr-stat">
                   <b>{unit === "₹" && "₹"}<CountUp value={v} delay={i * 0.15} />{unit === "min" && <span style={{ fontSize: ".9rem", color: "var(--c-textMuted)", fontWeight: 700, letterSpacing: 0 }}> min</span>}</b>
@@ -339,44 +339,38 @@ function Pricing({ onStart }) {
   return (
     <section id="pricing" className="hr-section" style={{ scrollMarginTop: 70 }}>
       <div className="hr-sec-head">
-        <Reveal><span className="hr-eyebrow"><Coins size={14} /> Pricing</span></Reveal>
-        <Reveal delay={0.05}><h2 className="hr-h2">Pay per interview. <em className="hr-grad-text">Only when it's finished.</em></h2></Reveal>
+        <Reveal><span className="hr-eyebrow"><Sparkles size={14} /> Pricing</span></Reveal>
+        <Reveal delay={0.05}><h2 className="hr-h2">Free. <em className="hr-grad-text">Every interview, every role.</em></h2></Reveal>
       </div>
       <div ref={ref} className="hr-grid c2" style={{ gap: 24, alignItems: "stretch" }}>
         <Reveal>
           <div className="hr-card hr-gborder pad-lg hr-col" style={{ gap: 16, height: "100%", boxSizing: "border-box" }}>
             <div className="hr-row wrap" style={{ alignItems: "baseline", gap: 10 }}>
-              <span className="hr-price">₹<CountUp value={49} duration={1.2} /></span>
-              <span className="hr-muted" style={{ fontSize: ".95rem" }}>per completed interview</span>
+              <span className="hr-price">₹<CountUp value={0} duration={1.2} /></span>
+              <span className="hr-muted" style={{ fontSize: ".95rem" }}>per interview. No card, no credits, no plan.</span>
             </div>
             <div className="hr-col" style={{ gap: 10 }}>
-              {["Your first 10 interviews are free", "Buy packs from 10 interviews, no subscription",
-                "Candidates who drop out before half the questions don't count", "Unlimited roles and links"].map((t, i) => (
+              {["Unlimited interviews on every role", "Unlimited roles and share links",
+                "Ranked report with evidence for every candidate", "WhatsApp alert when a candidate finishes"].map((t, i) => (
                 <motion.div key={t} className="hr-row" style={{ fontSize: ".95rem" }} initial={{ opacity: 0, x: -10 }} animate={inView ? { opacity: 1, x: 0 } : {}} transition={{ delay: 0.2 + i * 0.1 }}>
                   <span className="hr-icon-badge solid" style={{ width: 24, height: 24, borderRadius: 7 }}><Check size={13} /></span>{t}
                 </motion.div>
               ))}
             </div>
             <div className="hr-sp" />
-            <button className="hr-btn primary lg block" onClick={() => onStart("signup")}>Start with 10 free interviews <ArrowRight size={16} className="hr-arrow" /></button>
+            <button className="hr-btn primary lg block" onClick={() => onStart("signup")}>Start hiring free <ArrowRight size={16} className="hr-arrow" /></button>
           </div>
         </Reveal>
         <Reveal delay={0.12}>
-          <div className="hr-card pad-lg hr-col" style={{ gap: 22, height: "100%", boxSizing: "border-box" }}>
-            <b style={{ fontSize: "1.05rem" }}>What one screening call costs</b>
-            <div className="hr-compare">
-              <div className="hr-col" style={{ gap: 8 }}>
-                <div className="hr-row"><span style={{ flex: 1, fontWeight: 600 }}>Recruiter phone screen</span><b>₹500+</b></div>
-                <div className="hr-compare-bar"><motion.i style={{ background: "linear-gradient(90deg,#E4B27A,#B8641A)" }} initial={{ width: 0 }} animate={inView ? { width: "100%" } : {}} transition={{ duration: 1.4, ease: EASE, delay: 0.3 }} /></div>
-              </div>
-              <div className="hr-col" style={{ gap: 8 }}>
-                <div className="hr-row"><span style={{ flex: 1, fontWeight: 600 }}>Atyant Hire</span><b style={{ color: "var(--c-accentText)" }}>₹49</b></div>
-                <div className="hr-compare-bar"><motion.i style={{ background: "var(--hr-grad)" }} initial={{ width: 0 }} animate={inView ? { width: "9.8%" } : {}} transition={{ duration: 1.4, ease: EASE, delay: 0.5 }} /></div>
-              </div>
-            </div>
+          <div className="hr-card pad-lg hr-col" style={{ gap: 18, height: "100%", boxSizing: "border-box" }}>
+            <b style={{ fontSize: "1.05rem" }}>Why it's free</b>
+            <p className="hr-muted" style={{ margin: 0, lineHeight: 1.6 }}>
+              Thousands of students prepare for placements on Atyant every week. Your role gives them a real interview to prepare for,
+              and gives you candidates who have already practised. You bring the role, we bring the interviewer.
+            </p>
             <div className="hr-ev" style={{ background: "var(--c-active)" }}>
-              <div className="hr-row"><Quote size={15} style={{ color: "var(--c-accentText)" }} /><b>Screen 100 applicants for ₹4,900.</b></div>
-              <div className="hr-muted" style={{ marginTop: 6, lineHeight: 1.5 }}>Overnight, with no calendar back-and-forth, and a report with evidence for every one of them.</div>
+              <div className="hr-row"><Quote size={15} style={{ color: "var(--c-accentText)" }} /><b>Screen 100 applicants overnight, for nothing.</b></div>
+              <div className="hr-muted" style={{ marginTop: 6, lineHeight: 1.5 }}>No calendar back-and-forth, and a report with evidence for every one of them.</div>
             </div>
           </div>
         </Reveal>
@@ -427,7 +421,7 @@ export default function HireLanding({ auth, onStart }) {
               <h2 className="hr-h2" style={{ color: "#F1EFF7" }}>Your next great hire is <em className="hr-grad-text">already in your inbox.</em></h2>
               <p className="hr-sub">Create a role, share the link today, and wake up to a ranked shortlist.</p>
               <div className="hr-cta-list">
-                <div><CheckCircle2 size={18} /> First 10 interviews free, no card</div>
+                <div><CheckCircle2 size={18} /> Free, unlimited interviews, no card</div>
                 <div><CheckCircle2 size={18} /> Your link is ready in about a minute</div>
                 <div><CheckCircle2 size={18} /> WhatsApp alerts when candidates finish</div>
               </div>

@@ -2,11 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Plus, FileText, Building2, Coins, Users, Briefcase, LogOut, Upload, X, ArrowRight, Radio, CheckCircle2, Sparkles, Link2, Mic, ListOrdered, UserX,
+  Plus, FileText, Building2, Users, Briefcase, LogOut, Upload, X, ArrowRight, Radio, CheckCircle2, Sparkles, Link2, Mic, ListOrdered, UserX,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { hireAPI } from "../../api";
-import { loadRazorpay } from "../../lib/checkout";
 import { TopBar, Loading, Pill, HirePage, Modal, ModalHead } from "./HireShared";
 import { JOB_STATUS, timeAgo } from "./hireUtils";
 import { Aurora, CountUp, GlowCard, VoiceOrb } from "./HireFx";
@@ -156,67 +155,6 @@ function NewJobModal({ onClose, onCreated }) {
   );
 }
 
-// ── Buy credits ─────────────────────────────────────────────────────────────
-
-export function BuyCreditsModal({ company, user, onClose, onDone }) {
-  const price = company.pricing?.perInterview || 49;
-  const packs = [10, 25, 50, 100];
-  const [qty, setQty] = useState(25);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  const buy = async () => {
-    setBusy(true); setError("");
-    try {
-      const order = await hireAPI.creditOrder(qty);
-      if (!(await loadRazorpay())) throw new Error("Could not load the payment gateway. Check your connection.");
-      const rzp = new window.Razorpay({
-        key: order.keyId, amount: order.amount, currency: order.currency, name: "Atyant Hire",
-        description: order.description, order_id: order.orderId,
-        prefill: { name: user?.name || "", email: user?.email || "" },
-        theme: { color: "#7567C9" },
-        handler: async (payment) => {
-          try {
-            const { company: updated } = await hireAPI.verifyCredits(payment);
-            onDone(updated);
-          } catch (err) {
-            setError(err.message || "Payment received but could not be confirmed. Refresh in a minute.");
-            setBusy(false);
-          }
-        },
-        modal: { ondismiss: () => setBusy(false) },
-      });
-      rzp.on("payment.failed", (resp) => { setError(resp?.error?.description || "Payment failed"); setBusy(false); });
-      rzp.open();
-    } catch (err) {
-      setError(err.message);
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Modal onClose={onClose}>
-      <ModalHead Icon={Coins} title="Add interviews" sub={`₹${price} per completed interview`} onClose={onClose} />
-      <div className="hr-muted" style={{ lineHeight: 1.5 }}>A candidate who drops out before answering half the questions doesn't use a credit.</div>
-      <div className="hr-grid c4" style={{ gap: 10 }}>
-        {packs.map(p => (
-          <motion.button key={p} type="button" className={`hr-tab ${qty === p ? "on" : ""}`} whileHover={{ y: -3 }} whileTap={{ scale: 0.96 }}
-            style={{ position: "relative", borderRadius: 14, padding: "16px 6px 12px", boxShadow: qty === p ? "0 12px 26px -14px rgba(117,103,201,.9)" : "none" }}
-            onClick={() => setQty(p)}>
-            {p === 25 && <span className="hr-pill solid" style={{ position: "absolute", top: -9, left: "50%", transform: "translateX(-50%)", fontSize: ".6rem", padding: "1px 7px" }}>Popular</span>}
-            <div style={{ fontFamily: "var(--font-body)", fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1 }}>{p}</div>
-            <div style={{ fontSize: ".72rem", opacity: .8, marginTop: 4 }}>₹{(p * price).toLocaleString("en-IN")}</div>
-          </motion.button>
-        ))}
-      </div>
-      {error && <div className="hr-error">{error}</div>}
-      <button className="hr-btn primary lg block" onClick={buy} disabled={busy}>
-        {busy ? "Opening checkout…" : <>Pay ₹<CountUp value={qty * price} duration={0.5} /></>}
-      </button>
-    </Modal>
-  );
-}
-
 // ── Dashboard (signed in) ───────────────────────────────────────────────────
 
 function StatTile({ Icon, value, label, tone, delay, children }) {
@@ -261,7 +199,6 @@ function Dashboard({ company, setCompany, user }) {
   const [jobs, setJobs] = useState(null);
   const [error, setError] = useState("");
   const [showNew, setShowNew] = useState(false);
-  const [showBuy, setShowBuy] = useState(false);
   const [editCompany, setEditCompany] = useState(false);
 
   const load = useCallback(() => {
@@ -270,8 +207,6 @@ function Dashboard({ company, setCompany, user }) {
   useEffect(() => { load(); }, [load]);
 
   const totals = (jobs || []).reduce((a, j) => ({ applied: a.applied + (j.stats?.applied || 0), completed: a.completed + (j.stats?.completed || 0) }), { applied: 0, completed: 0 });
-  const credits = company.credits;
-  const pool = Math.max(1, (credits.free || 0) + (credits.purchased || 0), credits.left);
   const live = jobs?.filter(j => j.status === "live").length;
   const first = (user?.name || user?.username || "").split(" ")[0];
 
@@ -297,36 +232,17 @@ function Dashboard({ company, setCompany, user }) {
       </motion.div>
 
       <motion.div className="hr-grid c4" variants={stagger(0.08, 0.15)} initial="hidden" animate="show">
-        <StatTile Icon={Coins} value={credits.left} label="Interviews left" tone="solid">
-          <div className="hr-progress" style={{ marginTop: 8 }}>
-            <motion.i initial={{ width: 0 }} animate={{ width: `${Math.min(100, (credits.left / pool) * 100)}%` }} transition={{ duration: 1.2, delay: 0.4 }} />
-          </div>
-        </StatTile>
+        <StatTile Icon={Sparkles} value="Free" label="Unlimited interviews" tone="solid" />
         <StatTile Icon={Radio} value={live ?? "—"} label="Live roles" delay={0.1} />
         <StatTile Icon={Users} value={totals.applied} label="Candidates applied" delay={0.2} />
         <StatTile Icon={CheckCircle2} value={totals.completed} label="Interviews completed" tone="warm" delay={0.3} />
       </motion.div>
-
-      <AnimatePresence>
-        {credits.left <= 3 && (
-          <motion.div className="hr-card hr-row wrap" style={{ borderColor: "#D9770655", background: "linear-gradient(110deg, #D977061a, transparent 70%), var(--c-card)" }}
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <span className="hr-icon-badge warm"><Coins size={18} /></span>
-            <div className="hr-col" style={{ gap: 2, flex: 1, minWidth: 220 }}>
-              <b style={{ fontSize: ".92rem" }}>{credits.left <= 0 ? "You're out of interviews" : `Only ${credits.left} interview${credits.left === 1 ? "" : "s"} left`}</b>
-              <span className="hr-muted">Your links stop accepting new candidates when you run out.</span>
-            </div>
-            <button className="hr-btn primary" onClick={() => setShowBuy(true)}>Add interviews</button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="hr-col" style={{ gap: 12 }}>
         <div className="hr-row">
           <h2 className="hr-h3" style={{ fontSize: "1.1rem" }}>Roles</h2>
           {jobs?.length > 0 && <span className="hr-pill gray">{jobs.length}</span>}
           <div className="hr-sp" />
-          {credits.left > 3 && <button className="hr-link" onClick={() => setShowBuy(true)}>+ Add interviews</button>}
         </div>
         {error && <div className="hr-error">{error}</div>}
         {!jobs ? <Loading /> : jobs.length === 0 ? <EmptyRoles onNew={() => setShowNew(true)} /> : (
@@ -363,7 +279,6 @@ function Dashboard({ company, setCompany, user }) {
 
       <AnimatePresence>
         {showNew && <NewJobModal key="new" onClose={() => setShowNew(false)} onCreated={job => navigate(`/hire/jobs/${job.id}`)} />}
-        {showBuy && <BuyCreditsModal key="buy" company={company} user={user} onClose={() => setShowBuy(false)} onDone={c => { setCompany(c); setShowBuy(false); }} />}
       </AnimatePresence>
     </div>
   );
@@ -470,7 +385,7 @@ export default function HireHome() {
         )}
         {user && (
           <>
-            {company && !blocked && <span className="hr-chip hide-sm"><Coins size={13} /> {company.credits.left} interviews left</span>}
+            {company && !blocked && <span className="hr-chip hide-sm"><Sparkles size={13} /> Free · unlimited interviews</span>}
             <button className="hr-btn sm ghost" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={14} /></button>
           </>
         )}
