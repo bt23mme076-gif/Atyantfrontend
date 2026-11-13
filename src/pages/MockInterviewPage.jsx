@@ -28,7 +28,8 @@ const C = {
 };
 
 const POLL_MS = 3000;
-const PREP_STATUSES = ["draft", "parsing", "parsed", "planning"];
+// "planned" → "voicing": the interviewer's lines are being recorded (backend VoiceService).
+const PREP_STATUSES = ["draft", "parsing", "parsed", "planning", "planned", "voicing"];
 // Same minimums the backend enforces on create (routes/mockInterviewRoutes.js).
 const MIN_JD_CHARS = 200;
 const MIN_RESUME_CHARS = 300;
@@ -702,6 +703,7 @@ const TIPS = [
 const PREP_STEPS = [
   { status: ["draft", "parsing"], label: "Reading your JD and resume", hint: "Pulling out the skills, projects and requirements that matter." },
   { status: ["parsed", "planning"], label: "Planning your questions", hint: "Mixing JD questions, your projects, and what seniors were asked here." },
+  { status: ["planned", "voicing"], label: "Recording your interviewer", hint: "Every question is voiced ahead of time, so replies come without delay." },
   { status: [], label: "Interview ready", hint: "You'll see the plan and can start when you're set." },
 ];
 
