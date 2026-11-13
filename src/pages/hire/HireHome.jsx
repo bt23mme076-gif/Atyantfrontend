@@ -6,8 +6,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { hireAPI } from "../../api";
-import { TopBar, Loading, Pill, HirePage, Modal, ModalHead } from "./HireShared";
-import { JOB_STATUS, timeAgo } from "./hireUtils";
+import { TopBar, Loading, Pill, HirePage, Modal, ModalHead, InterviewLength } from "./HireShared";
+import { JOB_STATUS, timeAgo, clampQuestions } from "./hireUtils";
 import { Aurora, CountUp, GlowCard, VoiceOrb } from "./HireFx";
 import { rise, stagger } from "./hireMotion";
 import HireLanding from "./HireLanding";
@@ -71,15 +71,18 @@ function NewJobModal({ onClose, onCreated }) {
   const [jdFile, setJdFile] = useState(null);
   const [drag, setDrag] = useState(false);
   const [mustAsk, setMustAsk] = useState([""]);
+  const [length, setLength] = useState({ durationMin: 15, questionCount: 10 });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
+  const asked = mustAsk.map(s => s.trim()).filter(Boolean);
+  const questionCount = clampQuestions(length.durationMin, length.questionCount, asked.length);
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true); setError("");
     try {
-      const { job } = await hireAPI.createJob({ ...form, jdFile, mustAsk: mustAsk.map(s => s.trim()).filter(Boolean) });
+      const { job } = await hireAPI.createJob({ ...form, jdFile, mustAsk: asked, durationMin: length.durationMin, questionCount });
       onCreated(job);
     } catch (err) {
       setError(err.message);
@@ -132,6 +135,7 @@ function NewJobModal({ onClose, onCreated }) {
           {mustAsk.length < 3 && <button type="button" className="hr-link" style={{ alignSelf: "flex-start" }} onClick={() => setMustAsk(m => [...m, ""])}>+ Add question</button>}
         </div>
       </div>
+      <InterviewLength durationMin={length.durationMin} questionCount={length.questionCount} mustAskCount={asked.length} onChange={setLength} />
       <div className="hr-grid c2">
         <div>
           <label className="hr-label">Interview focus</label>
@@ -147,7 +151,7 @@ function NewJobModal({ onClose, onCreated }) {
       </div>
       {error && <div className="hr-error">{error}</div>}
       <div className="hr-row wrap">
-        <span className="hr-muted">Each interview runs for 15 minutes.</span>
+        <span className="hr-muted">Each interview: {length.durationMin} minutes, {questionCount} questions.</span>
         <div className="hr-sp" />
         <button className="hr-btn primary" disabled={busy}>{busy ? "Creating…" : "Create role"} {!busy && <ArrowRight size={15} className="hr-arrow" />}</button>
       </div>

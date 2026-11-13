@@ -5,8 +5,36 @@ import { ArrowRight, Moon, Sun, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import "./hire.css";
-import { scoreTone, toneColor } from "./hireUtils";
+import { scoreTone, toneColor, clampQuestions } from "./hireUtils";
 import { VoiceOrb } from "./HireFx";
+
+// Founder-chosen interview length (backend: 5-15 min, 3-10 questions, at most
+// one per minute, and every must-ask leaves room for the intro + one more).
+const range = (a, b) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
+
+export function InterviewLength({ durationMin, questionCount, mustAskCount = 0, onChange }) {
+  const max = Math.min(10, durationMin);
+  const minQ = Math.max(3, mustAskCount + 2);
+  const shown = clampQuestions(durationMin, questionCount, mustAskCount);
+  return (
+    <div className="hr-grid c2">
+      <div>
+        <label className="hr-label">Interview length</label>
+        <select className="hr-select" value={durationMin}
+          onChange={e => { const d = Number(e.target.value); onChange({ durationMin: d, questionCount: clampQuestions(d, questionCount, mustAskCount) }); }}>
+          {range(5, 15).map(m => <option key={m} value={m}>{m} minutes</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="hr-label">Questions asked</label>
+        <select className="hr-select" value={shown} onChange={e => onChange({ durationMin, questionCount: Number(e.target.value) })}>
+          {range(minQ, max).map(n => <option key={n} value={n}>{n} questions</option>)}
+        </select>
+        <div className="hr-hint">Includes the intro{mustAskCount ? ` and your ${mustAskCount} must-ask` : ""}. Up to one per minute.</div>
+      </div>
+    </div>
+  );
+}
 
 export function HirePage({ children, className = "" }) {
   return (

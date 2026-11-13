@@ -91,11 +91,11 @@ function ApplyForm({ slug, job, onApplied }) {
   );
 }
 
-function ReadyCheck({ state, requireCamera, onStart }) {
+function ReadyCheck({ state, requireCamera, durationMin, onStart }) {
   const [ok, setOk] = useState(false);
   const rejoin = state === "in_progress";
   const tips = [
-    { Icon: Clock, t: "15 minutes, in one go", d: "Find a quiet place. You can't pause once it starts." },
+    { Icon: Clock, t: `${durationMin || 15} minutes, in one go`, d: "Find a quiet place. You can't pause once it starts." },
     { Icon: Mic, t: "Speak your answers", d: "It's a voice interview. Answer as you would to a person, and take a moment to think if you need it." },
     { Icon: requireCamera ? Video : Wifi, t: requireCamera ? "Camera on" : "Stable internet", d: requireCamera ? "Keep your camera on for the whole interview." : "Wi-Fi or a strong mobile signal works best." },
     { Icon: MonitorX, t: "Stay on this tab", d: "Switching tabs or apps is recorded and shared with the hiring team." },
@@ -259,7 +259,7 @@ export default function HireCandidatePage() {
     body = <Preparing canRetry={cand.canRetryPrep} retrying={retrying} onRetry={retry} />;
   } else if (cand.state === "ready" || cand.state === "in_progress") {
     key = "ready";
-    body = <ReadyCheck state={cand.state} requireCamera={cand.requireCamera} onStart={start} />;
+    body = <ReadyCheck state={cand.state} requireCamera={cand.requireCamera} durationMin={cand.durationMin} onStart={start} />;
   } else if (cand.state === "evaluating" || cand.state === "completed") {
     key = "done";
     body = (

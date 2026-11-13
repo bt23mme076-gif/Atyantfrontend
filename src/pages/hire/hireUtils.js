@@ -42,3 +42,8 @@ export const timeAgo = (d) => {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 };
+
+// Interview length limits (backend: 5-15 min, 3-10 questions, at most one per
+// minute, and every must-ask leaves room for the intro + one more).
+export const clampQuestions = (durationMin, questionCount, mustAskCount = 0) =>
+  Math.min(Math.min(10, durationMin), Math.max(3, mustAskCount + 2, questionCount));

@@ -516,7 +516,7 @@ export const hireAPI = {
   saveCompany:   (body)       => api.put('/api/hire/company', body),
   jobs:          ()           => api.get('/api/hire/jobs'),
   job:           (id)         => api.get(`/api/hire/jobs/${id}`),
-  createJob:     ({ title, jdText, jdFile, interviewCategory, mustAsk, maxCandidates, deadline, requireCamera }) => {
+  createJob:     ({ title, jdText, jdFile, interviewCategory, mustAsk, maxCandidates, deadline, requireCamera, durationMin, questionCount }) => {
     const form = new FormData();
     form.append('title', title || '');
     if (jdFile) form.append('jdFile', jdFile); else form.append('jdText', jdText || '');
@@ -525,13 +525,17 @@ export const hireAPI = {
     if (maxCandidates) form.append('maxCandidates', String(maxCandidates));
     if (deadline) form.append('deadline', deadline);
     form.append('requireCamera', requireCamera === false ? 'false' : 'true');
+    if (durationMin) form.append('durationMin', String(durationMin));
+    if (questionCount) form.append('questionCount', String(questionCount));
     return sendForm('POST', '/api/hire/jobs', form);
   },
   updateJob:     (id, body)   => api.patch(`/api/hire/jobs/${id}`, body),
+  deleteJob:     (id)         => api.delete(`/api/hire/jobs/${id}`),
   publishJob:    (id)         => api.post(`/api/hire/jobs/${id}/publish`, {}),
   applications:  (id, q = '') => api.get(`/api/hire/jobs/${id}/applications${q}`),
   application:   (id)         => api.get(`/api/hire/applications/${id}`),
   decide:        (id, body)   => api.patch(`/api/hire/applications/${id}`, body),
+  deleteApplication: (id)     => api.delete(`/api/hire/applications/${id}`),
   exportCsv:     async (id) => {
     const token = getToken();
     const res = await fetch(`${BASE}/api/hire/jobs/${id}/export.csv`, {

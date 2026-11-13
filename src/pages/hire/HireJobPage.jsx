@@ -3,13 +3,13 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft, Copy, Check, Download, Pause, Play, Lock, Settings, X, ThumbsUp, ThumbsDown, AlertTriangle,
-  MonitorX, Clock, MessageSquareQuote, ChevronDown, RefreshCw, ExternalLink, Users, CheckCircle2, Trophy, Gauge, Rocket, ScanSearch, StickyNote,
+  MonitorX, Clock, MessageSquareQuote, ChevronDown, RefreshCw, ExternalLink, Users, CheckCircle2, Trophy, Gauge, Rocket, ScanSearch, StickyNote, Trash2,
 } from "lucide-react";
 import { FaLinkedin, FaWhatsapp } from "react-icons/fa6";
 import { useAuth } from "../../context/AuthContext";
 import { hireAPI } from "../../api";
-import { TopBar, Loading, Pill, Score, ScoreBar, HirePage, Modal, ModalHead } from "./HireShared";
-import { VERDICT, APP_STATUS, JOB_STATUS, timeAgo } from "./hireUtils";
+import { TopBar, Loading, Pill, Score, ScoreBar, HirePage, Modal, ModalHead, InterviewLength } from "./HireShared";
+import { VERDICT, APP_STATUS, JOB_STATUS, timeAgo, clampQuestions } from "./hireUtils";
 import { Aurora, Avatar, Burst, CountUp, GlowCard, Radar, ScoreRing } from "./HireFx";
 import { rise, stagger } from "./hireMotion";
 
@@ -21,7 +21,7 @@ const EASE = [0.22, 1, 0.36, 1];
 function ShareCard({ job }) {
   const [copied, setCopied] = useState(0);
   const link = `${window.location.origin}/hire/i/${job.slug}`;
-  const msg = `We're hiring: ${job.title}. Take a 15-minute AI interview here, anytime: ${link}`;
+  const msg = `We're hiring: ${job.title}. Take a ${job.settings?.durationMin || 15}-minute AI interview here, anytime: ${link}`;
   const isLive = job.status === "live";
   const copy = async () => {
     try { await navigator.clipboard.writeText(link); setCopied(n => n + 1); setTimeout(() => setCopied(0), 1800); } catch { /* clipboard blocked */ }
@@ -64,9 +64,11 @@ function SettingsModal({ job, onClose, onSaved }) {
     deadline: job.settings.deadline ? job.settings.deadline.slice(0, 10) : "",
     requireCamera: job.settings.requireCamera,
   });
+  const [length, setLength] = useState({ durationMin: job.settings.durationMin || 15, questionCount: job.settings.questionCount || 10 });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
+  const asked = mustAsk.map(s => s.trim()).filter(Boolean);
 
   const save = async (e) => {
     e.preventDefault();
@@ -74,7 +76,9 @@ function SettingsModal({ job, onClose, onSaved }) {
     try {
       const { job: updated } = await hireAPI.updateJob(job.id, {
         ...form, maxCandidates: Number(form.maxCandidates), deadline: form.deadline || null,
-        mustAsk: mustAsk.map(s => s.trim()).filter(Boolean),
+        mustAsk: asked,
+        durationMin: length.durationMin,
+        questionCount: clampQuestions(length.durationMin, length.questionCount, asked.length),
       });
       onSaved(updated);
     } catch (err) {
@@ -100,6 +104,7 @@ function SettingsModal({ job, onClose, onSaved }) {
         </div>
         <div className="hr-hint">Changes apply to candidates who apply after you save.</div>
       </div>
+      <InterviewLength durationMin={length.durationMin} questionCount={length.questionCount} mustAskCount={asked.length} onChange={setLength} />
       <div className="hr-grid c2">
         <div><label className="hr-label">Max candidates</label><input className="hr-input" type="number" min={1} max={5000} value={form.maxCandidates} onChange={set("maxCandidates")} /></div>
         <div><label className="hr-label">Close link on</label><input className="hr-input" type="date" value={form.deadline} onChange={set("deadline")} /></div>
@@ -146,7 +151,7 @@ function EvidenceList({ title, items, tone, delay }) {
   );
 }
 
-function CandidateReport({ id, onClose, onDecision }) {
+function CandidateReport({ id, onClose, onDecision, onDeleted }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [notes, setNotes] = useState("");
@@ -176,6 +181,17 @@ function CandidateReport({ id, onClose, onDecision }) {
     }
   };
   const saveNotes = () => { if (notes !== (data.notes || "")) hireAPI.decide(id, { notes }).then(() => setData(d => ({ ...d, notes }))); };
+  const remove = async () => {
+    if (!confirm(`Delete ${data.name}'s interview and report? This can't be undone, and they'll be able to apply again.`)) return;
+    setSaving(true); setError("");
+    try {
+      await hireAPI.deleteApplication(id);
+      onDeleted(id);
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
 
   const a = data;
   const r = a?.result;
@@ -203,6 +219,11 @@ function CandidateReport({ id, onClose, onDecision }) {
                 <ThumbsUp size={13} /> {a.decision === "shortlisted" ? "Shortlisted" : "Shortlist"}
               </motion.button>
             </>
+          )}
+          {a && (
+            <button className="hr-btn sm ghost danger" disabled={saving} onClick={remove} title="Delete candidate" aria-label="Delete candidate">
+              <Trash2 size={13} />
+            </button>
           )}
         </div>
 
@@ -424,6 +445,19 @@ export default function HireJobPage() {
     }
   };
 
+  const deleteJob = async () => {
+    if (!confirm(`Delete "${job.title}"? Its link stops working and every candidate's interview and report is deleted. This can't be undone.`)) return;
+    setBusy(true); setError("");
+    try {
+      await hireAPI.deleteJob(job.id);
+      navigate("/hire", { replace: true });
+    } catch (err) {
+      setError(err.message);
+      loadJob();
+      setBusy(false);
+    }
+  };
+
   const exportCsv = async () => {
     const blob = await hireAPI.exportCsv(job.id);
     const url = URL.createObjectURL(blob);
@@ -475,6 +509,9 @@ export default function HireJobPage() {
                 <button className="hr-btn ghost danger" disabled={busy} onClick={() => { if (confirm("Close this role? The link will stop accepting candidates. This can't be undone.")) setStatus("closed"); }}>
                   <Lock size={15} /> Close
                 </button>
+              )}
+              {job.status !== "parsing" && (
+                <button className="hr-btn ghost danger" disabled={busy} onClick={deleteJob}><Trash2 size={15} /> Delete</button>
               )}
             </div>
           </div>
@@ -619,6 +656,7 @@ export default function HireJobPage() {
             id={selected}
             onClose={closeCandidate}
             onDecision={(id, decision) => setApps(list => list.map(x => (x.id === id ? { ...x, decision } : x)))}
+            onDeleted={(id) => { setApps(list => list.filter(x => x.id !== id)); closeCandidate(); loadJob(); }}
           />
         )}
       </AnimatePresence>
