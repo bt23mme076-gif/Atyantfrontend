@@ -19,9 +19,12 @@ const jsonLd = (obj) =>
 
 const anchor = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-const prettyDate = new Date(`${GUIDES_UPDATED}T00:00:00Z`).toLocaleDateString("en-IN", {
-  day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
-});
+const prettyDate = (d) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", {
+    day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+  });
+
+const updatedOf = (g) => g.updated || GUIDES_UPDATED;
 
 const ORG = { "@type": "Organization", name: "Atyant", url: `${SITE}/` };
 const PUBLISHER = { ...ORG, logo: { "@type": "ImageObject", url: `${SITE}/logo.jpg` } };
@@ -164,7 +167,7 @@ function renderGuide(g) {
   const body = `<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/guides">Guides</a> › <span>${esc(g.h1)}</span></nav>
 <article>
 <h1>${esc(g.h1)}</h1>
-<p class="meta">Updated ${prettyDate} · Based on ${g.stories.length} real senior journeys</p>
+<p class="meta">Updated ${prettyDate(updatedOf(g))} · Based on ${g.stories.length} real senior journeys</p>
 <p class="lead">${esc(g.intro)}</p>
 <nav class="toc" aria-label="On this page"><strong>On this page</strong><ol>${toc}</ol></nav>
 ${sections}
@@ -188,8 +191,8 @@ ${faqs}
       headline: g.h1,
       description: g.description,
       image: DEFAULT_OG,
-      datePublished: GUIDES_UPDATED,
-      dateModified: GUIDES_UPDATED,
+      datePublished: updatedOf(g),
+      dateModified: updatedOf(g),
       inLanguage: "en-IN",
       author: ORG,
       publisher: PUBLISHER,
@@ -213,6 +216,7 @@ ${faqs}
 // Questions students type into Google, each linked to the section that answers it.
 // [question, guide slug, exact h2 of the answering section (null = top of guide)]
 const HUB_QUESTIONS = [
+  ["When should I start placement preparation?", "placement-preparation-for-engineering-students", "When to start placement preparation"],
   ["I'm in Mechanical or Civil. Can I still become a data analyst?", "non-cs-branch-to-data-analytics-and-consulting", "Can a Mechanical or Civil student become a data analyst?"],
   ["How long does it take to switch from a core branch to analytics?", "non-cs-branch-to-data-analytics-and-consulting", "How long the switch takes"],
   ["Core or IT: which one should I go for?", "core-branch-jobs-and-psu-placements", "Core or IT: how to decide"],
@@ -253,7 +257,7 @@ function renderHub() {
   const bySlug = Object.fromEntries(GUIDES.map((g) => [g.slug, g]));
   const title = "Placement & Internship Guides for B.Tech Students | Atyant";
   const description =
-    "Off-campus internships, core and PSU jobs, GATE vs placement, non-CS to data analytics, Amazon from a non-IIT college. Real paths from seniors, not theory.";
+    "Placement preparation, off-campus internships, core and PSU jobs, GATE vs placement, non-CS to data analytics, Amazon from a non-IIT college. Real paths from seniors, not theory.";
   const h1 = "Placement and internship guides for engineering students";
   const updated = new Date(`${GUIDES_HUB_UPDATED}T00:00:00Z`).toLocaleDateString("en-IN", {
     day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
@@ -347,7 +351,7 @@ ${faqs}
   return page({ title, description, url, ogType: "website", schema, body });
 }
 
-// Writes every guide page and returns their paths for the sitemap.
+// Writes every guide page and returns [path, lastmod] pairs for the sitemap.
 export function renderGuides(dist) {
   const out = (path, html) => {
     const dir = join(dist, path);
@@ -356,7 +360,5 @@ export function renderGuides(dist) {
   };
   out("guides", renderHub());
   for (const g of GUIDES) out(join("guides", g.slug), renderGuide(g));
-  return ["/guides", ...GUIDES.map((g) => `/guides/${g.slug}`)];
+  return [["/guides", GUIDES_HUB_UPDATED], ...GUIDES.map((g) => [`/guides/${g.slug}`, updatedOf(g)])];
 }
-
-export { GUIDES_UPDATED, GUIDES_HUB_UPDATED };

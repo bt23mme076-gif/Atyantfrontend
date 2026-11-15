@@ -7,9 +7,186 @@
 
 export const GUIDES_UPDATED = "2026-10-08";
 // The /guides hub has its own copy, so it gets its own lastmod.
-export const GUIDES_HUB_UPDATED = "2026-11-05";
+export const GUIDES_HUB_UPDATED = "2026-11-16";
 
+// A guide with its own `updated` date uses it for its page, schema and sitemap
+// entry; the rest use GUIDES_UPDATED.
 export const GUIDES = [
+  {
+    slug: "placement-preparation-for-engineering-students",
+    updated: "2026-11-16",
+    title: "Placement Preparation for B.Tech Students: A Plan from Seniors",
+    description:
+      "When to start placement preparation, what to do each semester, and how VNIT seniors got into Amazon, Google, HPCL and ZS Associates. For CSE and core branches.",
+    h1: "Placement preparation for engineering students: a semester-by-semester plan",
+    hub: "One plan for placement season, whatever your branch. When the seniors who reached Amazon, Google, HPCL, JSW and ZS Associates started preparing, what they did each semester, what the rounds test, and what to do if campus placements don't work out.",
+    intro:
+      "Start placement preparation in second year, choose one direction by the end of it, and spend the next two years building proof for that direction: DSA and projects for software roles, core subjects for core and PSU jobs, SQL and Python for analytics. Atyant seniors who reached Amazon, Google, HPCL and ZS Associates followed that pattern. Their most common regrets were starting late and preparing for three things at once.",
+    sections: [
+      {
+        h2: "When to start placement preparation",
+        paras: [
+          "In second year. A CSE senior who interned at Google started serious preparation in second year. Another, who got a FAANG internship off-campus, said their biggest regret was not starting internship preparation in second year. A Civil senior who joined HPCL through campus placement said they would start in fifth or sixth semester next time, with more mock interviews.",
+          "Preparation takes longer than most students plan for. One CSE senior prepared for 14 months before joining Amazon. A Chemical Engineering senior did it in about six months, but spent half of that time on mock interviews and revision. If you are already in final year, it is not too late, but focus on one target role instead of several.",
+        ],
+      },
+      {
+        h2: "A semester-by-semester placement plan",
+        paras: [
+          "This plan combines what these seniors did with what they said they would change. If you can move a step earlier, do.",
+        ],
+        list: [
+          "Semesters 1 and 2: keep your CGPA steady, because many companies set a CGPA cutoff for who can take their test. Learn one programming language properly.",
+          "Semesters 3 and 4: choose one direction, such as software, core, analytics or GATE. Start a daily routine for it: DSA problems for software, core subjects for core roles. Build your first project.",
+          "Semester 5: build two or three projects you can explain end to end, write the first version of your resume and apply for summer internships. Ask seniors and alumni what the rounds at your target companies look like.",
+          "Semester 6: do the internship. Add system design if you are aiming for software roles, or revise core subjects if you are aiming for core and PSU jobs. Start mock interviews.",
+          "Semester 7: placement season. Practise aptitude and timed tests, prepare for each company's rounds and keep doing mock interviews. Apply off-campus at the same time instead of waiting for campus drives.",
+          "Semester 8: keep going. A Mechanical senior was placed at MNGL, a GAIL and BPCL joint venture, through campus placements in eighth semester.",
+        ],
+      },
+      {
+        h2: "What placement rounds test",
+        paras: [
+          "Most campus drives follow a similar sequence, though the details vary by company. Ask seniors who sat the same company's drive last year what each round looked like.",
+        ],
+        list: [
+          "Online assessment: aptitude and reasoning, plus coding problems for software roles or technical questions for core roles. It is timed, so practise under a timer.",
+          "Group discussion or group task: common at core companies and PSUs. The Civil senior who joined HPCL researched HPCL's group task and interview before the drive.",
+          "Technical interviews: DSA and your projects for software roles, core subjects for core roles. Expect questions on anything you wrote on your resume.",
+          "HR interview: why this company, why this role, and whether you can explain your own choices clearly.",
+        ],
+      },
+      {
+        h2: "Placement preparation for CSE and IT students",
+        paras: [
+          "Pick one resource, such as LeetCode or GFG, and solve problems daily instead of trying to cover every topic. One senior who joined Amazon solved about 300 LeetCode problems grouped by pattern, from easy to hard. Keep a list of what you have solved and review it every week to find weak areas.",
+          "Start system design alongside DSA, not after it. Starting it late was the most common regret among the seniors who reached Amazon and Google. For projects, one or two full-stack projects or open-source contributions you can explain in detail count for more than many small tutorial projects.",
+        ],
+      },
+      {
+        h2: "Placement preparation for core branches",
+        paras: [
+          "Core interviews test your subjects, not DSA. An Electrical senior placed in a core role at JSL focused on Power Systems, Control Systems and Machines, and recommends MATLAB and PLC projects. A Metallurgy senior who joined JSW Steel with no prior internships focused on Material Science and Thermodynamics, practised core interview questions and asked alumni what JSW looks for.",
+          "Decide early whether you are going core. Both of those seniors said generic coding preparation for CS roles cost them time they could have spent on core subjects. If you want analytics or software instead, the related guides below show how students from core branches made that switch.",
+        ],
+      },
+      {
+        h2: "Resume, projects and internships",
+        paras: [
+          "Describe every project the same way: the problem, your approach, the tools you used and the result, with numbers where you have them. A resume without measurable outcomes reads like everyone else's.",
+          "Tailor the resume to each role. An Electrical senior who became a Graduate Engineer Trainee at JSW Motors built their resume around a PowerGrid internship and a leadership role in the college fest, and said not tailoring their applications was a mistake.",
+        ],
+      },
+      {
+        h2: "Mock interviews and communication",
+        paras: [
+          "Knowing an answer is not the same as explaining it under pressure, and several seniors underestimated this. They fixed it by practising out loud with seniors and peers, talking through their thinking as they solved. The Chemical Engineering senior who joined Amazon spent the last three of six months of preparation mostly on mock interviews and revision.",
+          "If you have nobody to practise with, Atyant's AI mock interview builds questions from the job description and your resume and asks follow-ups when an answer is thin, the way a real interviewer would.",
+        ],
+      },
+      {
+        h2: "If campus placements don't work out",
+        paras: [
+          "Campus is one route, not the only one. A VNIT CSE senior who did not get a big company on campus built a public GitHub portfolio, entered coding contests regularly, grew their LinkedIn network and landed a FAANG internship off-campus. A Mechanical senior reached ZS Associates by asking VNIT alumni on LinkedIn for referrals to off-campus roles.",
+          "Keep placements open even if you are preparing for GATE, CAT or another exam. A Mechanical senior kept their CGPA steady and was placed at MNGL through campus placements in eighth semester, after a management exam did not work out.",
+        ],
+      },
+      {
+        h2: "Mistakes seniors say to avoid",
+        list: [
+          "Preparing for DSA, AI and GATE at the same time. An Electrical senior who later qualified GATE and joined Maruti Suzuki called this their biggest mistake.",
+          "Trying to cover every DSA topic instead of mastering the commonly asked ones.",
+          "Leaving system design and mock interviews until final year.",
+          "Applying only through campus drives.",
+          "Talking to seniors and alumni only after the rounds have started.",
+          "Sending the same resume to every company.",
+        ],
+      },
+    ],
+    // Same journeys as in the other guides, chosen for placement outcomes.
+    stories: [
+      {
+        from: "CSE, VNIT Nagpur",
+        to: "SDE, Amazon",
+        when: "14 months of preparation",
+        did: "Solved about 300 LeetCode problems by pattern, studied system design and contributed to open source.",
+        regret: "Started system design late and tried to learn everything at once.",
+      },
+      {
+        from: "CSE, VNIT Nagpur",
+        to: "Software Engineer Intern, Google",
+        when: "Serious prep from second year",
+        did: "Built DSA depth and full-stack projects, entered coding contests and did mock interviews.",
+        regret: "Did not focus on system design or interview communication early.",
+      },
+      {
+        from: "Chemical, VNIT Nagpur",
+        to: "Amazon, Bengaluru",
+        when: "About 6 months",
+        did: "Learned Python and DSA basics, solved two or three problems daily and did mock interviews.",
+        regret: "Did not practise enough under time limits or study company-specific patterns early.",
+      },
+      {
+        from: "CSE, VNIT Nagpur",
+        to: "FAANG off-campus internship",
+        when: "Final year, after missing campus offers",
+        did: "Built a public GitHub portfolio, did coding contests regularly and grew a LinkedIn network.",
+        regret: "Waited until final year to focus on internships.",
+      },
+      {
+        from: "Civil, VNIT Nagpur",
+        to: "Project Engineer, HPCL",
+        when: "Final year, campus placement",
+        did: "Researched HPCL's group task and interview, revised core civil concepts and asked seniors about their rounds.",
+        regret: "Would start in fifth or sixth semester with more mock interviews.",
+      },
+      {
+        from: "Electrical, VNIT Nagpur",
+        to: "Graduate Engineer Trainee, JSW Motors",
+        when: "Final year",
+        did: "Built a resume around a PowerGrid internship and a leadership role in the college fest.",
+        regret: "Networked late and did not tailor applications.",
+      },
+      {
+        from: "Mechanical, VNIT Nagpur",
+        to: "Assistant Manager, MNGL (GAIL and BPCL JV)",
+        when: "Eighth semester",
+        did: "Kept CGPA steady and joined campus placements after a management exam did not work out.",
+        regret: "Did not talk to seniors or people at target companies early.",
+      },
+      {
+        from: "Mechanical, VNIT Nagpur",
+        to: "Data Analytics, ZS Associates",
+        when: "About 8 months, final year",
+        did: "Went Python, then SQL, then one real project, and asked VNIT alumni on LinkedIn for referrals to off-campus roles.",
+        regret: "Spent weeks trying every data-science tool at once and applied only to on-campus drives at first.",
+      },
+    ],
+    faqs: [
+      {
+        q: "When should I start placement preparation?",
+        a: "In second year if you can. Seniors who reached a Google internship and a FAANG internship started serious preparation in second year or wished they had, and starting late was the most common regret. Final-year students still get placed, but should focus on one target role.",
+      },
+      {
+        q: "Is DSA enough for placements?",
+        a: "For software roles, DSA gets you through the online test and the first interviews. The seniors who reached Amazon and Google also had projects they could explain, system design preparation and practice explaining their thinking out loud. For core roles, core subjects matter more than DSA.",
+      },
+      {
+        q: "How do I prepare for placements in Mechanical, Electrical or another core branch?",
+        a: "Revise the core subjects your target companies ask about, practise core interview questions and ask alumni what each company looks for. An Electrical senior focused on Power Systems, Control Systems and Machines. A Metallurgy senior focused on Material Science and Thermodynamics and joined JSW Steel.",
+      },
+      {
+        q: "What if I don't get placed on campus?",
+        a: "Apply off-campus at the same time. Seniors got a FAANG internship and an analytics role at ZS Associates off-campus through a public GitHub portfolio, coding contests and referrals from alumni on LinkedIn. Placements also continue late in the season: one Mechanical senior was placed at MNGL in eighth semester.",
+      },
+      {
+        q: "Do I need a high CGPA for placements?",
+        a: "Many companies set a CGPA cutoff for who can take their test, so a steady CGPA keeps your options open. Beyond the cutoff, what most of these seniors credit is skills, projects and interview practice.",
+      },
+    ],
+    related: ["faang-sde-from-non-iit-college", "core-branch-jobs-and-psu-placements", "how-to-get-off-campus-internship"],
+  },
+
   {
     slug: "non-cs-branch-to-data-analytics-and-consulting",
     title: "Non-CS Branch to Data Analyst or Consulting Job: Real Paths",
@@ -278,7 +455,7 @@ export const GUIDES = [
         a: "One focused tech skill can help, such as a Python project tied to your branch. Several seniors say spreading across DSA, AI and core at once cost them time.",
       },
     ],
-    related: ["gate-vs-placement-vs-mba", "non-cs-branch-to-data-analytics-and-consulting", "dsa-vs-development-what-to-focus-on"],
+    related: ["placement-preparation-for-engineering-students", "gate-vs-placement-vs-mba", "non-cs-branch-to-data-analytics-and-consulting", "dsa-vs-development-what-to-focus-on"],
   },
 
   {
@@ -503,7 +680,7 @@ export const GUIDES = [
         a: "Yes. A Chemical Engineering senior from VNIT Nagpur joined Amazon after about six months of Python, daily DSA practice and mock interviews.",
       },
     ],
-    related: ["dsa-vs-development-what-to-focus-on", "how-to-get-off-campus-internship", "gate-vs-placement-vs-mba"],
+    related: ["placement-preparation-for-engineering-students", "dsa-vs-development-what-to-focus-on", "how-to-get-off-campus-internship", "gate-vs-placement-vs-mba"],
   },
 
   {

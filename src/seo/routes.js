@@ -37,6 +37,29 @@ export const PUBLIC_ROUTES = [
     h1: "Practice the interview before the real one",
     intro:
       "An AI interviewer asks what this company would ask, digs into your projects, and pushes back when an answer is thin. Paste the job description and your resume to start.",
+    // Rendered as visible Q&A and as FAQPage JSON-LD by scripts/prerender.js.
+    faq: [
+      [
+        "How does the Atyant AI mock interview work?",
+        "You paste the full job description and upload your resume as a PDF. The AI reads both, plans questions that mix what the job description asks for with your own projects, and then runs a live video round: camera on, answers out loud, no pausing.",
+      ],
+      [
+        "Is the mock interview specific to the company and role?",
+        "Yes. The questions are built from the job description you paste and the company name you add, so a mock for a data analyst role is different from one for a software engineer role.",
+      ],
+      [
+        "What feedback do I get after the mock interview?",
+        "A score out of 100 with a breakdown for each skill, feedback on every answer that quotes what you actually said, stronger sample answers, and a list of what to prepare before the real interview.",
+      ],
+      [
+        "Does the AI interviewer ask follow-up questions?",
+        "Yes. Thin answers get follow-ups, the way a real interviewer would push, so it helps to say why you picked a tool or approach and to give real numbers.",
+      ],
+      [
+        "Who is the AI mock interview for?",
+        "College students and freshers in India preparing for campus placements, off-campus drives and internship interviews, in any engineering branch.",
+      ],
+    ],
   },
   {
     page: "mentor-onboard",

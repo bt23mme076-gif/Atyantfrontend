@@ -9,13 +9,14 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PUBLIC_ROUTES, SITE } from "../src/seo/routes.js";
-import { renderGuides, GUIDES_UPDATED, GUIDES_HUB_UPDATED } from "./render-guides.js";
+import { renderGuides } from "./render-guides.js";
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 
 // Served from the marketing site (proxied in vercel.json) but self-canonical and
-// indexable, so it belongs in this domain's sitemap.
-const EXTERNAL_PATHS = ["/company", "/achievements"];
+// indexable, so they belong in this domain's sitemap. The marketing site's
+// scripts/prerender-routes.mjs gives the last four their own canonical.
+const EXTERNAL_PATHS = ["/company", "/achievements", "/internships", "/career-guides", "/resume-store", "/webinar"];
 
 // Photos on marketing pages, as image-sitemap entries so they can rank in
 // Google Images. Keep in sync with the atyant repo's
@@ -82,9 +83,26 @@ function renderRoute(template, route) {
     .map((r) => `<a href="${r.path}">${esc(r.h1)}</a>`)
     .concat(`<a href="/guides">Placement guides from seniors like you</a>`)
     .join(" · ");
+  const faq = route.faq || [];
+  const faqHtml = faq.length
+    ? `<h2>Frequently asked questions</h2>` + faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")
+    : "";
+  if (faq.length) {
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+    };
+    html = replaceOnce(
+      html,
+      /<\/head>/,
+      `  <script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>\n</head>`,
+      "</head>",
+    );
+  }
   const body =
     `<main style="max-width:720px;margin:0 auto;padding:48px 16px;color:inherit">` +
-    `<h1>${esc(route.h1)}</h1><p>${esc(route.intro)}</p><nav>${nav}</nav></main>`;
+    `<h1>${esc(route.h1)}</h1><p>${esc(route.intro)}</p>${faqHtml}<nav>${nav}</nav></main>`;
   html = replaceOnce(html, /<div id="root"><\/div>/, `<div id="root">${body}</div>`, "#root");
 
   return html;
@@ -103,7 +121,7 @@ const guidePaths = renderGuides(DIST);
 const buildDate = new Date().toISOString().slice(0, 10);
 const urls = [
   ...[...PUBLIC_ROUTES.map((r) => r.path), ...EXTERNAL_PATHS].map((p) => [p, buildDate]),
-  ...guidePaths.map((p) => [p, p === "/guides" ? GUIDES_HUB_UPDATED : GUIDES_UPDATED]),
+  ...guidePaths,
 ]
   .map(([p, lastmod]) => {
     const images = (EXTERNAL_IMAGES[p] || [])
