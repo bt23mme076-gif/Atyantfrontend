@@ -5,11 +5,20 @@
     { "source": "/atyantEngine/:path*", "destination": "/:path*", "permanent": true },
     { "source": "/home", "destination": "/company", "permanent": true }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://api.product.atyant.in/api/$1"
+      "src": "/api/(.*)",
+      "dest": "https://api.product.atyant.in/api/$1",
+      "transforms": [
+        { "type": "request.headers", "op": "set", "target": { "key": "x-atyant-proxy-secret" }, "args": "$VERCEL_PROXY_SECRET", "env": ["VERCEL_PROXY_SECRET"] }
+      ]
     },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "https://api.product.atyant.in/uploads/$1"
+    }
+  ],
+  "rewrites": [
     {
       "source": "/:page(company|achievements|internships|dad|career-guides|resume-store|events|webinar|privacy|terms|login|signup|forgot-password|reset-password|auth-success|profile)",
       "destination": "https://atyant.vercel.app/:page"

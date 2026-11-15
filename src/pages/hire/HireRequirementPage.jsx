@@ -19,13 +19,21 @@ const EMPTY = { company: "", contactName: "", phone: "", email: "", ...EMPTY_ROL
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const roleOf = (f) => (f.roleChoice === "Other" ? f.roleOther.trim() : f.roleChoice);
 
+// Indian mobile: 10 digits starting 6-9, optionally written with +91 / 91 / 0.
+// Mirrors indianMobile() in the backend's hireRoutes.js.
+function indianMobile(p) {
+  let d = String(p || "").replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
+  else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  return /^[6-9]\d{9}$/.test(d) ? d : null;
+}
+
 // In page order, so the first error is the one we scroll to.
 function validate(f) {
   const e = {};
   if (!f.company.trim()) e.company = "Enter your startup's name.";
   if (!f.contactName.trim()) e.contactName = "Enter your name.";
-  const digits = f.phone.replace(/\D/g, "");
-  if (digits.length < 10 || digits.length > 15) e.phone = "Enter a 10-digit mobile number.";
+  if (!indianMobile(f.phone)) e.phone = "Enter a valid 10-digit mobile number.";
   if (!EMAIL_RE.test(f.email.trim())) e.email = "Enter a valid email, like name@startup.com.";
   if (!f.roleChoice) e.roleChoice = "Pick the internship role.";
   else if (f.roleChoice === "Other" && !f.roleOther.trim()) e.roleOther = "Type the role you're hiring for.";
