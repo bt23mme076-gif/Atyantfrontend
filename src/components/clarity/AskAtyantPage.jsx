@@ -7,6 +7,7 @@ import { clarityAPI, aiAPI, eventsAPI } from "../../api";
 import InviteSeniors from "../invite/InviteSeniors";
 import useIsMobile from "../../hooks/useIsMobile";
 import { VoiceOverlay } from "./VoiceOverlay";
+import HomeSeoSection from "./HomeSeoSection";
 
 const CHAT_SID_KEY = "atyant_chat_sid";
 
@@ -1388,6 +1389,7 @@ export default function AskAtyantPage({ user, onGoToClarity, onGoToMentorOnboard
               </motion.div>
             )}
           </AnimatePresence>
+          <HomeSeoSection onGoToJobs={onGoToJobs} onGoToMockInterview={onGoToMockInterview} onGoToMentorOnboard={onGoToMentorOnboard} />
         </div>
       ) : (
         /* Chat Mode */

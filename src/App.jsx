@@ -1616,10 +1616,19 @@ export default function App() {
 
   const NavItem = ({ item }) => {
     const isActive = activePage === item.id;
-    // Items with an href render as a real <a> so the link is crawlable.
-    const Tag = item.href ? "a" : "button";
+    // Items with an href render as a real <a> so the link is crawlable. Public
+    // views (PAGE_TO_PATH: /, /jobs, /mock-interview, /mentor-onboard) are
+    // links too, but a plain click still switches view without a reload.
+    const viewPath = item.href ? null : PAGE_TO_PATH[item.id];
+    const Tag = item.href || viewPath ? "a" : "button";
     return (
-      <Tag href={item.href} onClick={() => { if (!item.href) setActivePage(item.id); if (isMobile) setSidebarOpen(false); }}
+      <Tag href={item.href || viewPath || undefined}
+        onClick={(e) => {
+          if (viewPath && (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)) return;
+          if (viewPath) e.preventDefault();
+          if (!item.href) setActivePage(item.id);
+          if (isMobile) setSidebarOpen(false);
+        }}
         data-tour={`nav-${item.id}`}
         title={collapsed ? item.label : undefined}
         style={{ position: "relative", width: "100%", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 12, padding: collapsed ? "10px 0" : "10px 12px", borderRadius: 10, border: "none", background: isActive ? C.accentSoft : "transparent", color: isActive ? C.text : C.textSub, cursor: "pointer", fontFamily: "inherit", fontSize: "0.9rem", lineHeight: 1.2, textAlign: "left", textDecoration: "none", boxSizing: "border-box", transition: "background-color 0.2s ease, color 0.2s ease", fontWeight: 500 }}
