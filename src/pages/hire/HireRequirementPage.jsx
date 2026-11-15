@@ -146,7 +146,7 @@ function RequirementForm({ initial, onDone }) {
       <div className="hr-col" style={{ gap: 10, marginTop: 4 }}>
         <button className="hr-btn primary lg block" disabled={busy}>{busy ? "Sending…" : "Send requirement"} {!busy && <ArrowRight size={16} className="hr-arrow" />}</button>
         <div className="hr-col hr-muted" style={{ textAlign: "center", fontSize: ".8rem", gap: 3, lineHeight: 1.45 }}>
-          <span><b style={{ color: "var(--c-textSub)" }}>Free to share. No fee until your intern joins.</b></span>
+          <span><b style={{ color: "var(--c-textSub)" }}>Free to share.</b></span>
           <span><ShieldCheck size={12} style={{ verticalAlign: "-2px" }} /> We'll call you within 1 business day to discuss stipend and other details. We don't share your details with students.</span>
         </div>
       </div>
