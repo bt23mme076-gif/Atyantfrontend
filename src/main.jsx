@@ -13,6 +13,7 @@ import MentorTrackPage from './pages/MentorTrackPage'
 const HireHome = lazy(() => import('./pages/hire/HireHome.jsx'))
 const HireJobPage = lazy(() => import('./pages/hire/HireJobPage.jsx'))
 const HireCandidatePage = lazy(() => import('./pages/hire/HireCandidatePage.jsx'))
+const HireRequirementPage = lazy(() => import('./pages/hire/HireRequirementPage.jsx'))
 const hire = (el) => <Suspense fallback={null}>{el}</Suspense>
 
 const IS_TPO_SUBDOMAIN = window.location.hostname === 'vnit.atyant.in'
@@ -67,6 +68,7 @@ if (IS_TPO_SUBDOMAIN) {
                 <Route path="/hire" element={hire(<HireHome />)} />
                 <Route path="/hire/jobs/:jobId" element={hire(<HireJobPage />)} />
                 <Route path="/hire/i/:slug" element={hire(<HireCandidatePage />)} />
+                <Route path="/hire/requirement" element={hire(<HireRequirementPage />)} />
                 <Route path="/*" element={<RootOrMeet />} />
               </Routes>
             </BrowserRouter>

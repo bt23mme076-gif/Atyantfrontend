@@ -546,8 +546,11 @@ export const hireAPI = {
     return res.blob();
   },
 
+  // Startup intern requirement (public form, brochure QR)
+  submitRequirement: (body)   => api.post('/api/hire/requirements', body),
+
   // Candidate (public)
-  publicJob:     (slug)       => api.get(`/api/hire/p/${encodeURIComponent(slug)}`),
+  publicJob:    (slug)       => api.get(`/api/hire/p/${encodeURIComponent(slug)}`),
   apply:         (slug, { name, email, phone, resumeFile }) => {
     const form = new FormData();
     form.append('name', name);
