@@ -17,7 +17,7 @@ export const GUIDES = [
     updated: "2026-11-16",
     title: "Placement Preparation for B.Tech Students: A Plan from Seniors",
     description:
-      "When to start placement preparation, what to do each semester, and how VNIT seniors got into Amazon, Google, HPCL and ZS Associates. For CSE and core branches.",
+      "When to start placement preparation, how to prepare for aptitude, DSA and interviews, and how VNIT seniors got into Amazon, Google, HPCL and ZS Associates.",
     h1: "Placement preparation for engineering students: a semester-by-semester plan",
     hub: "One plan for placement season, whatever your branch. When the seniors who reached Amazon, Google, HPCL, JSW and ZS Associates started preparing, what they did each semester, what the rounds test, and what to do if campus placements don't work out.",
     intro:
@@ -57,9 +57,21 @@ export const GUIDES = [
         ],
       },
       {
+        h2: "How to prepare for the aptitude round",
+        paras: [
+          "The aptitude test is usually the first filter, and it is timed, so speed matters as much as knowing the method. Take one full timed mock test before you start studying. It shows which topics cost you the most time and marks.",
+          "Then go topic by topic: learn the concept, solve a set of questions on it, and move on only when you can solve them within the time limit. Go back to full timed mocks every week or two to check your speed.",
+        ],
+        list: [
+          "Quantitative aptitude: number systems, percentages, profit and loss, ratios, time and work, time and distance, permutations and combinations, and probability.",
+          "Logical reasoning: series, seating arrangements, blood relations, syllogisms, coding-decoding and data interpretation.",
+          "Verbal ability: reading comprehension, sentence correction and vocabulary.",
+        ],
+      },
+      {
         h2: "Placement preparation for CSE and IT students",
         paras: [
-          "Pick one resource, such as LeetCode or GFG, and solve problems daily instead of trying to cover every topic. One senior who joined Amazon solved about 300 LeetCode problems grouped by pattern, from easy to hard. Keep a list of what you have solved and review it every week to find weak areas.",
+          "Pick one resource, such as LeetCode or GFG, and solve problems daily instead of trying to cover every topic. One senior who joined Amazon solved about 300 LeetCode problems grouped by pattern, from easy to hard. Keep a list of what you have solved and review it every week to find weak areas. Also revise the computer science subjects technical interviews ask about: OOPs, DBMS and SQL, operating systems and computer networks.",
           "Start system design alongside DSA, not after it. Starting it late was the most common regret among the seniors who reached Amazon and Google. For projects, one or two full-stack projects or open-source contributions you can explain in detail count for more than many small tutorial projects.",
         ],
       },
@@ -166,6 +178,10 @@ export const GUIDES = [
       {
         q: "When should I start placement preparation?",
         a: "In second year if you can. Seniors who reached a Google internship and a FAANG internship started serious preparation in second year or wished they had, and starting late was the most common regret. Final-year students still get placed, but should focus on one target role.",
+      },
+      {
+        q: "How do I prepare for the aptitude test for placements?",
+        a: "Take one full timed mock test first to find your weak topics. Then study quantitative aptitude, logical reasoning and verbal ability one topic at a time, and go back to timed mocks every week or two. The test is timed, so speed matters as much as accuracy.",
       },
       {
         q: "Is DSA enough for placements?",
