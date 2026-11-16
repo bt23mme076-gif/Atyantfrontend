@@ -11,13 +11,15 @@ const card = { initial: { opacity: 0, y: 20, scale: 0.98 }, animate: { opacity: 
 
 const ROLES = ["Frontend", "Backend", "Full-stack", "AI/ML", "Data analyst", "UI/UX design", "Marketing", "Sales/BD", "Operations", "Other"];
 
-// Five fields only. Stipend, number of interns, duration and start date are
-// settled on the follow-up call.
-const EMPTY_ROLE = { roleChoice: "", roleOther: "" };
+const DURATIONS = ["1 month", "2 months", "3 months", "6 months", "Other"];
+
+// Number of interns and start date are settled on the follow-up call.
+const EMPTY_ROLE = { roleChoice: "", roleOther: "", stipend: "", durationChoice: "", durationOther: "" };
 const EMPTY = { company: "", contactName: "", phone: "", email: "", ...EMPTY_ROLE, website: "" };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const roleOf = (f) => (f.roleChoice === "Other" ? f.roleOther.trim() : f.roleChoice);
+const durationOf = (f) => (f.durationChoice === "Other" ? f.durationOther.trim() : f.durationChoice);
 
 // Indian mobile: 10 digits starting 6-9, optionally written with +91 / 91 / 0.
 // Mirrors indianMobile() in the backend's hireRoutes.js.
@@ -31,12 +33,15 @@ function indianMobile(p) {
 // In page order, so the first error is the one we scroll to.
 function validate(f) {
   const e = {};
-  if (!f.company.trim()) e.company = "Enter your startup's name.";
+  if (!f.company.trim()) e.company = "Enter your company's name.";
   if (!f.contactName.trim()) e.contactName = "Enter your name.";
   if (!indianMobile(f.phone)) e.phone = "Enter a valid 10-digit mobile number.";
-  if (!EMAIL_RE.test(f.email.trim())) e.email = "Enter a valid email, like name@startup.com.";
+  if (!EMAIL_RE.test(f.email.trim())) e.email = "Enter a valid email, like name@company.com.";
   if (!f.roleChoice) e.roleChoice = "Pick the internship role.";
   else if (f.roleChoice === "Other" && !f.roleOther.trim()) e.roleOther = "Type the role you're hiring for.";
+  if (!f.stipend.trim()) e.stipend = "Enter the stipend you can offer.";
+  if (!f.durationChoice) e.durationChoice = "Pick the internship duration.";
+  else if (f.durationChoice === "Other" && !f.durationOther.trim()) e.durationOther = "Type the duration.";
   return e;
 }
 
@@ -64,6 +69,7 @@ function RequirementForm({ initial, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const otherRef = useRef(null);
+  const durOtherRef = useRef(null);
 
   const update = (k, val) => {
     setF(v => ({ ...v, [k]: val }));
@@ -73,6 +79,7 @@ function RequirementForm({ initial, onDone }) {
   const set = (k) => (e) => update(k, e.target.value);
 
   useEffect(() => { if (f.roleChoice === "Other") otherRef.current?.focus(); }, [f.roleChoice]);
+  useEffect(() => { if (f.durationChoice === "Other") durOtherRef.current?.focus(); }, [f.durationChoice]);
 
   const input = (k) => ({
     id: `rq-${k}`, value: f[k], onChange: set(k),
@@ -88,14 +95,15 @@ function RequirementForm({ initial, onDone }) {
     const first = Object.keys(errs)[0];
     if (first) return focusField(first);
     setBusy(true);
-    const body = { company: f.company, contactName: f.contactName, phone: f.phone, email: f.email, role: roleOf(f), website: f.website, source: params.get("src") || "link" };
+    const body = { company: f.company, contactName: f.contactName, phone: f.phone, email: f.email, role: roleOf(f), stipend: f.stipend, duration: durationOf(f), website: f.website, source: params.get("src") || "link" };
     try {
       await hireAPI.submitRequirement(body);
-      onDone({ ...f, role: body.role });
+      onDone({ ...f, role: body.role, duration: body.duration });
     } catch (err) {
       // The server names the field it rejected; show the message there.
       let field = err.data?.field;
       if (field === "role") field = f.roleChoice === "Other" ? "roleOther" : "roleChoice";
+      if (field === "duration") field = f.durationChoice === "Other" ? "durationOther" : "durationChoice";
       if (field && document.getElementById(`rq-${field}`)) { setErrors({ [field]: err.message }); focusField(field); }
       else setError(err.message || "Could not send. Please try again.");
       setBusy(false);
@@ -108,12 +116,12 @@ function RequirementForm({ initial, onDone }) {
         <span className="hr-icon-badge solid"><Sparkles size={18} /></span>
         <div className="hr-col" style={{ gap: 2 }}>
           <div className="hr-h3" style={{ fontSize: "1.15rem" }}>Share your requirement</div>
-          <span className="hr-muted">Five quick fields. We'll discuss the rest on a call.</span>
+          <span className="hr-muted">A few quick fields. We'll discuss the rest on a call.</span>
         </div>
       </div>
 
       <div className="hr-grid c2" style={{ alignItems: "start" }}>
-        <Field id="company" label="Startup name" error={errors.company}>
+        <Field id="company" label="Company name" error={errors.company}>
           <input {...input("company")} maxLength={120} autoComplete="organization" />
         </Field>
         <Field id="contactName" label="Your name" error={errors.contactName}>
@@ -123,7 +131,7 @@ function RequirementForm({ initial, onDone }) {
           <input {...input("phone")} type="tel" inputMode="tel" maxLength={16} autoComplete="tel" placeholder="10-digit number" />
         </Field>
         <Field id="email" label="Work email" error={errors.email}>
-          <input {...input("email")} type="email" maxLength={200} autoComplete="email" placeholder="name@startup.com" />
+          <input {...input("email")} type="email" maxLength={200} autoComplete="email" placeholder="name@company.com" />
         </Field>
       </div>
 
@@ -147,6 +155,30 @@ function RequirementForm({ initial, onDone }) {
         </AnimatePresence>
       </div>
 
+      <Field id="stipend" label="Stipend offered (per month)" error={errors.stipend}>
+        <input {...input("stipend")} maxLength={80} placeholder="e.g. ₹10,000 or Unpaid" />
+      </Field>
+
+      <div>
+        <span className="hr-label" id="rq-durationChoice-label">Internship duration</span>
+        <div className="hr-opts" id="rq-durationChoice" tabIndex={-1} role="radiogroup" aria-labelledby="rq-durationChoice-label" aria-invalid={!!errors.durationChoice || undefined}>
+          {DURATIONS.map(d => (
+            <button type="button" key={d} role="radio" aria-checked={f.durationChoice === d} className={`hr-opt ${f.durationChoice === d ? "on" : ""}`} onClick={() => update("durationChoice", d)}>{d}</button>
+          ))}
+        </div>
+        {errors.durationChoice && <div className="hr-ferr">{errors.durationChoice}</div>}
+        <AnimatePresence initial={false}>
+          {f.durationChoice === "Other" && (
+            <motion.div key="dur-other" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25, ease: EASE }} style={{ overflow: "hidden" }}>
+              <div style={{ paddingTop: 10 }}>
+                <input {...input("durationOther")} ref={durOtherRef} maxLength={80} placeholder="e.g. 4 months" aria-label="Specify the duration" />
+                {errors.durationOther && <div className="hr-ferr" id="rq-durationOther-msg">{errors.durationOther}</div>}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Honeypot: hidden from people, filled by bots. */}
       <input type="text" name="website" value={f.website} onChange={set("website")} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
 
@@ -155,7 +187,7 @@ function RequirementForm({ initial, onDone }) {
         <button className="hr-btn primary lg block" disabled={busy}>{busy ? "Sending…" : "Send requirement"} {!busy && <ArrowRight size={16} className="hr-arrow" />}</button>
         <div className="hr-col hr-muted" style={{ textAlign: "center", fontSize: ".8rem", gap: 3, lineHeight: 1.45 }}>
           <span><b style={{ color: "var(--c-textSub)" }}>Free to share.</b></span>
-          <span><ShieldCheck size={12} style={{ verticalAlign: "-2px" }} /> We'll call you within 1 business day to discuss stipend and other details. We don't share your details with students.</span>
+          <span><ShieldCheck size={12} style={{ verticalAlign: "-2px" }} /> We'll call you within 1 business day to discuss the details. We don't share your details with students.</span>
         </div>
       </div>
     </motion.form>
@@ -164,7 +196,7 @@ function RequirementForm({ initial, onDone }) {
 
 function Done({ sent, onAnother }) {
   const steps = [
-    ["A short call", "We settle the stipend, number of interns, duration and start date."],
+    ["A short call", "We confirm the number of interns and start date."],
     ["A one-page agreement", "Signed before any profile goes out."],
     ["3 to 5 profiles", "Only students who cleared an AI interview built from your role."],
   ];
@@ -217,8 +249,8 @@ export default function HireRequirementPage() {
           ) : (
             <motion.div key="form" className="hr-col" style={{ gap: 22 }} exit={{ opacity: 0, y: -12 }}>
               <motion.header className="hr-col" style={{ gap: 12 }} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
-                <span className="hr-eyebrow">Atyant Hire · For startups</span>
-                <h1 className="hr-h1" style={{ fontSize: "clamp(2rem, 6vw, 2.9rem)" }}>Hire an intern <em className="hr-grad-text">for your startup</em></h1>
+                <span className="hr-eyebrow">Atyant Hire · For companies</span>
+                <h1 className="hr-h1" style={{ fontSize: "clamp(2rem, 6vw, 2.9rem)" }}>Hire an intern <em className="hr-grad-text">for your company</em></h1>
                 <p className="hr-sub" style={{ fontSize: ".98rem" }}>Takes 30 seconds. We screen students and send you 3 to 5 who cleared an interview built for your role.</p>
                 <div className="hr-row" style={{ gap: 8, flexWrap: "wrap" }}>
                   <span className="hr-chip"><BadgeCheck size={13} /> No fee until your intern joins</span>
