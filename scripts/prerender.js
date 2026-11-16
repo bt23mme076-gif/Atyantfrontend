@@ -10,13 +10,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PUBLIC_ROUTES, SITE } from "../src/seo/routes.js";
 import { renderGuides } from "./render-guides.js";
+import { GUIDES } from "../src/seo/guides.js";
+import { MARKETING_LINKS, HOME_STEPS, HOME_FAQ } from "../src/seo/site.js";
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 
 // Served from the marketing site (proxied in vercel.json) but self-canonical and
 // indexable, so they belong in this domain's sitemap. The marketing site's
 // scripts/prerender-routes.mjs gives the last four their own canonical.
-const EXTERNAL_PATHS = ["/company", "/achievements", "/internships", "/career-guides", "/resume-store", "/webinar"];
+const EXTERNAL_PATHS = MARKETING_LINKS.map((l) => l.path);
 
 // Photos on marketing pages, as image-sitemap entries so they can rank in
 // Google Images. Keep in sync with the atyant repo's
@@ -79,15 +81,26 @@ function renderRoute(template, route) {
     html = html.replace(/\s*<script type="application\/ld\+json" data-home-only>[\s\S]*?<\/script>/g, "");
   }
 
-  const nav = PUBLIC_ROUTES.filter((r) => r.path !== route.path)
-    .map((r) => `<a href="${r.path}">${esc(r.h1)}</a>`)
-    .concat(`<a href="/guides">Placement guides from seniors like you</a>`)
-    .join(" · ");
-  const faq = route.faq || [];
+  // Every public page as a plain <a href>, so Google can discover the whole site
+  // from the static HTML without waiting to render JavaScript.
+  const navLinks = [
+    ...PUBLIC_ROUTES.filter((r) => r.path !== route.path).map((r) => [r.path, r.h1]),
+    ["/guides", "Placement guides from seniors like you"],
+    ...MARKETING_LINKS.map((l) => [l.path, l.label]),
+  ];
+  const nav = navLinks.map(([href, text]) => `<a href="${href}">${esc(text)}</a>`).join(" · ");
+  const guideList =
+    `<h2>Placement and internship guides</h2><ul>` +
+    GUIDES.map((g) => `<li><a href="/guides/${g.slug}">${esc(g.h1)}</a> ${esc(g.description)}</li>`).join("") +
+    `</ul>`;
+  // The homepage's FAQPage JSON-LD already lives in index.html (data-home-only),
+  // so its FAQ is rendered as visible text only, never as a second schema block.
+  const isHome = route.path === "/";
+  const faq = isHome ? HOME_FAQ : route.faq || [];
   const faqHtml = faq.length
     ? `<h2>Frequently asked questions</h2>` + faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")
     : "";
-  if (faq.length) {
+  if (faq.length && !isHome) {
     const schema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -100,9 +113,19 @@ function renderRoute(template, route) {
       "</head>",
     );
   }
+  const homeExtra = isHome
+    ? `<h2>How Atyant works</h2><ol>` +
+      HOME_STEPS.map(([t, d]) => `<li><strong>${esc(t)}</strong> ${esc(d)}</li>`).join("") +
+      `</ol><h2>What you can do on Atyant</h2><ul>` +
+      [
+        ...PUBLIC_ROUTES.filter((r) => r.path !== "/").map((r) => `<li><a href="${r.path}">${esc(r.h1)}</a></li>`),
+        ...MARKETING_LINKS.map((l) => `<li><a href="${l.path}">${esc(l.label)}</a>: ${esc(l.blurb)}</li>`),
+      ].join("") +
+      `</ul>`
+    : "";
   const body =
     `<main style="max-width:720px;margin:0 auto;padding:48px 16px;color:inherit">` +
-    `<h1>${esc(route.h1)}</h1><p>${esc(route.intro)}</p>${faqHtml}<nav>${nav}</nav></main>`;
+    `<h1>${esc(route.h1)}</h1><p>${esc(route.intro)}</p>${homeExtra}${guideList}${faqHtml}<nav>${nav}</nav></main>`;
   html = replaceOnce(html, /<div id="root"><\/div>/, `<div id="root">${body}</div>`, "#root");
 
   return html;
