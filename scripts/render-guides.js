@@ -7,6 +7,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { SITE, DEFAULT_OG } from "../src/seo/routes.js";
 import { GUIDES, GUIDES_UPDATED, GUIDES_HUB_UPDATED } from "../src/seo/guides.js";
+import { MARKETING_LINKS } from "../src/seo/site.js";
 
 const esc = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -116,7 +117,7 @@ ${body}
 </main>
 <footer class="wrap foot">
 <p>Atyant, India's first Human + AI career execution platform: placement and internship guidance for every engineering student, from seniors who came from the same background. Stories on these pages are anonymised from real Atyant AnswerCards.</p>
-<nav><a href="/">Ask Atyant</a><a href="/guides">Career guides</a><a href="/jobs">Jobs for freshers</a><a href="/mock-interview">AI mock interview</a><a href="/mentor-onboard">Become a mentor</a></nav>
+<nav><a href="/">Ask Atyant</a><a href="/guides">Career guides</a><a href="/jobs">Jobs for freshers</a><a href="/mock-interview">AI mock interview</a><a href="/mentor-onboard">Become a mentor</a>${MARKETING_LINKS.map((l) => `<a href="${l.path}">${esc(l.label)}</a>`).join("")}</nav>
 </footer>
 </body>
 </html>
